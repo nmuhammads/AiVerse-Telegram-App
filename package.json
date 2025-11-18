@@ -11,10 +11,9 @@
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "server:dev": "nodemon",
-    "server:prod": "node api/index.js",
+    "server:prod": "tsx api/index.ts",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
-    "start": "npm run server:prod",
-    "postinstall": "npm run build"
+    "start": "npm run server:prod"
   },
   "dependencies": {
     "@twa-dev/sdk": "^8.0.2",
