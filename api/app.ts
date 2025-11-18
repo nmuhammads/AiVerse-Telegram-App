@@ -34,6 +34,13 @@ app.use('/api/auth', authRoutes)
 app.use('/api/generation', generationRoutes)
 
 /**
+ * Serve frontend build
+ */
+const clientDistPath = path.resolve(__dirname, '..', 'dist')
+app.use(express.static(clientDistPath))
+
+
+/**
  * health
  */
 app.use(
@@ -45,6 +52,11 @@ app.use(
     })
   },
 )
+
+// SPA fallback to index.html (after API routes and health)
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'))
+})
 
 /**
  * error handler middleware
@@ -59,11 +71,6 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 /**
  * 404 handler
  */
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'API not found',
-  })
-})
+// Removed explicit 404 JSON to let SPA fallback handle non-API routes
 
 export default app
