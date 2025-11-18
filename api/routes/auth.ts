@@ -11,7 +11,7 @@ const router = Router()
  * POST /api/auth/register
  */
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  // TODO: Implement register logic
+  res.status(200).json({ ok: true })
 })
 
 /**
@@ -19,7 +19,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
  * POST /api/auth/login
  */
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  // TODO: Implement login logic
+  res.status(200).json({ ok: true })
 })
 
 /**
@@ -27,7 +27,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
  * POST /api/auth/logout
  */
 router.post('/logout', async (req: Request, res: Response): Promise<void> => {
-  // TODO: Implement logout logic
+  res.status(200).json({ ok: true })
 })
 
 export default router

@@ -13,6 +13,7 @@ import dotenv from 'dotenv'
 import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import generationRoutes from './routes/generation.js'
+import enhanceRoutes from './routes/enhance.js'
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url)
@@ -32,6 +33,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
  */
 app.use('/api/auth', authRoutes)
 app.use('/api/generation', generationRoutes)
+app.use('/api/enhance', enhanceRoutes)
 
 /**
  * Serve frontend build
@@ -43,15 +45,9 @@ app.use(express.static(clientDistPath))
 /**
  * health
  */
-app.use(
-  '/api/health',
-  (req: Request, res: Response, next: NextFunction): void => {
-    res.status(200).json({
-      success: true,
-      message: 'ok',
-    })
-  },
-)
+app.use('/api/health', (req: Request, res: Response): void => {
+  res.status(200).json({ success: true, message: 'ok' })
+})
 
 // SPA fallback to index.html (after API routes and health)
 app.get('*', (req: Request, res: Response) => {
@@ -62,6 +58,7 @@ app.get('*', (req: Request, res: Response) => {
  * error handler middleware
  */
 app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+  void next
   res.status(500).json({
     success: false,
     error: 'Server internal error',
@@ -71,6 +68,5 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 /**
  * 404 handler
  */
-// Removed explicit 404 JSON to let SPA fallback handle non-API routes
 
 export default app

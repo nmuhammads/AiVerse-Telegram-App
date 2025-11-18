@@ -42,7 +42,7 @@ async function generateImageWithKieAI(
     const { model, prompt, aspect_ratio, image } = requestData
     
     // Подготовка данных для запроса
-    const requestBody: any = {
+    const requestBody: Record<string, unknown> = {
       model: MODEL_CONFIGS[model as keyof typeof MODEL_CONFIGS].modelId,
       prompt: prompt
     }
