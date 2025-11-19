@@ -51,6 +51,11 @@ export function useTelegram() {
     WebApp.openLink(url)
   }
 
+  const openBotDeepLink = (param: string) => {
+    const u = `https://t.me/AiVerseAppBot?startapp=${encodeURIComponent(param)}`
+    WebApp.openTelegramLink(u)
+  }
+
   return {
     showMainButton,
     hideMainButton,
@@ -58,6 +63,7 @@ export function useTelegram() {
     hideProgress,
     shareImage,
     openLink,
+    openBotDeepLink,
     user: WebApp.initDataUnsafe.user,
     platform: WebApp.platform
   }

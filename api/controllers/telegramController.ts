@@ -65,3 +65,19 @@ export async function setupCommands(req: Request, res: Response) {
   await registerBotCommands()
   res.json({ ok: true })
 }
+
+export async function setupMenuButton(req: Request, res: Response) {
+  if (!API || !APP_URL) {
+    return res.status(400).json({ ok: false })
+  }
+  const startParam = 'generate'
+  const url = `${APP_URL}?tgWebAppStartParam=${encodeURIComponent(startParam)}`
+  await tg('setChatMenuButton', {
+    menu_button: {
+      type: 'web_app',
+      text: 'AI Verse',
+      web_app: { url }
+    }
+  })
+  res.json({ ok: true })
+}
