@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import Home from "@/pages/Home";
 import Studio from "@/pages/Studio";
@@ -6,6 +6,37 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
+import { useEffect } from "react";
+import WebApp from "@twa-dev/sdk";
+
+function StartParamRouter() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search);
+    const fromQuery = qs.get("tgWebAppStartParam") || qs.get("start") || (qs.has("generate") ? "generate" : null) || qs.get("p");
+    const fromSdk = WebApp?.initDataUnsafe?.start_param || null;
+    const p = fromSdk || fromQuery;
+    if (!p) return;
+    if (p === "generate" || p === "studio") {
+      navigate("/studio", { replace: true });
+      return;
+    }
+    if (p === "home") {
+      navigate("/", { replace: true });
+      return;
+    }
+    if (p === "top") {
+      navigate("/top", { replace: true });
+      return;
+    }
+    if (p === "profile") {
+      navigate("/profile", { replace: true });
+      return;
+    }
+  }, [location.search, navigate]);
+  return null;
+}
 
 export default function App() {
   return (
@@ -16,6 +47,7 @@ export default function App() {
           <div className="absolute -bottom-20 -right-10 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
         </div>
         <Header />
+        <StartParamRouter />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/studio" element={<Studio />} />

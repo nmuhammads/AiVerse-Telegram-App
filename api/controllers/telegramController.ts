@@ -30,8 +30,10 @@ export async function webhook(req: Request, res: Response) {
     if (text.startsWith('/start')) {
       const parts = text.split(/\s+/)
       const param = parts.length > 1 ? parts[1] : ''
-      if (param === 'home' && APP_URL) {
-        const kb = { inline_keyboard: [[{ text: 'Открыть приложение', web_app: { url: APP_URL } }]] }
+      if (APP_URL && (param === 'home' || param === 'generate' || param === 'studio' || param === 'top' || param === 'profile')) {
+        const startVal = param === 'studio' ? 'generate' : param
+        const url = startVal === 'home' ? APP_URL : `${APP_URL}?tgWebAppStartParam=${encodeURIComponent(startVal)}`
+        const kb = { inline_keyboard: [[{ text: 'Открыть приложение', web_app: { url } }]] }
         await tg('sendMessage', { chat_id: chatId, text: 'Открыть мини‑апп', reply_markup: kb })
       } else {
         const info = 'AI Verse — мини‑приложение генерации изображений ИИ. Используйте /home чтобы открыть.'
@@ -56,11 +58,7 @@ export async function webhook(req: Request, res: Response) {
 
 export async function registerBotCommands() {
   if (!API) return
-  const commands = [
-    { command: 'start', description: 'Запуск и информация' },
-    { command: 'home', description: 'Открыть мини‑приложение' },
-  ]
-  await tg('setMyCommands', { commands })
+  await tg('deleteMyCommands', {})
 }
 
 export async function setupCommands(req: Request, res: Response) {
