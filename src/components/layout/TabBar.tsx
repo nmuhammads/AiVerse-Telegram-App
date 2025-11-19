@@ -12,9 +12,9 @@ export function TabBar() {
             { to: '/studio', label: 'Студия', icon: <Settings2 size={20} /> },
             { to: '/profile', label: 'Профиль', icon: <User size={20} /> },
           ].map((tab) => (
-            <NavLink key={tab.to} to={tab.to} end className={({ isActive }) => `flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all duration-300 ${isActive ? 'bg-white/10 text-white shadow-inner backdrop-blur-md scale-100 border border-white/5' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'}`}>
+            <NavLink key={tab.to} to={tab.to} end className={({ isActive }) => `flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-full transition-all duration-300 ${isActive ? 'bg-white/10 text-white shadow-inner backdrop-blur-md scale-100 border border-white/5' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'}`}>
               <div className={`transition-transform`}>{tab.icon}</div>
-              <span className="text-[10px] font-bold tracking-wide hidden sm:inline-block">{tab.label}</span>
+              <span className="text-[10px] font-bold tracking-wide">{tab.label}</span>
             </NavLink>
           ))}
         </div>

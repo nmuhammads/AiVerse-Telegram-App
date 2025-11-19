@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url'
 import authRoutes from './routes/auth.js'
 import generationRoutes from './routes/generation.js'
 import enhanceRoutes from './routes/enhance.js'
+import userRoutes from './routes/user.js'
 
 // for esm mode
 const __filename = fileURLToPath(import.meta.url)
@@ -34,12 +35,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use('/api/auth', authRoutes)
 app.use('/api/generation', generationRoutes)
 app.use('/api/enhance', enhanceRoutes)
+app.use('/api/user', userRoutes)
 
 /**
  * Serve frontend build
  */
 const clientDistPath = path.resolve(__dirname, '..', 'dist')
+const uploadsPath = path.resolve(__dirname, '..', 'uploads')
 app.use(express.static(clientDistPath))
+app.use('/uploads', express.static(uploadsPath))
 
 
 /**

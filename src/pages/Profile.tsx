@@ -1,9 +1,13 @@
 import { Sparkles, Share2, Edit, History as HistoryIcon, Download } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useHaptics } from '@/hooks/useHaptics'
+import { useTelegram } from '@/hooks/useTelegram'
 
 export default function Profile() {
   const { impact } = useHaptics()
+  const { user } = useTelegram()
+  const [avatarSrc, setAvatarSrc] = useState<string>('')
+  const fileRef = useRef<HTMLInputElement>(null)
   const [history, setHistory] = useState<{ id:number; url:string; prompt:string; model:string; ratio:string; date:string }[]>([])
   useEffect(() => {
     try {
@@ -11,6 +15,21 @@ export default function Profile() {
       setHistory(saved)
     } catch { /* noop */ }
   }, [])
+  const displayName = (user?.first_name && user?.last_name)
+    ? `${user.first_name} ${user.last_name}`
+    : (user?.first_name || user?.username || 'Гость')
+  const username = user?.username ? `@${user.username}` : '—'
+  const avatarSeed = user?.username || String(user?.id || 'guest')
+  const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(avatarSeed)}`
+
+  useEffect(() => {
+    const url = user?.id ? `/api/user/avatar/${user.id}` : avatarUrl
+    setAvatarSrc(url)
+    if (user?.id) {
+      fetch(`/api/user/avatar/${user.id}`).then(r => { if (r.ok) setAvatarSrc(`/api/user/avatar/${user.id}`) })
+    }
+  }, [user?.id])
+
   const stats = [
     { label: 'Генерации', value: history.length },
     { label: 'Подписчики', value: 842 },
@@ -24,18 +43,30 @@ export default function Profile() {
           <div className="flex items-center gap-5 relative z-10">
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 p-0.5 flex-shrink-0 shadow-lg">
               <div className="w-full h-full bg-black rounded-full overflow-hidden">
-                <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User" className="w-full h-full object-cover" />
+                <img src={avatarSrc || avatarUrl} alt={displayName} className="w-full h-full object-cover" />
               </div>
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="text-2xl font-bold text-white">Felix AI</div>
-                  <div className="text-xs text-zinc-400 mt-1 font-medium">@felix_creator • <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 font-bold">PRO</span></div>
+                  <div className="text-2xl font-bold text-white">{displayName}</div>
+                  <div className="text-xs text-zinc-400 mt-1 font-medium">{username} • <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 font-bold">PRO</span></div>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <button className="flex-1 bg-white text-black hover:bg-zinc-200 text-[10px] font-bold py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"><Edit size={12} /> Редактировать</button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  if (!f || !user?.id) return
+                  const reader = new FileReader()
+                  reader.onload = async (ev) => {
+                    const base64 = String(ev.target?.result || '')
+                    await fetch('/api/user/avatar/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, imageBase64: base64 }) })
+                    setAvatarSrc(`/api/user/avatar/${user.id}?t=${Date.now()}`)
+                    impact('medium')
+                  }
+                  reader.readAsDataURL(f)
+                }} />
+                <button onClick={() => fileRef.current?.click()} className="flex-1 bg-white text-black hover:bg-zinc-200 text-[10px] font-bold py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5"><Edit size={12} /> Сменить фото</button>
                 <button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold py-2 rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-white/5"><Share2 size={12} /> Поделиться</button>
               </div>
             </div>
