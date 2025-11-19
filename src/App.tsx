@@ -39,6 +39,13 @@ function StartParamRouter() {
 }
 
 export default function App() {
+  useEffect(() => {
+    try {
+      WebApp.ready();
+      WebApp.expand();
+      WebApp.setHeaderColor("bg_color");
+    } catch { void 0 }
+  }, []);
   return (
     <>
       <Router>
