@@ -28,9 +28,15 @@ export async function webhook(req: Request, res: Response) {
     const text = String(msg?.text || '').trim()
     if (!chatId || !text) return res.json({ ok: true })
     if (text.startsWith('/start')) {
-      const welcome = 'Добро пожаловать! Это мини‑приложение для генерации изображений ИИ.'
-      const kb = APP_URL ? { inline_keyboard: [[{ text: 'Открыть приложение', web_app: { url: APP_URL } }]] } : undefined
-      await tg('sendMessage', { chat_id: chatId, text: welcome, reply_markup: kb })
+      const parts = text.split(/\s+/)
+      const param = parts.length > 1 ? parts[1] : ''
+      if (param === 'home' && APP_URL) {
+        const kb = { inline_keyboard: [[{ text: 'Открыть приложение', web_app: { url: APP_URL } }]] }
+        await tg('sendMessage', { chat_id: chatId, text: 'Открыть мини‑апп', reply_markup: kb })
+      } else {
+        const info = 'AI Verse — мини‑приложение генерации изображений ИИ. Используйте /home чтобы открыть.'
+        await tg('sendMessage', { chat_id: chatId, text: info })
+      }
       return res.json({ ok: true })
     }
     if (text.startsWith('/home')) {
