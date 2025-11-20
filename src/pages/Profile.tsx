@@ -51,7 +51,7 @@ export default function Profile() {
           <div className="flex items-center gap-5 relative z-10">
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 p-0.5 flex-shrink-0 shadow-lg">
               <div className="w-full h-full bg-black rounded-full overflow-hidden">
-                <img src={avatarSrc || avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                <img src={avatarSrc || avatarUrl} alt={displayName} className="w-full h-full object-cover" onError={(e)=>{ (e.currentTarget as HTMLImageElement).src = avatarUrl }} />
               </div>
             </div>
             <div className="flex-1">

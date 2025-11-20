@@ -79,7 +79,20 @@ export async function getAvatar(req: Request, res: Response) {
       const filePath = Array.isArray(qp.data) && qp.data[0]?.file_path ? String(qp.data[0].file_path) : null
       if (filePath) {
         const signed = await supaStorageSignedUrl(filePath)
-        if (signed) { res.setHeader('Cache-Control', 'no-store'); return res.redirect(signed) }
+        if (signed) {
+          try {
+            const imgResp = await fetch(signed)
+            if (imgResp.ok) {
+              const ct = imgResp.headers.get('content-type') || 'image/jpeg'
+              const buf = Buffer.from(await imgResp.arrayBuffer())
+              res.setHeader('Content-Type', ct)
+              res.setHeader('Cache-Control', 'no-store')
+              return res.end(buf)
+            }
+          } catch { /* fall through to redirect */ }
+          res.setHeader('Cache-Control', 'no-store')
+          return res.redirect(signed)
+        }
       }
     }
     // Fallback: local cache or Telegram
