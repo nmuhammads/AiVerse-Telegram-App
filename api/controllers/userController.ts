@@ -53,7 +53,8 @@ async function supaStorageSignedUrl(pathname: string, expiresIn = Number(process
   const r = await fetch(url, { method: 'POST', headers: { ...supaHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn }) })
   const data = await r.json().catch(() => null)
   const signed = (data && (data.signedURL || data.signedUrl)) ? String(data.signedURL || data.signedUrl) : null
-  return r.ok && signed ? `${SUPABASE_URL}${signed}` : null
+  if (!r.ok || !signed) return null
+  return signed.startsWith('http') ? signed : `${SUPABASE_URL}${signed}`
 }
 
 // signed URL helper can be added when bucket is private
@@ -78,7 +79,7 @@ export async function getAvatar(req: Request, res: Response) {
       const filePath = Array.isArray(qp.data) && qp.data[0]?.file_path ? String(qp.data[0].file_path) : null
       if (filePath) {
         const signed = await supaStorageSignedUrl(filePath)
-        if (signed) return res.redirect(signed)
+        if (signed) { res.setHeader('Cache-Control', 'no-store'); return res.redirect(signed) }
       }
     }
     // Fallback: local cache or Telegram

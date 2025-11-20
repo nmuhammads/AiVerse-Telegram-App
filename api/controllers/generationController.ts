@@ -29,7 +29,7 @@ function mapSeedreamImageSize(ratio?: string): string | undefined {
     case '16:9': return 'landscape_16_9'
     case '21:9': return 'landscape_21_9'
     case '4:3': return 'landscape_4_3'
-    case '3:4': return 'portrait_3_4'
+    case '3:4': return 'portrait_4_3'
     case '9:16': return 'portrait_16_9'
     case '16:21': return 'portrait_16_9'
     default: return undefined
