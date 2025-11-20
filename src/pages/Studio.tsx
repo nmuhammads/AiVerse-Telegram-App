@@ -14,10 +14,10 @@ const MODELS: { id: ModelType; name: string; desc: string; color: string; icon: 
 ]
 
 const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
-  flux: ['1:1', '16:9', '9:16'],
-  seedream4: ['1:1', '16:9', '9:16'],
-  nanobanana: ['1:1', '16:9', '9:16'],
-  'qwen-edit': ['1:1'],
+  flux: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16', '16:21'],
+  seedream4: ['16:9', '4:3', '1:1', '3:4', '9:16'],
+  nanobanana: ['16:9', '4:3', '1:1', '3:4', '9:16'],
+  'qwen-edit': ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
 }
 
 export default function Studio() {
@@ -26,6 +26,7 @@ export default function Studio() {
     prompt,
     uploadedImage,
     aspectRatio,
+    generationMode,
     generatedImage,
     isGenerating,
     error,
@@ -34,6 +35,7 @@ export default function Studio() {
     setPrompt,
     setUploadedImage,
     setAspectRatio,
+    setGenerationMode,
     setGeneratedImage,
     setIsGenerating,
     setError,
@@ -59,7 +61,7 @@ export default function Studio() {
       notify('error')
       return
     }
-    if (selectedModel === 'qwen-edit' && !uploadedImage) {
+    if (generationMode === 'image' && !uploadedImage) {
       setError('Загрузите изображение')
       notify('error')
       return
@@ -72,7 +74,7 @@ export default function Studio() {
       const res = await fetch('/api/generation/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model: selectedModel, aspect_ratio: aspectRatio, image: uploadedImage })
+        body: JSON.stringify({ prompt, model: selectedModel, aspect_ratio: aspectRatio, image: generationMode==='image' ? uploadedImage : null })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
@@ -145,11 +147,19 @@ export default function Studio() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">Тип генерации</label>
+              <div className="flex gap-2">
+                <button onClick={()=>{ setGenerationMode('text'); impact('light') }} className={`${generationMode==='text' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'} px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10`}>Текст → Изображение</button>
+                <button onClick={()=>{ setGenerationMode('image'); impact('light') }} className={`${generationMode==='image' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'} px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10`}>Изображение → Изображение</button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">Модель</label>
               <div className="grid grid-cols-4 gap-1.5">
                 {MODELS.map(m => (
                   <button key={m.id} onClick={()=>{ setSelectedModel(m.id); impact('light') }} className={`group relative p-2 rounded-lg border transition-all duration-300 flex flex-col items-center text-center gap-1 overflow-hidden ${selectedModel===m.id ? 'bg-zinc-900 border-transparent ring-1 ring-white/20 shadow-xl' : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-900/60 hover:border-white/10'}`}>
-                    {selectedModel===m.id && <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${m.color}`}></div>}
+                  {selectedModel===m.id && <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${m.color}`}></div>}
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 ${selectedModel===m.id ? `bg-gradient-to-br ${m.color} text-white scale-105 shadow-lg` : 'bg-zinc-800 text-zinc-500 group-hover:bg-zinc-700 group-hover:text-zinc-300'}`}>{m.icon}</div>
                     <div className="relative z-10">
                       <span className={`block font-semibold text-[10px] leading-tight ${selectedModel===m.id ? 'text-white' : 'text-zinc-400'}`}>{m.name}</span>
@@ -160,7 +170,7 @@ export default function Studio() {
               </div>
             </div>
 
-            {selectedModel !== 'qwen-edit' && (
+            {(selectedModel !== 'qwen-edit' || generationMode === 'text') && (
               <div className="space-y-2">
                 <span className="text-white text-sm">Формат</span>
                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -173,7 +183,24 @@ export default function Studio() {
               </div>
             )}
 
-            {selectedModel === 'qwen-edit' && (
+            {selectedModel === 'qwen-edit' && generationMode === 'image' && (
+              <div className="space-y-2">
+                <span className="text-white text-sm">Изображение</span>
+                <div className="border-2 border-dashed border-white/20 rounded-lg p-4 text-center">
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  {uploadedImage ? (
+                    <div className="space-y-3">
+                      <img src={uploadedImage} alt="uploaded" className="max-w-full max-h-40 mx-auto rounded-lg" />
+                      <Button onClick={()=> setUploadedImage(null)} variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">Удалить</Button>
+                    </div>
+                  ) : (
+                    <div onClick={()=> fileInputRef.current?.click()} className="cursor-pointer text-white/70">Нажмите чтобы загрузить</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedModel !== 'qwen-edit' && generationMode === 'image' && (
               <div className="space-y-2">
                 <span className="text-white text-sm">Изображение</span>
                 <div className="border-2 border-dashed border-white/20 rounded-lg p-4 text-center">
@@ -193,9 +220,9 @@ export default function Studio() {
             {error && <div className="bg-rose-500/20 border border-rose-500/30 rounded-lg p-3 text-rose-200 text-sm">{error}</div>}
 
             <div className="relative z-10">
-              <Button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className={`mt-2 w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${isGenerating ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800' : 'bg-white text-black hover:bg-zinc-100'}`}>
+              <Button onClick={handleGenerate} disabled={isGenerating || !prompt.trim() || (generationMode==='image' && !uploadedImage)} className={`mt-2 w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] ${isGenerating ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800' : 'bg-white text-black hover:bg-zinc-100'}`}>
                 {isGenerating ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} className="text-violet-600" />}
-                <span>{isGenerating ? 'Создание...' : selectedModel==='qwen-edit' ? 'Редактировать' : 'Сгенерировать'}</span>
+                <span>{isGenerating ? 'Создание...' : generationMode==='image' ? 'Редактировать' : 'Сгенерировать'}</span>
               </Button>
             </div>
           </CardContent>

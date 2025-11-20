@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type ModelType = 'flux' | 'seedream4' | 'nanobanana' | 'qwen-edit'
 
-export type AspectRatio = '1:1' | '16:9' | '9:16'
+export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '21:9' | '16:21'
 
 export interface GenerationState {
   // Текущая выбранная модель
@@ -13,6 +13,8 @@ export interface GenerationState {
   uploadedImage: string | null
   // Соотношение сторон
   aspectRatio: AspectRatio
+  // Режим генерации
+  generationMode: 'text' | 'image'
   // Результат генерации
   generatedImage: string | null
   // Состояние загрузки
@@ -32,6 +34,8 @@ export interface GenerationActions {
   setUploadedImage: (image: string | null) => void
   // Установить соотношение сторон
   setAspectRatio: (ratio: AspectRatio) => void
+  // Установить режим генерации
+  setGenerationMode: (mode: 'text' | 'image') => void
   // Установить результат
   setGeneratedImage: (image: string | null) => void
   // Установить состояние загрузки
@@ -49,6 +53,7 @@ const initialState: GenerationState = {
   prompt: '',
   uploadedImage: null,
   aspectRatio: '1:1',
+  generationMode: 'text',
   generatedImage: null,
   isGenerating: false,
   error: null,
@@ -63,6 +68,7 @@ export const useGenerationStore = create<GenerationState & GenerationActions>()(
     setPrompt: (prompt) => set({ prompt }),
     setUploadedImage: (image) => set({ uploadedImage: image }),
     setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
+    setGenerationMode: (mode) => set({ generationMode: mode }),
     setGeneratedImage: (image) => set({ generatedImage: image }),
     setIsGenerating: (isGenerating) => set({ isGenerating }),
     setError: (error) => set({ error }),
@@ -71,6 +77,7 @@ export const useGenerationStore = create<GenerationState & GenerationActions>()(
     reset: () => set({
       prompt: '',
       uploadedImage: null,
+      generationMode: 'text',
       generatedImage: null,
       isGenerating: false,
       error: null,
