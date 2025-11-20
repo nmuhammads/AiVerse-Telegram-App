@@ -6,9 +6,11 @@ const TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 const appRoot = process.cwd()
 const uploadsDir = path.resolve(appRoot, 'uploads', 'avatars')
 
-const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
-const SUPABASE_BUCKET = process.env.SUPABASE_AVATARS_BUCKET || 'photo_reference'
+function stripQuotes(s: string) { return s.trim().replace(/^['"`]+|['"`]+$/g, '') }
+
+const SUPABASE_URL = stripQuotes(process.env.SUPABASE_URL || '')
+const SUPABASE_KEY = stripQuotes(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '')
+const SUPABASE_BUCKET = stripQuotes(process.env.SUPABASE_AVATARS_BUCKET || 'photo_reference')
 const DEFAULT_BOT_SOURCE = process.env.TELEGRAM_BOT_USERNAME || 'AiVerseAppBot'
 
 function supaHeaders() {
@@ -99,9 +101,7 @@ export async function getAvatar(req: Request, res: Response) {
               return res.end(buf)
             }
           } catch (e) { console.error('avatar:fetch:error', { message: (e as Error)?.message }) }
-          res.setHeader('Cache-Control', 'no-store')
-          console.info('avatar:redirect', { to: 'signed-url' })
-          return res.redirect(signed)
+          // Fall through to local/Telegram fallback when storage fetch fails
         }
       }
     }
@@ -148,14 +148,18 @@ export async function uploadAvatar(req: Request, res: Response) {
     const buf = Buffer.from(data, 'base64')
 
     if (SUPABASE_URL && SUPABASE_KEY) {
-      const filePath = `${encodeURIComponent(String(userId))}/profile-${Date.now()}.jpg`
+      const filePath = `${encodeURIComponent(String(userId))}/profile.jpg`
       const up = await supaStorageUpload(filePath, buf, 'image/jpeg')
       if (!up.ok) return res.status(500).json({ error: 'upload to storage failed', detail: up.data })
-      // Unflag previous profile picture(s)
-      await supaPatch('avatars', `?user_id=eq.${encodeURIComponent(String(userId))}&is_profile_pic=eq.true`, { is_profile_pic: false })
-      // Insert new avatar flagged as profile pic
-      const ins = await supaPost('avatars', { user_id: Number(userId), file_path: filePath, display_name: null, is_profile_pic: true })
-      if (!ins.ok) return res.status(500).json({ error: 'record insert failed', detail: ins.data })
+      const existing = await supaSelect('avatars', `?user_id=eq.${encodeURIComponent(String(userId))}&is_profile_pic=eq.true&select=id&limit=1`)
+      const existingId = Array.isArray(existing.data) && existing.data[0]?.id ? Number(existing.data[0].id) : null
+      if (existingId) {
+        const upd = await supaPatch('avatars', `?id=eq.${existingId}`, { file_path: filePath, is_profile_pic: true })
+        if (!upd.ok) return res.status(500).json({ error: 'record update failed', detail: upd.data })
+      } else {
+        const ins = await supaPost('avatars', { user_id: Number(userId), file_path: filePath, display_name: null, is_profile_pic: true })
+        if (!ins.ok) return res.status(500).json({ error: 'record insert failed', detail: ins.data })
+      }
       return res.json({ ok: true, file_path: filePath })
     }
 
