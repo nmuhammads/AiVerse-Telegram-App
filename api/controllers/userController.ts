@@ -41,19 +41,32 @@ async function supaPatch(table: string, filter: string, body: unknown) {
 
 async function supaStorageUpload(pathname: string, buf: Buffer, contentType = 'image/jpeg') {
   const url = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${pathname}`
-  const r = await fetch(url, { method: 'POST', headers: { ...supaHeaders(), 'Content-Type': contentType, 'x-upsert': 'true' }, body: buf })
+  const ab: ArrayBuffer = new ArrayBuffer(buf.length)
+  new Uint8Array(ab).set(buf)
+  const r = await fetch(url, { method: 'POST', headers: { ...supaHeaders(), 'Content-Type': contentType, 'x-upsert': 'true' }, body: ab })
   const data = await r.json().catch(() => null)
   return { ok: r.ok, data }
 }
 
-async function supaStoragePublicUrl(pathname: string) {
-  return `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(SUPABASE_BUCKET)}/${pathname}`
+async function supaStorageSignedUrl(pathname: string, expiresIn = Number(process.env.SUPABASE_SIGNED_URL_TTL || 3600)) {
+  const url = `${SUPABASE_URL}/storage/v1/object/sign/${encodeURIComponent(SUPABASE_BUCKET)}/${pathname}`
+  const r = await fetch(url, { method: 'POST', headers: { ...supaHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresIn }) })
+  const data = await r.json().catch(() => null)
+  const signed = (data && (data.signedURL || data.signedUrl)) ? String(data.signedURL || data.signedUrl) : null
+  return r.ok && signed ? `${SUPABASE_URL}${signed}` : null
 }
 
 // signed URL helper can be added when bucket is private
 
 function ensureDirs() {
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
+function sanitizeUrl(u: unknown): string | null {
+  if (!u) return null
+  const s = String(u).trim()
+  const cleaned = s.replace(/^['"`\s]+/, '').replace(/['"`\s]+$/, '')
+  return cleaned || null
 }
 
 export async function getAvatar(req: Request, res: Response) {
@@ -64,8 +77,8 @@ export async function getAvatar(req: Request, res: Response) {
       const qp = await supaSelect('avatars', `?user_id=eq.${encodeURIComponent(userId)}&is_profile_pic=eq.true&select=file_path,created_at&order=created_at.desc&limit=1`)
       const filePath = Array.isArray(qp.data) && qp.data[0]?.file_path ? String(qp.data[0].file_path) : null
       if (filePath) {
-        const pubUrl = await supaStoragePublicUrl(filePath)
-        return res.redirect(pubUrl)
+        const signed = await supaStorageSignedUrl(filePath)
+        if (signed) return res.redirect(signed)
       }
     }
     // Fallback: local cache or Telegram
@@ -166,7 +179,13 @@ export async function listGenerations(req: Request, res: Response) {
     if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
     const q = await supaSelect('generations', `?user_id=eq.${encodeURIComponent(userId)}&select=id,image_url,prompt,created_at&order=created_at.desc&limit=${limit}&offset=${offset}`)
     if (!q.ok) return res.status(500).json({ error: 'query failed', detail: q.data })
-    const items = Array.isArray(q.data) ? q.data : []
+    const itemsRaw = Array.isArray(q.data) ? q.data : [] as Array<{ id: number; image_url?: string | null; prompt?: string; created_at?: string | null }>
+    const items = itemsRaw.map((it) => ({
+      id: it.id,
+      prompt: String(it.prompt || ''),
+      created_at: it.created_at || null,
+      image_url: sanitizeUrl(it.image_url),
+    }))
     const cr = String(q.headers['content-range'] || '')
     const total = (() => { const m = /\d+-\d+\/(\d+)/.exec(cr); return m ? Number(m[1]) : undefined })()
     return res.json({ items, total })

@@ -52,6 +52,25 @@ function mapNanoBananaImageSize(ratio?: string): string | undefined {
   }
 }
 
+function mapQwenImageSize(ratio?: string): string | undefined {
+  switch (ratio) {
+    case '1:1':
+      return 'square_hd'
+    case '16:9':
+      return 'landscape_16_9'
+    case '21:9':
+      return 'landscape_16_9'
+    case '4:3':
+      return 'landscape_4_3'
+    case '3:4':
+      return 'portrait_4_3'
+    case '9:16':
+      return 'portrait_16_9'
+    default:
+      return undefined
+  }
+}
+
 function getPublicBaseUrl(): string | null {
   const url = process.env.WEBAPP_URL || process.env.VERCEL_URL || process.env.RAILWAY_PUBLIC_DOMAIN || null
   return url ? (url.startsWith('http') ? url : `https://${url}`) : null
@@ -94,7 +113,9 @@ async function createFluxTask(apiKey: string, prompt: string, aspectRatio?: stri
   return String(json.data?.taskId || '')
 }
 
-async function pollFluxTask(apiKey: string, taskId: string, timeoutMs = 60000): Promise<string> {
+const DEFAULT_TIMEOUT_MS = (() => { const v = Number(process.env.KIE_TASK_TIMEOUT_MS || 0); return Number.isFinite(v) && v > 0 ? v : 180000 })()
+
+async function pollFluxTask(apiKey: string, taskId: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const url = `https://api.kie.ai/api/v1/flux/kontext/record-info?taskId=${encodeURIComponent(taskId)}`
@@ -125,7 +146,7 @@ async function createJobsTask(apiKey: string, modelId: string, input: Record<str
   return String(json.data?.taskId || '')
 }
 
-async function pollJobsTask(apiKey: string, taskId: string, timeoutMs = 60000): Promise<string> {
+async function pollJobsTask(apiKey: string, taskId: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const url = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`
@@ -210,13 +231,14 @@ async function generateImageWithKieAI(
 
     if (model === 'qwen-edit') {
       if (imageUrl) {
-        const input: Record<string, unknown> = { prompt, image_url: imageUrl, strength: 0.8, output_format: 'png' }
+        const input: Record<string, unknown> = { prompt, image_url: imageUrl, strength: 0.8, output_format: 'png', acceleration: 'none' }
         const taskId = await createJobsTask(apiKey, 'qwen/image-to-image', input)
         const url = await pollJobsTask(apiKey, taskId)
         return { images: [url] }
       } else {
-        const input: Record<string, unknown> = { prompt }
-        if (aspect_ratio) input.image_size = aspect_ratio
+        const image_size = mapQwenImageSize(aspect_ratio)
+        const input: Record<string, unknown> = { prompt, output_format: 'png', enable_safety_checker: true }
+        if (image_size) input.image_size = image_size
         const taskId = await createJobsTask(apiKey, 'qwen/text-to-image', input)
         const url = await pollJobsTask(apiKey, taskId)
         return { images: [url] }
