@@ -1,16 +1,16 @@
 import { useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Loader2, Wand2, CloudRain, Code2, Aperture } from 'lucide-react'
+import { Sparkles, Loader2, CloudRain, Code2, Aperture } from 'lucide-react'
 import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/generationStore'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 
 const MODELS: { id: ModelType; name: string; desc: string; color: string; icon: JSX.Element }[] = [
-  { id: 'nanobanana', name: 'NanoBanana', desc: 'Топ 2025', color: 'from-yellow-400 to-orange-500', icon: <Sparkles size={20} /> },
-  { id: 'seedream4', name: 'Seedream 4', desc: 'Сюрреализм', color: 'from-purple-400 to-fuchsia-500', icon: <CloudRain size={20} /> },
-  { id: 'qwen-edit', name: 'Qwen Edit', desc: 'Точность', color: 'from-emerald-400 to-teal-500', icon: <Code2 size={20} /> },
-  { id: 'flux', name: 'Flux 1.1', desc: 'Фотореализм', color: 'from-blue-400 to-indigo-500', icon: <Aperture size={20} /> },
+  { id: 'nanobanana', name: 'NanoBanana', desc: 'Топ 2025', color: 'from-yellow-400 to-orange-500', icon: <Sparkles size={16} /> },
+  { id: 'seedream4', name: 'Seedream 4', desc: 'Сюрреализм', color: 'from-purple-400 to-fuchsia-500', icon: <CloudRain size={16} /> },
+  { id: 'qwen-edit', name: 'Qwen Edit', desc: 'Точность', color: 'from-emerald-400 to-teal-500', icon: <Code2 size={16} /> },
+  { id: 'flux', name: 'Flux 1.1', desc: 'Фотореализм', color: 'from-blue-400 to-indigo-500', icon: <Aperture size={16} /> },
 ]
 
 const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
@@ -94,15 +94,7 @@ export default function Studio() {
     }
   }
 
-  const handleEnhance = async () => {
-    if (!prompt.trim()) return
-    impact('medium')
-    try {
-      const res = await fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) })
-      const data = await res.json()
-      if (data.prompt) setPrompt(data.prompt)
-    } catch { void 0 }
-  }
+  
 
   if (currentScreen === 'result' && generatedImage) {
     return (
@@ -141,30 +133,27 @@ export default function Studio() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
-              <div className="flex justify-between items-end px-1">
+              <div className="px-1">
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Промпт</label>
-                <button onClick={handleEnhance} disabled={isGenerating} className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 hover:border-violet-500/40 transition-all">
-                  {isGenerating ? <Loader2 size={12} className="animate-spin text-violet-400" /> : <Wand2 size={12} className="text-violet-400 group-hover:rotate-12 transition-transform" />}
-                  <span className="text-[11px] font-bold text-violet-300 group-hover:text-violet-200">{prompt ? 'AI Улучшение' : 'Мне повезёт'}</span>
-                </button>
               </div>
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-2xl opacity-20 blur"></div>
-                <textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} placeholder="Опишите вашу идею..." className="relative w-full bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:bg-zinc-900 transition-all min-h-[120px] resize-none shadow-inner" />
-                {prompt && <button onClick={() => setPrompt('')} className="absolute top-3 right-3 p-1.5 bg-zinc-800/50 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-700 transition-colors">Очистить</button>}
+              <div className="prompt-container">
+                <div className="input-wrapper">
+                  <textarea value={prompt} onChange={(e)=>setPrompt(e.target.value)} placeholder="Опишите вашу идею..." className="prompt-input" />
+                  {prompt && <button onClick={() => setPrompt('')} className="absolute top-3 right-3 p-1.5 bg-zinc-800/50 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-700 transition-colors">Очистить</button>}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">Модель</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-4 gap-1.5">
                 {MODELS.map(m => (
-                  <button key={m.id} onClick={()=>{ setSelectedModel(m.id); impact('light') }} className={`group relative p-4 rounded-2xl border transition-all duration-300 flex flex-col items-center text-center gap-3 overflow-hidden ${selectedModel===m.id ? 'bg-zinc-900 border-transparent ring-1 ring-white/20 shadow-2xl' : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-900/60 hover:border-white/10'}`}>
+                  <button key={m.id} onClick={()=>{ setSelectedModel(m.id); impact('light') }} className={`group relative p-2 rounded-lg border transition-all duration-300 flex flex-col items-center text-center gap-1 overflow-hidden ${selectedModel===m.id ? 'bg-zinc-900 border-transparent ring-1 ring-white/20 shadow-xl' : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-900/60 hover:border-white/10'}`}>
                     {selectedModel===m.id && <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${m.color}`}></div>}
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${selectedModel===m.id ? `bg-gradient-to-br ${m.color} text-white scale-110 shadow-lg` : 'bg-zinc-800 text-zinc-500 group-hover:bg-zinc-700 group-hover:text-zinc-300'}`}>{m.icon}</div>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300 ${selectedModel===m.id ? `bg-gradient-to-br ${m.color} text-white scale-105 shadow-lg` : 'bg-zinc-800 text-zinc-500 group-hover:bg-zinc-700 group-hover:text-zinc-300'}`}>{m.icon}</div>
                     <div className="relative z-10">
-                      <span className={`block font-bold text-sm ${selectedModel===m.id ? 'text-white' : 'text-zinc-400'}`}>{m.name}</span>
-                      <span className="text-[10px] text-zinc-600">{m.desc}</span>
+                      <span className={`block font-semibold text-[10px] leading-tight ${selectedModel===m.id ? 'text-white' : 'text-zinc-400'}`}>{m.name}</span>
+                      <span className="hidden sm:block text-[8px] text-zinc-600">{m.desc}</span>
                     </div>
                   </button>
                 ))}
