@@ -1,4 +1,4 @@
-import { Sparkles, Share2, Edit, History as HistoryIcon, Download, X } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -100,14 +100,13 @@ export default function Profile() {
               <div className="grid grid-cols-2 gap-3">
                 {items.filter(h => !!h.image_url).map((h) => (
                   <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
-                    <button onClick={() => setPreview({ image_url: h.image_url || '', prompt: h.prompt })} className="block w-full">
+                  <button onClick={() => setPreview({ image_url: h.image_url || '', prompt: h.prompt })} className="block w-full">
                       <img src={h.image_url || ''} alt="History" className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105" />
-                    </button>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+                  </button>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 right-0 p-3">
                       <p className="text-[10px] text-zinc-300 truncate font-medium">{h.prompt}</p>
                     </div>
-                    <button className="absolute top-2 right-2 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100" onClick={() => { const a=document.createElement('a'); a.href=h.image_url || ''; a.download=`ai-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }}><Download size={12} /></button>
                   </div>
                 ))}
               </div>
