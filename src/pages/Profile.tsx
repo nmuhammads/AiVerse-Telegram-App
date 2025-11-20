@@ -43,7 +43,7 @@ export default function Profile() {
     { label: 'Лайки', value: 1200 },
   ]
   return (
-    <div className="min-h-dvh bg-black safe-bottom-padding">
+    <div className="min-h-dvh bg-black safe-bottom-padding pb-24">
       <div className="mx-auto max-w-3xl px-4 py-4 space-y-6">
         <div className="bg-gradient-to-b from-zinc-900 to-black p-5 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-5 text-violet-500"><Sparkles size={140} /></div>
@@ -90,24 +90,28 @@ export default function Profile() {
         <div>
           <div className="flex justify-between items-end mb-4 px-1">
             <div className="text-lg font-bold text-white">Мои генерации</div>
-            {items.length>0 && (
-              <button onClick={async () => { if (loading || !user?.id) return; setLoading(true); try { const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=6&offset=${offset+6}`); const j = await r.json().catch(()=>null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset+6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-3 py-1.5 rounded-lg">Загрузить ещё</button>
-            )}
           </div>
           {items.length===0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">История пуста</p></div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {items.map((h) => (
-                <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
-                  <img src={h.image_url || ''} alt="History" className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="text-[10px] text-zinc-300 truncate font-medium">{h.prompt}</p>
+            <div>
+              <div className="grid grid-cols-2 gap-3">
+                {items.map((h) => (
+                  <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
+                    <img src={h.image_url || ''} alt="History" className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-[10px] text-zinc-300 truncate font-medium">{h.prompt}</p>
+                    </div>
+                    <button className="absolute top-2 right-2 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100" onClick={() => { const a=document.createElement('a'); a.href=h.image_url || ''; a.download=`ai-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }}><Download size={12} /></button>
                   </div>
-                  <button className="absolute top-2 right-2 w-7 h-7 bg-black/40 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100" onClick={() => { const a=document.createElement('a'); a.href=h.image_url || ''; a.download=`ai-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a) }}><Download size={12} /></button>
+                ))}
+              </div>
+              {items.length>0 && (
+                <div className="mt-4 flex justify-center">
+                  <button onClick={async () => { if (loading || !user?.id) return; setLoading(true); try { const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=6&offset=${offset+6}`); const j = await r.json().catch(()=>null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset+6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-4 py-2 rounded-lg">Загрузить ещё</button>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
