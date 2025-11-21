@@ -117,7 +117,7 @@ export function useTelegram() {
     }
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const proxyPathInitial = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+      const proxyPathInitial = `/api/telegram/download?url=${encodeURIComponent(url)}`
       const proxyUrlInitial = origin ? `${origin}${proxyPathInitial}` : proxyPathInitial
       let ct = ''
       let clen = ''
@@ -130,7 +130,7 @@ export function useTelegram() {
         const fileExt = ct.includes('png') ? 'png' : (ct.includes('jpeg') || ct.includes('jpg') ? 'jpg' : (ct.includes('webp') ? 'webp' : extFromUrl))
         name = sanitizeName(filename || `ai-${Date.now()}.${fileExt}`, fileExt)
       } catch { void 0 }
-      const proxyPath = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+      const proxyPath = `/api/telegram/download?url=${encodeURIComponent(url)}`
       const proxyUrl = origin ? `${origin}${proxyPath}` : proxyPath
       try {
         await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'start', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, head: { ok: headOk, ct, clen } }) })
