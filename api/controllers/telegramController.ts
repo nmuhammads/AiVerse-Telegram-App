@@ -164,25 +164,32 @@ export async function sendPhoto(req: Request, res: Response) {
     const photo = String(req.body?.photo_url || '')
     const caption = typeof req.body?.caption === 'string' ? String(req.body.caption) : undefined
     if (!API || !chat_id || !photo) return res.status(400).json({ ok: false, error: 'invalid payload' })
+    console.info('sendPhoto:start', { chat_id, caption_len: caption ? caption.length : 0, photo_preview: photo.slice(0, 128) })
     try {
       const imgResp = await fetch(photo)
-      if (!imgResp.ok) return res.status(400).json({ ok: false, error: 'image fetch failed', status: imgResp.status })
-      const ct = imgResp.headers.get('content-type') || 'image/jpeg'
+      const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
+      const clen = imgResp.headers.get('content-length')
+      console.info('sendPhoto:image_fetch', { status: imgResp.status, ct: contentType, content_length: clen })
+      if (!imgResp.ok) return res.status(400).json({ ok: false, error: 'image fetch failed', status: imgResp.status, ct: contentType })
       const ab = await imgResp.arrayBuffer()
-      const blob = new Blob([ab], { type: ct })
-      const ext = ct.includes('png') ? 'png' : (ct.includes('webp') ? 'webp' : 'jpg')
+      const blob = new Blob([ab], { type: contentType })
+      const ext = contentType.includes('png') ? 'png' : (contentType.includes('webp') ? 'webp' : 'jpg')
       const filename = `ai-${Date.now()}.${ext}`
       const form = new FormData()
       form.append('chat_id', String(chat_id))
       if (caption) form.append('caption', caption)
       form.append('photo', blob, filename)
+      console.info('sendPhoto:upload_post', { filename, ct: contentType })
       const r = await fetch(`${API}/sendPhoto`, { method: 'POST', body: form })
       const j = await r.json().catch(() => null)
-      if (!j || j.ok !== true) return res.status(500).json({ ok: false, resp: j })
+      console.info('sendPhoto:upload_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
+      if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || 'telegram sendPhoto failed', resp: j })
       return res.json({ ok: true })
-    } catch {
+    } catch (e) {
+      console.warn('sendPhoto:upload_error', { message: (e as Error)?.message })
       const resp = await tg('sendPhoto', { chat_id, photo, caption })
-      if (!resp || resp.ok !== true) return res.status(500).json({ ok: false, resp })
+      console.info('sendPhoto:fallback_url_resp', { ok: resp?.ok === true, desc: resp?.description, error_code: resp?.error_code })
+      if (!resp || resp.ok !== true) return res.status(500).json({ ok: false, error: resp?.description || 'telegram sendPhoto failed', resp })
       return res.json({ ok: true })
     }
   } catch {

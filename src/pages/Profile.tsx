@@ -5,7 +5,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 
 export default function Profile() {
   const { impact, notify } = useHaptics()
-  const { user, downloadFile } = useTelegram()
+  const { user, downloadFile, shareImage } = useTelegram()
   const [avatarSrc, setAvatarSrc] = useState<string>('')
   const fileRef = useRef<HTMLInputElement>(null)
   const [balance, setBalance] = useState<number | null>(null)
@@ -117,7 +117,7 @@ export default function Profile() {
               )}
             </div>
             {preview && (
-              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e)=>{ if (e.target===e.currentTarget) setPreview(null) }}>
+              <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e)=>{ if (e.target===e.currentTarget) setPreview(null) }}>
                 <div className="relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
                   <button onClick={()=>setPreview(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"><X size={16} /></button>
                   <img src={preview.image_url} alt="Preview" className="w-full max-h-[70vh] object-contain bg-black" />
@@ -136,8 +136,14 @@ export default function Profile() {
                         try {
                           const r = await fetch('/api/telegram/sendPhoto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, photo_url: preview.image_url, caption: preview.prompt }) })
                           const j = await r.json().catch(()=>null)
-                          if (r.ok && j?.ok) { notify('success') } else { notify('error') }
-                        } catch { notify('error') }
+                          if (r.ok && j?.ok) { notify('success') }
+                          else {
+                            notify('error')
+                            shareImage(preview.image_url, preview.prompt)
+                          }
+                        } catch {
+                          notify('error')
+                        }
                       }}
                       className="flex-1 h-11 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                     >
