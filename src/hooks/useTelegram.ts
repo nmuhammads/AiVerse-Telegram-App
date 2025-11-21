@@ -98,19 +98,16 @@ export function useTelegram() {
     const wa = WebApp as unknown as { downloadFile?: (u: string, name?: string) => Promise<void> | void; HapticFeedback?: { impactOccurred?: (s: string) => void; notificationOccurred?: (s: string) => void }; showAlert?: (t: string) => void; platform?: string; version?: string }
     const extFromUrl = /\.png(\?|$)/i.test(url) ? 'png' : (/\.webp(\?|$)/i.test(url) ? 'webp' : 'jpg')
     const sanitizeName = (s: string, fallbackExt: string) => {
-      const m = s.match(/^([A-Za-z0-9._-]+?)(?:\.([A-Za-z0-9]+))?$/)
-      if (m) {
-        const base = m[1].replace(/[^A-Za-z0-9._-]/g, '')
-        const extRaw = (m[2] || fallbackExt).replace(/[^A-Za-z0-9]/g, '') || fallbackExt
-        const ext = /^(png|jpg|jpeg|webp)$/i.test(extRaw) ? (extRaw.toLowerCase() === 'jpeg' ? 'jpg' : extRaw.toLowerCase()) : fallbackExt
-        let nm = `${base}.${ext}`
-        if (nm.length > 64) nm = nm.slice(0, 64)
-        nm = nm.replace(/^\.+/, '').replace(/\.+$/, '')
-        return nm || `ai-${Date.now()}.${fallbackExt}`
-      }
-      return `ai-${Date.now()}.${fallbackExt}`
+      const baseRaw = s.split('.')[0] || ''
+      const base = baseRaw.replace(/[^A-Za-z0-9_]/g, '_') || 'aiverse_image'
+      const extRaw = (s.split('.').pop() || fallbackExt).replace(/[^A-Za-z0-9]/g, '') || fallbackExt
+      const ext = /^(png|jpg|jpeg|webp)$/i.test(extRaw) ? (extRaw.toLowerCase() === 'jpeg' ? 'jpg' : extRaw.toLowerCase()) : fallbackExt
+      let nm = `${base}.${ext}`
+      if (nm.length > 64) nm = nm.slice(0, 64)
+      nm = nm.replace(/^\.+/, '').replace(/\.+$/, '')
+      return nm || `aiverse_image.${fallbackExt}`
     }
-    let name = sanitizeName(filename || `ai-${Date.now()}.${extFromUrl}`, extFromUrl)
+    let name = sanitizeName(filename || `aiverse_image.${extFromUrl}`, extFromUrl)
     if (!wa.downloadFile) {
       WebApp.showAlert?.('Обновите Telegram до последней версии')
       return
@@ -128,7 +125,7 @@ export function useTelegram() {
         ct = String(headResp.headers.get('Content-Type') || '')
         clen = String(headResp.headers.get('Content-Length') || '')
         const fileExt = ct.includes('png') ? 'png' : (ct.includes('jpeg') || ct.includes('jpg') ? 'jpg' : (ct.includes('webp') ? 'webp' : extFromUrl))
-        name = sanitizeName(filename || `ai-${Date.now()}.${fileExt}`, fileExt)
+        name = sanitizeName(filename || `aiverse_image.${fileExt}`, fileExt)
       } catch { void 0 }
       const proxyPath = `/api/telegram/download?url=${encodeURIComponent(url)}`
       const proxyUrl = origin ? `${origin}${proxyPath}` : proxyPath
