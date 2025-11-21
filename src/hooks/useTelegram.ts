@@ -95,20 +95,39 @@ export function useTelegram() {
   }
 
   const saveToGallery = async (url: string, filename?: string) => {
-    const ext = /\.png(\?|$)/i.test(url) ? 'png' : 'jpg'
-    const name = filename || `ai-${Date.now()}.${ext}`
-    const wa = WebApp as unknown as { downloadFile?: (u: string, name?: string) => Promise<void> | void; HapticFeedback?: { impactOccurred?: (s: string) => void; notificationOccurred?: (s: string) => void }; showAlert?: (t: string) => void }
+    const wa = WebApp as unknown as { downloadFile?: (u: string, name?: string) => Promise<void> | void; HapticFeedback?: { impactOccurred?: (s: string) => void; notificationOccurred?: (s: string) => void }; showAlert?: (t: string) => void; platform?: string; version?: string }
+    const extFromUrl = /\.png(\?|$)/i.test(url) ? 'png' : (/\.webp(\?|$)/i.test(url) ? 'webp' : 'jpg')
+    let name = filename || `ai-${Date.now()}.${extFromUrl}`
     if (!wa.downloadFile) {
       WebApp.showAlert?.('Обновите Telegram до последней версии')
       return
     }
     try {
-      wa.HapticFeedback?.impactOccurred?.('medium')
       const proxyUrl = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+      let ct = ''
+      let clen = ''
+      let headOk = false
+      try {
+        const headResp = await fetch(proxyUrl, { method: 'HEAD' })
+        headOk = headResp.ok
+        ct = String(headResp.headers.get('Content-Type') || '')
+        clen = String(headResp.headers.get('Content-Length') || '')
+        const fileExt = ct.includes('png') ? 'png' : (ct.includes('jpeg') || ct.includes('jpg') ? 'jpg' : (ct.includes('webp') ? 'webp' : extFromUrl))
+        name = filename || `ai-${Date.now()}.${fileExt}`
+      } catch { void 0 }
+      try {
+        await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'start', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, head: { ok: headOk, ct, clen } }) })
+      } catch { void 0 }
+      wa.HapticFeedback?.impactOccurred?.('medium')
       await wa.downloadFile(proxyUrl, name)
       WebApp.HapticFeedback?.notificationOccurred?.('success')
+      try {
+        await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'success', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, head: { ok: headOk, ct, clen } }) })
+      } catch { void 0 }
     } catch (err) {
-      console.error('downloadFile error', err)
+      try {
+        await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'error', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, error: (err as Error)?.message }) })
+      } catch { void 0 }
       WebApp.showAlert?.('Не удалось сохранить фото')
       WebApp.HapticFeedback?.notificationOccurred?.('error')
     }

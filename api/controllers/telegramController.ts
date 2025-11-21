@@ -350,3 +350,25 @@ export async function proxyDownloadHead(req: Request, res: Response) {
     res.status(500).json({ ok: false, error: 'proxy head error' })
   }
 }
+
+export async function logDownload(req: Request, res: Response) {
+  try {
+    const body = req.body || {}
+    const stage = String(body.stage || 'unknown')
+    const payload = {
+      stage,
+      platform: body.platform,
+      version: body.version,
+      hasDownloadFile: body.hasDownloadFile,
+      name: body.name,
+      rawUrl: typeof body.rawUrl === 'string' ? String(body.rawUrl).slice(0, 200) : undefined,
+      proxyUrl: typeof body.proxyUrl === 'string' ? String(body.proxyUrl).slice(0, 200) : undefined,
+      head: body.head,
+      error: body.error ? String(body.error).slice(0, 500) : undefined
+    }
+    console.info('webapp:download_log', payload)
+    return res.json({ ok: true })
+  } catch {
+    return res.status(500).json({ ok: false })
+  }
+}
