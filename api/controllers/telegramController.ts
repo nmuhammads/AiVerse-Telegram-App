@@ -304,11 +304,49 @@ export async function proxyDownload(req: Request, res: Response) {
     const filename = nameParam || `ai-${Date.now()}.${ext}`
     res.setHeader('Content-Type', ct)
     res.setHeader('Content-Length', String(buf.length))
+    res.setHeader('Accept-Ranges', 'bytes')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition')
     res.send(buf)
   } catch (e) {
     console.warn('proxyDownload:error', { message: (e as Error)?.message })
     res.status(500).json({ ok: false, error: 'proxy error' })
+  }
+}
+
+export async function proxyDownloadHead(req: Request, res: Response) {
+  try {
+    const src = String(req.query?.url || '')
+    const nameParam = String(req.query?.name || '')
+    if (!src) return res.status(400).json({ ok: false, error: 'missing url' })
+    console.info('proxyDownload:head', { src: src.slice(0, 160), name: nameParam })
+    let r = await fetch(src, { method: 'HEAD' })
+    if (!r.ok || !r.headers.get('content-length')) {
+      r = await fetch(src, { headers: { Range: 'bytes=0-0' } })
+    }
+    if (!r.ok) {
+      console.warn('proxyDownload:head_failed', { status: r.status })
+      return res.status(400).json({ ok: false, error: 'head failed', status: r.status })
+    }
+    const ct = r.headers.get('content-type') || 'application/octet-stream'
+    const clen = r.headers.get('content-length') || '0'
+    const ext = (() => {
+      if (ct.includes('png')) return 'png'
+      if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpg'
+      if (ct.includes('webp')) return 'webp'
+      return 'bin'
+    })()
+    const filename = nameParam || `ai-${Date.now()}.${ext}`
+    res.setHeader('Content-Type', ct)
+    res.setHeader('Content-Length', clen)
+    res.setHeader('Accept-Ranges', 'bytes')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition')
+    res.status(200).end()
+  } catch (e) {
+    console.warn('proxyDownload:head_error', { message: (e as Error)?.message })
+    res.status(500).json({ ok: false, error: 'proxy head error' })
   }
 }
