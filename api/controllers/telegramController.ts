@@ -164,7 +164,10 @@ export async function sendPhoto(req: Request, res: Response) {
     const photo = String(req.body?.photo_url || '')
     const caption = typeof req.body?.caption === 'string' ? String(req.body.caption) : undefined
     if (!API || !chat_id || !photo) return res.status(400).json({ ok: false, error: 'invalid payload' })
-    console.info('sendPhoto:start', { chat_id, caption_len: caption ? caption.length : 0, photo_preview: photo.slice(0, 128) })
+    const CAPTION_LIMIT = 1024
+    const finalCaption = caption ? caption.slice(0, CAPTION_LIMIT) : undefined
+    const restCaption = caption && caption.length > CAPTION_LIMIT ? caption.slice(CAPTION_LIMIT) : ''
+    console.info('sendPhoto:start', { chat_id, caption_len: caption ? caption.length : 0, trimmed_len: finalCaption ? finalCaption.length : 0, rest_len: restCaption.length, photo_preview: photo.slice(0, 128) })
     try {
       const imgResp = await fetch(photo)
       const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
@@ -177,19 +180,39 @@ export async function sendPhoto(req: Request, res: Response) {
       const filename = `ai-${Date.now()}.${ext}`
       const form = new FormData()
       form.append('chat_id', String(chat_id))
-      if (caption) form.append('caption', caption)
+      if (finalCaption) form.append('caption', finalCaption)
       form.append('photo', blob, filename)
       console.info('sendPhoto:upload_post', { filename, ct: contentType })
       const r = await fetch(`${API}/sendPhoto`, { method: 'POST', body: form })
       const j = await r.json().catch(() => null)
       console.info('sendPhoto:upload_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
       if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || 'telegram sendPhoto failed', resp: j })
+      if (restCaption && restCaption.length > 0) {
+        const MAX_MSG = 4096
+        let idx = 0
+        while (idx < restCaption.length) {
+          const part = restCaption.slice(idx, idx + MAX_MSG)
+          idx += MAX_MSG
+          const m = await tg('sendMessage', { chat_id, text: part })
+          console.info('sendPhoto:rest_caption_msg', { ok: m?.ok === true, len: part.length })
+        }
+      }
       return res.json({ ok: true })
     } catch (e) {
       console.warn('sendPhoto:upload_error', { message: (e as Error)?.message })
-      const resp = await tg('sendPhoto', { chat_id, photo, caption })
+      const resp = await tg('sendPhoto', { chat_id, photo, caption: finalCaption })
       console.info('sendPhoto:fallback_url_resp', { ok: resp?.ok === true, desc: resp?.description, error_code: resp?.error_code })
       if (!resp || resp.ok !== true) return res.status(500).json({ ok: false, error: resp?.description || 'telegram sendPhoto failed', resp })
+      if (restCaption && restCaption.length > 0) {
+        const MAX_MSG = 4096
+        let idx = 0
+        while (idx < restCaption.length) {
+          const part = restCaption.slice(idx, idx + MAX_MSG)
+          idx += MAX_MSG
+          const m = await tg('sendMessage', { chat_id, text: part })
+          console.info('sendPhoto:rest_caption_msg', { ok: m?.ok === true, len: part.length })
+        }
+      }
       return res.json({ ok: true })
     }
   } catch {
@@ -203,7 +226,8 @@ export async function sendDocument(req: Request, res: Response) {
     const url = String(req.body?.file_url || req.body?.document_url || req.body?.photo_url || '')
     const caption = typeof req.body?.caption === 'string' ? String(req.body.caption) : undefined
     if (!API || !chat_id || !url) return res.status(400).json({ ok: false, error: 'invalid payload' })
-    console.info('sendDocument:start', { chat_id, caption_len: caption ? caption.length : 0, url_preview: url.slice(0, 128) })
+    const textWhole = caption || ''
+    console.info('sendDocument:start', { chat_id, caption_len: textWhole.length, url_preview: url.slice(0, 128) })
     try {
       const resp = await fetch(url)
       const contentType = resp.headers.get('content-type') || 'application/octet-stream'
@@ -216,19 +240,40 @@ export async function sendDocument(req: Request, res: Response) {
       const filename = `ai-${Date.now()}.${ext}`
       const form = new FormData()
       form.append('chat_id', String(chat_id))
-      if (caption) form.append('caption', caption)
       form.append('document', blob, filename)
       console.info('sendDocument:upload_post', { filename, ct: contentType })
       const r = await fetch(`${API}/sendDocument`, { method: 'POST', body: form })
       const j = await r.json().catch(() => null)
       console.info('sendDocument:upload_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
       if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || 'telegram sendDocument failed', resp: j })
+      const msgId = j?.result?.message_id
+      if (textWhole && textWhole.length > 0) {
+        const MAX_MSG = 4096
+        let idx = 0
+        while (idx < textWhole.length) {
+          const part = textWhole.slice(idx, idx + MAX_MSG)
+          idx += MAX_MSG
+          const m = await tg('sendMessage', { chat_id, text: part, reply_to_message_id: msgId })
+          console.info('sendDocument:caption_reply_msg', { ok: m?.ok === true, len: part.length, reply_to_message_id: msgId })
+        }
+      }
       return res.json({ ok: true })
     } catch (e) {
       console.warn('sendDocument:upload_error', { message: (e as Error)?.message })
-      const j = await tg('sendDocument', { chat_id, document: url, caption })
+      const j = await tg('sendDocument', { chat_id, document: url })
       console.info('sendDocument:fallback_url_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
       if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || 'telegram sendDocument failed', resp: j })
+      const msgId = j?.result?.message_id
+      if (textWhole && textWhole.length > 0) {
+        const MAX_MSG = 4096
+        let idx = 0
+        while (idx < textWhole.length) {
+          const part = textWhole.slice(idx, idx + MAX_MSG)
+          idx += MAX_MSG
+          const m = await tg('sendMessage', { chat_id, text: part, reply_to_message_id: msgId })
+          console.info('sendDocument:caption_reply_msg', { ok: m?.ok === true, len: part.length, reply_to_message_id: msgId })
+        }
+      }
       return res.json({ ok: true })
     }
   } catch {
