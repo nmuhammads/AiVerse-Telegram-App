@@ -11,7 +11,7 @@ RUN npm install -g pnpm
 COPY . .
 
 # Устанавливаем зависимости
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Собираем frontend
 RUN pnpm run build
