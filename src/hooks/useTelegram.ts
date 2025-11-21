@@ -103,25 +103,39 @@ export function useTelegram() {
       return
     }
     try {
-      const proxyPath = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const proxyUrl = origin ? `${origin}${proxyPath}` : proxyPath
+      const proxyPathInitial = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+      const proxyUrlInitial = origin ? `${origin}${proxyPathInitial}` : proxyPathInitial
       let ct = ''
       let clen = ''
       let headOk = false
       try {
-        const headResp = await fetch(proxyUrl, { method: 'HEAD' })
+        const headResp = await fetch(proxyUrlInitial, { method: 'HEAD' })
         headOk = headResp.ok
         ct = String(headResp.headers.get('Content-Type') || '')
         clen = String(headResp.headers.get('Content-Length') || '')
         const fileExt = ct.includes('png') ? 'png' : (ct.includes('jpeg') || ct.includes('jpg') ? 'jpg' : (ct.includes('webp') ? 'webp' : extFromUrl))
         name = filename || `ai-${Date.now()}.${fileExt}`
       } catch { void 0 }
+      const proxyPath = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`
+      const proxyUrl = origin ? `${origin}${proxyPath}` : proxyPath
       try {
         await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'start', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, head: { ok: headOk, ct, clen } }) })
       } catch { void 0 }
       wa.HapticFeedback?.impactOccurred?.('medium')
-      await wa.downloadFile(proxyUrl, name)
+      try {
+        await wa.downloadFile(proxyUrl, name)
+      } catch (e1) {
+        const msg = (e1 as Error)?.message || ''
+        try {
+          await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'retry', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, error: msg }) })
+        } catch { void 0 }
+        if (/WebAppDownloadFileParamInvalid/i.test(msg)) {
+          await wa.downloadFile(proxyUrl)
+        } else {
+          throw e1
+        }
+      }
       WebApp.HapticFeedback?.notificationOccurred?.('success')
       try {
         await fetch('/api/telegram/log/download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage: 'success', platform: wa.platform, version: wa.version, hasDownloadFile: true, name, rawUrl: url, proxyUrl, head: { ok: headOk, ct, clen } }) })
