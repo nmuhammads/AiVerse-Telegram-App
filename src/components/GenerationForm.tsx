@@ -7,7 +7,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { Send, Upload, Download, Share2 } from 'lucide-react'
 
 const MODELS: { id: ModelType; name: string; description: string }[] = [
-  { id: 'flux', name: 'Flux', description: 'Default Text-to-Image' },
+  { id: 'nanobanana-pro', name: 'NanoBanana Pro', description: 'Default Text-to-Image' },
   { id: 'seedream4', name: 'Seedream 4', description: 'High Quality' },
   { id: 'nanobanana', name: 'Nanobanana', description: 'Fast Generation' },
   { id: 'qwen-edit', name: 'Qwen Edit', description: 'Image Editing' }
@@ -23,7 +23,7 @@ export function GenerationForm() {
   const {
     selectedModel,
     prompt,
-    uploadedImage,
+    uploadedImages,
     aspectRatio,
     generatedImage,
     isGenerating,
@@ -31,7 +31,7 @@ export function GenerationForm() {
     currentScreen,
     setSelectedModel,
     setPrompt,
-    setUploadedImage,
+    setUploadedImages,
     setAspectRatio,
     setGeneratedImage,
     setIsGenerating,
@@ -54,7 +54,7 @@ export function GenerationForm() {
     return () => {
       hideMainButton()
     }
-  }, [currentScreen, selectedModel, prompt, uploadedImage])
+  }, [currentScreen, selectedModel, prompt, uploadedImages])
 
   // Обработка загрузки изображения
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +62,9 @@ export function GenerationForm() {
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string)
+        if (e.target?.result) {
+          setUploadedImages([e.target.result as string])
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -75,7 +77,7 @@ export function GenerationForm() {
       return
     }
 
-    if (selectedModel === 'qwen-edit' && !uploadedImage) {
+    if (selectedModel === 'qwen-edit' && uploadedImages.length === 0) {
       setError('Please upload an image for editing')
       return
     }
@@ -94,7 +96,7 @@ export function GenerationForm() {
           prompt,
           model: selectedModel,
           aspect_ratio: aspectRatio,
-          image: uploadedImage
+          image: uploadedImages[0]
         })
       })
 
@@ -160,7 +162,7 @@ export function GenerationForm() {
                   className="w-full rounded-lg shadow-lg"
                 />
               </div>
-              
+
               <div className="flex gap-3">
                 <Button
                   onClick={handleDownload}
@@ -202,7 +204,7 @@ export function GenerationForm() {
               Create amazing images with AI
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             {/* Выбор модели */}
             <div className="space-y-2">
@@ -230,16 +232,16 @@ export function GenerationForm() {
                     onChange={handleImageUpload}
                     className="hidden"
                   />
-                  
-                  {uploadedImage ? (
+
+                  {uploadedImages.length > 0 ? (
                     <div className="space-y-3">
                       <img
-                        src={uploadedImage}
+                        src={uploadedImages[0]}
                         alt="Uploaded"
                         className="max-w-full max-h-32 mx-auto rounded-lg"
                       />
                       <Button
-                        onClick={() => setUploadedImage(null)}
+                        onClick={() => setUploadedImages([])}
                         variant="outline"
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10"
@@ -270,8 +272,8 @@ export function GenerationForm() {
                       key={ratio.id}
                       onClick={() => setAspectRatio(ratio.id)}
                       variant={aspectRatio === ratio.id ? 'default' : 'outline'}
-                      className={aspectRatio === ratio.id 
-                        ? 'bg-purple-600 hover:bg-purple-700' 
+                      className={aspectRatio === ratio.id
+                        ? 'bg-purple-600 hover:bg-purple-700'
                         : 'border-white/20 text-white hover:bg-white/10'
                       }
                     >
@@ -288,7 +290,7 @@ export function GenerationForm() {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder={selectedModel === 'qwen-edit' 
+                placeholder={selectedModel === 'qwen-edit'
                   ? "Describe what you want to change in the image..."
                   : "Describe the image you want to create..."
                 }
