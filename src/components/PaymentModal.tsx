@@ -55,10 +55,43 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
         if (activeMethod === 'stars') {
             setLoading(true)
             try {
-                // Placeholder for Stars payment
-                alert(`Оплата ${selectedPackage.tokens} токенов за ${selectedPackage.price} Stars (Coming Soon)`)
+                const response = await fetch('/api/payment/create-stars-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: `${selectedPackage.tokens} токенов`,
+                        description: `Покупка ${selectedPackage.tokens} токенов AiVerse`,
+                        payload: JSON.stringify({ packageId: selectedPackage.id, tokens: selectedPackage.tokens }),
+                        currency: 'XTR',
+                        amount: selectedPackage.price
+                    })
+                })
+                const data = await response.json()
+
+                if (data.success && data.invoiceLink) {
+                    const wa = (window as any).Telegram?.WebApp
+                    if (wa) {
+                        wa.openInvoice(data.invoiceLink, (status: string) => {
+                            if (status === 'paid') {
+                                impact('heavy')
+                                alert('Оплата прошла успешно! Токены начислены.')
+                                onClose()
+                                // TODO: Refresh balance
+                            } else if (status === 'cancelled') {
+                                impact('light')
+                            } else {
+                                alert('Статус оплаты: ' + status)
+                            }
+                        })
+                    } else {
+                        window.open(data.invoiceLink, '_blank')
+                    }
+                } else {
+                    alert('Ошибка создания счета: ' + (data.error || 'Unknown error'))
+                }
             } catch (e) {
                 console.error(e)
+                alert('Ошибка соединения с сервером')
             } finally {
                 setLoading(false)
             }
@@ -167,8 +200,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                         onClick={handlePayment}
                         disabled={loading}
                         className={`w-full h-11 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg text-sm ${activeMethod === 'stars'
-                                ? 'bg-[#0088cc] hover:bg-[#0077b5] text-white shadow-blue-900/20'
-                                : 'bg-white text-black hover:bg-zinc-200 shadow-white/10'
+                            ? 'bg-[#0088cc] hover:bg-[#0077b5] text-white shadow-blue-900/20'
+                            : 'bg-white text-black hover:bg-zinc-200 shadow-white/10'
                             }`}
                     >
                         {loading ? 'Обработка...' : `Оплатить ${selectedPackage.price} ${currencySymbol}`}

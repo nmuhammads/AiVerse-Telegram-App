@@ -123,7 +123,60 @@ export default function Profile() {
               {preview && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setPreview(null) }}>
                   <div className="relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
-                    <button onClick={() => setPreview(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white"><X size={16} /></button>
+                    <button
+                      onClick={async () => {
+                        impact('light')
+                        try {
+                          if (navigator.share) {
+                            // Try to fetch the image and share it as a file
+                            const response = await fetch(preview.image_url)
+                            const blob = await response.blob()
+                            const file = new File([blob], 'image.jpg', { type: 'image/jpeg' })
+
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                              await navigator.share({
+                                files: [file],
+                                title: 'AiVerse Generation',
+                                text: preview.prompt
+                              })
+                              return
+                            }
+
+                            // Fallback to URL sharing
+                            await navigator.share({
+                              title: 'AiVerse Generation',
+                              text: preview.prompt,
+                              url: preview.image_url
+                            })
+                          } else {
+                            // Telegram fallback with zero-width space link
+                            // This allows sending the image preview while keeping the text clean for copying.
+                            // Format: Prompt + [\u200b](ImageURL)
+                            const zeroWidthSpace = '\u200b'
+                            const hiddenLink = `[${zeroWidthSpace}](${preview.image_url})`
+                            const text = `${preview.prompt}\n${hiddenLink}`
+
+                            // We use t.me/share/url with empty url param and everything in text
+                            const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(text)}`
+
+                            const wa = (window as any).Telegram?.WebApp
+                            if (wa) {
+                              wa.openTelegramLink(shareUrl)
+                            } else {
+                              window.open(shareUrl, '_blank')
+                            }
+                          }
+                        } catch (e) {
+                          console.error('Share failed:', e)
+                          // Fallback to standard shareImage if complex logic fails
+                          shareImage(preview.image_url, preview.prompt)
+                        }
+                      }}
+                      className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <button onClick={() => setPreview(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10"><X size={16} /></button>
                     <img src={preview.image_url} alt="Preview" className="w-full max-h-[70vh] object-contain bg-black" />
                     <div className="p-4 flex gap-3">
                       <button
@@ -132,45 +185,6 @@ export default function Profile() {
                       >
                         <DownloadIcon size={16} />
                         Сохранить в галерею
-                      </button>
-                      <button
-                        onClick={async () => {
-                          impact('light')
-                          try {
-                            if (navigator.share) {
-                              // Try to fetch the image and share it as a file
-                              const response = await fetch(preview.image_url)
-                              const blob = await response.blob()
-                              const file = new File([blob], 'image.jpg', { type: 'image/jpeg' })
-
-                              if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                await navigator.share({
-                                  files: [file],
-                                  title: 'AiVerse Generation',
-                                  text: preview.prompt
-                                })
-                                return
-                              }
-
-                              // Fallback to URL sharing if file sharing is not supported
-                              await navigator.share({
-                                title: 'AiVerse Generation',
-                                text: preview.prompt,
-                                url: preview.image_url
-                              })
-                            } else {
-                              shareImage(preview.image_url, preview.prompt)
-                            }
-                          } catch (e) {
-                            console.error('Share failed:', e)
-                            // Fallback to Telegram share on error
-                            shareImage(preview.image_url, preview.prompt)
-                          }
-                        }}
-                        className="flex-1 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
-                      >
-                        <Share2 size={16} />
-                        Поделиться
                       </button>
                       <button
                         onClick={async () => {
