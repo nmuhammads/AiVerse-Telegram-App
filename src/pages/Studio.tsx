@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X } from 'lucide-react'
@@ -8,14 +8,14 @@ import { useHaptics } from '@/hooks/useHaptics'
 
 const MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
   { id: 'nanobanana', name: 'NanoBanana', desc: '3 токена', color: 'from-yellow-400 to-orange-500', icon: '/models/nanobanana.png' },
-  { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '4 токена', color: 'from-pink-500 to-rose-500', icon: '/models/nanobanana-pro.png' },
+  { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '15 токенов', color: 'from-pink-500 to-rose-500', icon: '/models/nanobanana-pro.png' },
   { id: 'seedream4', name: 'Seedream 4', desc: '3 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/seedream.png' },
   { id: 'qwen-edit', name: 'Qwen Edit', desc: '3 токена', color: 'from-emerald-400 to-teal-500', icon: '/models/qwen.png' },
 ]
 
 const MODEL_PRICES: Record<ModelType, number> = {
   nanobanana: 3,
-  'nanobanana-pro': 4,
+  'nanobanana-pro': 15,
   seedream4: 3,
   'qwen-edit': 3,
 }
@@ -67,6 +67,7 @@ export default function Studio() {
   const { shareImage, saveToGallery, user } = useTelegram()
   const { impact, notify } = useHaptics()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showBalancePopup, setShowBalancePopup] = useState(false)
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -122,6 +123,14 @@ export default function Studio() {
           user_id: user?.id || null
         })
       })
+
+      if (res.status === 403) {
+        setShowBalancePopup(true)
+        notify('error')
+        setIsGenerating(false)
+        return
+      }
+
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
       setGeneratedImage(data.image)
@@ -331,6 +340,31 @@ export default function Studio() {
         </div>
 
       </div>
+      {/* Insufficient Balance Popup */}
+      {
+        showBalancePopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full relative shadow-2xl animate-in slide-in-from-bottom-4">
+              <button onClick={() => setShowBalancePopup(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white">
+                <X size={20} />
+              </button>
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4 mx-auto">
+                <Zap size={24} className="text-yellow-500" />
+              </div>
+              <h3 className="text-xl font-bold text-white text-center mb-2">Недостаточно токенов</h3>
+              <p className="text-zinc-400 text-center text-sm mb-6">
+                У вас закончились токены для генерации. Пополните баланс, чтобы продолжить создавать шедевры!
+              </p>
+              <Button
+                onClick={() => { setShowBalancePopup(false); impact('medium'); }}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold hover:opacity-90"
+              >
+                Купить токены
+              </Button>
+            </div>
+          </div>
+        )
+      }
     </div>
   )
 }

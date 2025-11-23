@@ -202,6 +202,7 @@ async function supaPatch(table: string, filter: string, body: unknown) {
 
 const MODEL_PRICES: Record<string, number> = {
   nanobanana: 3,
+  'nanobanana-pro': 15,
   seedream4: 3,
   flux: 4,
   'qwen-edit': 3,
@@ -388,6 +389,19 @@ export async function handleGenerateImage(req: Request, res: Response) {
       return res.status(500).json({
         error: 'KIE_API_KEY is not configured'
       })
+    }
+
+    // Проверка баланса пользователя
+    if (user_id) {
+      const cost = MODEL_PRICES[model] ?? 0
+      const q = await supaSelect('users', `?user_id=eq.${encodeURIComponent(String(user_id))}&select=balance`)
+      const balance = Array.isArray(q.data) && q.data[0]?.balance != null ? Number(q.data[0].balance) : 0
+
+      if (balance < cost) {
+        return res.status(403).json({
+          error: `Insufficient balance. Required: ${cost}, Available: ${balance}`
+        })
+      }
     }
 
     // Вызов Kie.ai API

@@ -68,16 +68,20 @@ export default function App() {
           <div className="absolute -top-20 -left-10 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]"></div>
           <div className="absolute -bottom-20 -right-10 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]"></div>
         </div>
-        <Header />
-        <StartParamRouter />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/studio" element={<Studio />} />
-          <Route path="/top" element={<Leaderboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <TabBar />
+        <div className="pt-[env(safe-area-inset-top)] min-h-screen flex flex-col">
+          <Header />
+          <StartParamRouter />
+          <div className="flex-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/studio" element={<Studio />} />
+              <Route path="/top" element={<Leaderboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+          <TabBar />
+        </div>
       </Router>
       <Toaster />
     </>
