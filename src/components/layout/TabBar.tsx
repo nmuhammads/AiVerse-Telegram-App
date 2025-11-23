@@ -1,9 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import { Home, Trophy, Settings2, User } from 'lucide-react'
+import WebApp from '@twa-dev/sdk'
 
 export function TabBar() {
+  const isAndroid = WebApp.platform === 'android'
+
   return (
-    <div className="fixed safe-bottom-fixed left-0 right-0 z-50">
+    <div className={`fixed left-0 right-0 z-50 ${isAndroid ? 'safe-bottom-fixed' : 'bottom-2 pb-[env(safe-area-inset-bottom)]'}`}>
       <div className="mx-auto w-[92%] max-w-[400px]">
         <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[

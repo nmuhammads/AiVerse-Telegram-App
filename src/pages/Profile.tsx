@@ -131,7 +131,46 @@ export default function Profile() {
                         className="flex-1 h-11 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                       >
                         <DownloadIcon size={16} />
-                        Скачать
+                        Сохранить в галерею
+                      </button>
+                      <button
+                        onClick={async () => {
+                          impact('light')
+                          try {
+                            if (navigator.share) {
+                              // Try to fetch the image and share it as a file
+                              const response = await fetch(preview.image_url)
+                              const blob = await response.blob()
+                              const file = new File([blob], 'image.jpg', { type: 'image/jpeg' })
+
+                              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                  files: [file],
+                                  title: 'AiVerse Generation',
+                                  text: preview.prompt
+                                })
+                                return
+                              }
+
+                              // Fallback to URL sharing if file sharing is not supported
+                              await navigator.share({
+                                title: 'AiVerse Generation',
+                                text: preview.prompt,
+                                url: preview.image_url
+                              })
+                            } else {
+                              shareImage(preview.image_url, preview.prompt)
+                            }
+                          } catch (e) {
+                            console.error('Share failed:', e)
+                            // Fallback to Telegram share on error
+                            shareImage(preview.image_url, preview.prompt)
+                          }
+                        }}
+                        className="flex-1 h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
+                      >
+                        <Share2 size={16} />
+                        Поделиться
                       </button>
                       <button
                         onClick={async () => {
@@ -152,7 +191,7 @@ export default function Profile() {
                         className="flex-1 h-11 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                       >
                         <Send size={16} />
-                        Отправить в чат
+                        Отправить в чат с промптом
                       </button>
                     </div>
                   </div>

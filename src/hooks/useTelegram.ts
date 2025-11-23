@@ -134,9 +134,14 @@ export function useTelegram() {
 
   const checkHomeScreenStatus = (callback: (status: string) => void) => {
     const wa = WebApp as any
-    if (wa.checkHomeScreenStatus) {
-      wa.checkHomeScreenStatus(callback)
-    } else {
+    try {
+      if (wa.checkHomeScreenStatus) {
+        wa.checkHomeScreenStatus(callback)
+      } else {
+        callback('unsupported')
+      }
+    } catch (e) {
+      console.error('checkHomeScreenStatus error:', e)
       callback('unsupported')
     }
   }
