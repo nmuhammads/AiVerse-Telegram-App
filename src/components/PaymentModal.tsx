@@ -21,27 +21,51 @@ const PACKAGES_STARS = [
 ]
 
 const PACKAGES_FIAT = [
-    { id: 'fiat_50', tokens: 10, price: 50 },
-    { id: 'fiat_125', tokens: 25, price: 125 },
-    { id: 'fiat_250', tokens: 50, price: 250 },
-    { id: 'fiat_500', tokens: 100, price: 500, popular: true },
-    { id: 'fiat_750', tokens: 150, price: 750 },
-    { id: 'fiat_1500', tokens: 300, price: 1500 },
-    { id: 'fiat_2500', tokens: 550, price: 2500, bonus: true },
+    {
+        id: 'fiat_50',
+        tokens: 50,
+        price: 100,
+        webLink: 'https://web.tribute.tg/p/m04',
+        link: 'https://t.me/tribute/app?startapp=pm04'
+    },
+    {
+        id: 'fiat_120',
+        tokens: 120,
+        price: 230,
+        bonus: '+4%',
+        webLink: 'https://web.tribute.tg/p/m05',
+        link: 'https://t.me/tribute/app?startapp=pm05'
+    },
+    {
+        id: 'fiat_300',
+        tokens: 300,
+        price: 540,
+        bonus: '+11%',
+        webLink: 'https://web.tribute.tg/p/m06',
+        link: 'https://t.me/tribute/app?startapp=pm06'
+    },
+    {
+        id: 'fiat_800',
+        tokens: 800,
+        price: 1440,
+        bonus: '+11%',
+        webLink: 'https://web.tribute.tg/p/m07',
+        link: 'https://t.me/tribute/app?startapp=pm07'
+    },
 ]
 
 export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const { impact } = useHaptics()
     const { user } = useTelegram()
     const [activeMethod, setActiveMethod] = useState<PaymentMethod>('stars')
-    const [selectedPackage, setSelectedPackage] = useState(PACKAGES_STARS[3])
+    const [selectedPackage, setSelectedPackage] = useState<any>(PACKAGES_STARS[3])
     const [loading, setLoading] = useState(false)
 
     // Update selected package when method changes to keep relative position or default
     useEffect(() => {
-        const packages = activeMethod === 'stars' ? PACKAGES_STARS : PACKAGES_FIAT
-        // Try to find matching token amount, otherwise default to popular
-        const match = packages.find(p => p.tokens === selectedPackage.tokens) || packages[3]
+        const packages: any[] = activeMethod === 'stars' ? PACKAGES_STARS : PACKAGES_FIAT
+        // Try to find matching token amount, otherwise default to popular or middle
+        const match = packages.find(p => p.tokens === selectedPackage.tokens) || packages.find(p => p.popular) || packages[0]
         setSelectedPackage(match)
     }, [activeMethod])
 
@@ -96,7 +120,20 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 setLoading(false)
             }
         } else {
-            alert(`Оплата ${selectedPackage.tokens} токенов за ${selectedPackage.price} ₽ через ${activeMethod === 'card' ? 'Карту' : 'СБП'} пока не подключена`)
+            // Tribute Payment (Card or SBP)
+            const wa = (window as any).Telegram?.WebApp
+            const link = activeMethod === 'card' ? selectedPackage.webLink : selectedPackage.link
+
+            if (link) {
+                if (wa) {
+                    wa.openLink(link)
+                } else {
+                    window.open(link, '_blank')
+                }
+                onClose()
+            } else {
+                alert('Ссылка на оплату не найдена')
+            }
         }
     }
 
@@ -151,8 +188,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 {/* Packages Grid */}
                 <div className="px-5 pb-5 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-2">
-                        {packages.map((pkg, index) => {
-                            const isLast = index === packages.length - 1
+                        {packages.map((pkg: any, index: number) => {
+                            const isLast = index === packages.length - 1 && packages.length % 2 !== 0
                             const isSelected = selectedPackage.id === pkg.id
                             return (
                                 <button
@@ -171,21 +208,21 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     <div className={`flex-1 text-left ${isLast ? 'flex justify-between items-center w-full pl-2' : ''}`}>
                                         <div>
                                             <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>{pkg.tokens} токенов</div>
-                                            {isLast && <div className="text-[10px] text-emerald-400 font-bold">+10% Бонус</div>}
+                                            {pkg.bonus && <div className="text-[10px] text-emerald-400 font-bold">Бонус {pkg.bonus}</div>}
                                         </div>
                                         <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
                                             {pkg.price} {currencySymbol}
                                         </div>
                                     </div>
 
-                                    {pkg.popular && !isLast && (
-                                        <div className="absolute -top-1.5 right-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
+                                    {activeMethod === 'stars' && pkg.popular && !isLast && (
+                                        <div className="absolute -top-1.5 right-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg z-10">
                                             POPULAR
                                         </div>
                                     )}
-                                    {pkg.bonus && (
-                                        <div className="absolute -top-1.5 right-3 bg-gradient-to-r from-emerald-400 to-teal-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg">
-                                            BONUS +10%
+                                    {activeMethod === 'stars' && pkg.bonus && !isLast && (
+                                        <div className={`absolute text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg z-10 ${pkg.popular ? '-bottom-1.5 right-1.5' : '-top-1.5 right-1.5'} bg-gradient-to-r from-emerald-400 to-teal-500`}>
+                                            {pkg.bonus}
                                         </div>
                                     )}
                                 </button>
@@ -204,7 +241,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             : 'bg-white text-black hover:bg-zinc-200 shadow-white/10'
                             }`}
                     >
-                        {loading ? 'Обработка...' : `Оплатить ${selectedPackage.price} ${currencySymbol}`}
+                        {loading ? 'Обработка...' : `Оплатить ${selectedPackage.price} ${currencySymbol} через ${activeMethod === 'stars' ? 'Stars' : activeMethod === 'card' ? 'Карту' : 'СБП'}`}
                     </button>
                 </div>
             </div>
