@@ -101,10 +101,18 @@ export default function Profile() {
         <div className="bg-gradient-to-b from-zinc-900 to-black p-5 rounded-[2rem] border border-white/10 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-5 text-violet-500"><Sparkles size={140} /></div>
           <div className="flex items-center gap-5 relative z-10">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 p-0.5 flex-shrink-0 shadow-lg">
-              <div className="w-full h-full bg-black rounded-full overflow-hidden">
-                <img src={avatarSrc || avatarUrl} alt={displayName} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }} />
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 p-0.5 flex-shrink-0 shadow-lg">
+                <div className="w-full h-full bg-black rounded-full overflow-hidden">
+                  <img src={avatarSrc || avatarUrl} alt={displayName} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }} />
+                </div>
               </div>
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="absolute bottom-0 right-0 w-7 h-7 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-200 transition-colors"
+              >
+                <Edit size={14} />
+              </button>
             </div>
             <div className="flex-1">
               <div className="flex justify-between items-start">
@@ -117,12 +125,27 @@ export default function Profile() {
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
                   const f = e.target.files?.[0]
                   if (!f || !user?.id) return
+
+                  // Optimistic update
                   const reader = new FileReader()
-                  reader.onload = async (ev) => {
+                  reader.onload = (ev) => {
                     const base64 = String(ev.target?.result || '')
-                    await fetch('/api/user/avatar/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id, imageBase64: base64 }) })
-                    setAvatarSrc(`/api/user/avatar/${user.id}?t=${Date.now()}`)
-                    impact('medium')
+                    setAvatarSrc(base64) // Show immediately
+
+                    // Upload
+                    fetch('/api/user/avatar/upload', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user.id, imageBase64: base64 })
+                    }).then(async (r) => {
+                      if (r.ok) {
+                        impact('medium')
+                        notify('success')
+                      } else {
+                        notify('error')
+                        // Revert if failed (optional, but good UX)
+                      }
+                    })
                   }
                   reader.readAsDataURL(f)
                 }} />

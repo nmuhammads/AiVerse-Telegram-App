@@ -6,7 +6,7 @@ function stripQuotes(s: string) { return s.trim().replace(/^['"`]+|['"`]+$/g, ''
 
 const SUPABASE_URL = stripQuotes(process.env.SUPABASE_URL || '')
 const SUPABASE_KEY = stripQuotes(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '')
-const SUPABASE_BUCKET = stripQuotes(process.env.SUPABASE_AVATARS_BUCKET || 'photo_reference')
+const SUPABASE_BUCKET = stripQuotes(process.env.SUPABASE_AVATARS_BUCKET || 'avatars')
 const DEFAULT_BOT_SOURCE = process.env.TELEGRAM_BOT_USERNAME || 'AiVerseAppBot'
 
 function supaHeaders() {
@@ -69,70 +69,74 @@ function sanitizeUrl(u: unknown): string | null {
   return cleaned || null
 }
 
-export async function getAvatar(req: Request, res: Response) {
+// Sync avatar from Telegram to Supabase Storage
+export async function syncAvatar(req: Request, res: Response) {
   try {
-    const userId = req.params.userId
+    const { userId } = req.body
     if (!userId) return res.status(400).json({ error: 'userId required' })
-    console.info('avatar:get:start', { userId, supa: Boolean(SUPABASE_URL && SUPABASE_KEY) })
-    /*
-    // TEMPORARY: Skip Supabase check to force Telegram avatar
-    if (SUPABASE_URL && SUPABASE_KEY) {
-      const qp = await supaSelect('avatars', `?user_id=eq.${encodeURIComponent(userId)}&is_profile_pic=eq.true&select=file_path,created_at&order=created_at.desc&limit=1`)
-      console.info('avatar:query', { ok: qp.ok, count: Array.isArray(qp.data) ? qp.data.length : null })
-      const filePath = Array.isArray(qp.data) && qp.data[0]?.file_path ? String(qp.data[0].file_path) : null
-      console.info('avatar:file-path', { filePath })
-      if (filePath) {
-        const canonical = `${encodeURIComponent(String(userId))}/profile.jpg`
-        const candidates = [filePath, ...(filePath !== canonical ? [canonical] : [])]
-        for (const p of candidates) {
-          const signed = await supaStorageSignedUrl(p)
-          if (signed) {
-            try {
-              const imgResp = await fetch(signed)
-              console.info('avatar:fetch', { status: imgResp.status, ct: imgResp.headers.get('content-type'), path: p })
-              if (imgResp.ok) {
-                const ct = imgResp.headers.get('content-type') || 'image/jpeg'
-                const buf = Buffer.from(await imgResp.arrayBuffer())
-                res.setHeader('Content-Type', ct)
-                res.setHeader('Cache-Control', 'no-store')
-                if (p !== filePath) {
-                  console.info('avatar:canonical:update', { from: filePath, to: p })
-                  await supaPatch('avatars', `?user_id=eq.${encodeURIComponent(String(userId))}&is_profile_pic=eq.true`, { file_path: p })
-                }
-                return res.end(buf)
-              }
-            } catch (e) { console.error('avatar:fetch:error', { message: (e as Error)?.message }) }
-          }
-        }
-      }
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
+
+    // 1. Check if user already has an avatar_url in users table
+    const userQuery = await supaSelect('users', `?user_id=eq.${userId}&select=avatar_url`)
+    if (userQuery.ok && Array.isArray(userQuery.data) && userQuery.data[0]?.avatar_url) {
+      // Avatar already exists, no need to sync
+      return res.json({ ok: true, avatar_url: userQuery.data[0].avatar_url })
     }
-    */
-    // Fallback: fetch from Telegram and return without uploading to Supabase
-    if (!TOKEN) return res.status(404).json({ error: 'avatar not found' });
-    console.info('avatar:telegram:fetch', { userId });
-    const photosResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getUserProfilePhotos?user_id=${encodeURIComponent(userId)}&limit=1`);
-    const photosJson = await photosResp.json();
-    const first = photosJson?.result?.photos?.[0];
-    if (!first) return res.status(404).json({ error: 'no photos' });
-    const sizes = first as Array<{ file_id: string }>;
-    const largest = sizes[sizes.length - 1];
-    const fileResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${largest.file_id}`);
-    const fileJson = await fileResp.json();
-    const filePathTg = fileJson?.result?.file_path;
-    if (!filePathTg) return res.status(404).json({ error: 'file not found' });
-    const downloadUrl = `https://api.telegram.org/file/bot${TOKEN}/${filePathTg}`;
-    const imgResp = await fetch(downloadUrl);
-    if (!imgResp.ok) return res.status(404).json({ error: 'download failed' });
-    const buf = Buffer.from(await imgResp.arrayBuffer());
-    // Return the image directly from Telegram
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'no-store');
-    console.info('avatar:telegram:return', { saved: false });
-    return res.end(buf);
+
+    // 2. Fetch from Telegram
+    if (!TOKEN) return res.status(500).json({ error: 'Telegram token not configured' })
+
+    const photosResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`)
+    const photosJson = await photosResp.json()
+    const first = photosJson?.result?.photos?.[0]
+
+    if (!first) {
+      // No photos in Telegram, maybe set a default or do nothing
+      return res.json({ ok: true, message: 'no telegram photos' })
+    }
+
+    // Get the largest size
+    const largest = first[first.length - 1]
+    const fileResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${largest.file_id}`)
+    const fileJson = await fileResp.json()
+    const filePathTg = fileJson?.result?.file_path
+
+    if (!filePathTg) return res.status(404).json({ error: 'telegram file path not found' })
+
+    // Download image
+    const downloadUrl = `https://api.telegram.org/file/bot${TOKEN}/${filePathTg}`
+    const imgResp = await fetch(downloadUrl)
+    if (!imgResp.ok) return res.status(500).json({ error: 'failed to download from telegram' })
+
+    const buf = Buffer.from(await imgResp.arrayBuffer())
+
+    // 3. Upload to Supabase Storage
+    const fileName = `${userId}_${Date.now()}.jpg`
+    const uploadPath = `${userId}/${fileName}`
+
+    const upload = await supaStorageUpload(uploadPath, buf, 'image/jpeg')
+    if (!upload.ok) return res.status(500).json({ error: 'upload failed', detail: upload.data })
+
+    // 4. Get Public URL
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${uploadPath}`
+
+    // 5. Update users table
+    const update = await supaPatch('users', `?user_id=eq.${userId}`, { avatar_url: publicUrl })
+    if (!update.ok) return res.status(500).json({ error: 'db update failed', detail: update.data })
+
+    return res.json({ ok: true, avatar_url: publicUrl })
+
   } catch (e) {
-    console.error('avatar:get:error', { message: (e as Error)?.message })
-    return res.status(500).json({ error: 'avatar error' })
+    console.error('syncAvatar error:', e)
+    return res.status(500).json({ error: 'sync failed' })
   }
+}
+
+export async function getAvatar(req: Request, res: Response) {
+  // Legacy or fallback if needed, but for now we rely on avatar_url in users table
+  // We can redirect to the public URL if we want, or just return 404 if not found
+  return res.status(404).json({ error: 'use avatar_url from user object' })
 }
 
 export async function uploadAvatar(req: Request, res: Response) {

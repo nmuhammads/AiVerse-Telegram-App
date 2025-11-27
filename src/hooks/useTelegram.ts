@@ -146,6 +146,26 @@ export function useTelegram() {
     }
   }
 
+  const user = (import.meta.env.DEV && !WebApp.initDataUnsafe.user) ? {
+    id: 817308975,
+    first_name: 'Mock',
+    last_name: 'User',
+    username: 'mock_user',
+    language_code: 'en',
+    is_premium: true
+  } : WebApp.initDataUnsafe.user
+
+  useEffect(() => {
+    if (user?.id) {
+      // Sync avatar on launch
+      fetch('/api/user/sync-avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      }).catch(e => console.error('Avatar sync failed', e))
+    }
+  }, [user?.id])
+
   return {
     showMainButton,
     hideMainButton,
@@ -158,7 +178,10 @@ export function useTelegram() {
     openBotDeepLink,
     addToHomeScreen,
     checkHomeScreenStatus,
-    user: WebApp.initDataUnsafe.user,
+    onClose: WebApp.close,
+    onToggleButton: WebApp.MainButton.isVisible ? hideMainButton : () => showMainButton('Generate', () => { }),
+    tg: WebApp,
+    user,
     platform: WebApp.platform
   }
 }

@@ -1,8 +1,9 @@
 import { Router } from 'express'
-import { getAvatar, uploadAvatar, getUserInfo, subscribeBot, listGenerations } from '../controllers/userController.js'
+import { getAvatar, uploadAvatar, getUserInfo, subscribeBot, listGenerations, syncAvatar } from '../controllers/userController.js'
 
 const router = Router()
 router.get('/avatar/:userId', getAvatar)
+router.post('/sync-avatar', syncAvatar as any)
 router.post('/avatar/upload', uploadAvatar)
 router.get('/info/:userId', getUserInfo)
 router.post('/subscribe', subscribeBot)
