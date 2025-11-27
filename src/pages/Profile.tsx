@@ -213,7 +213,7 @@ export default function Profile() {
                           shareImage(preview.image_url, preview.prompt)
                         }
                       }}
-                      className="absolute top-3 left-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10"
+                      className="absolute top-12 left-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 pt-[env(safe-area-inset-top)]"
                     >
                       <Share2 size={16} />
                     </button>
@@ -222,11 +222,11 @@ export default function Profile() {
                         impact('light')
                         setIsFullScreen(true)
                       }}
-                      className="absolute top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10"
+                      className="absolute top-12 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 pt-[env(safe-area-inset-top)]"
                     >
                       <Maximize2 size={16} />
                     </button>
-                    <button onClick={() => setPreview(null)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10"><X size={16} /></button>
+                    <button onClick={() => setPreview(null)} className="absolute top-12 right-3 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-10 pt-[env(safe-area-inset-top)]"><X size={16} /></button>
                     <img src={preview.image_url} alt="Preview" className="w-full max-h-[70vh] object-contain bg-black" />
                     <div className="p-4 flex flex-col gap-3">
                       <div className="flex flex-col sm:flex-row gap-3">
