@@ -122,8 +122,11 @@ export async function syncAvatar(req: Request, res: Response) {
       return res.status(500).json({ error: 'telegram file too small' })
     }
 
-    const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
-    console.log(`[Avatar] Downloaded from Telegram, size: ${buf.length}, type: ${contentType}`)
+    let contentType = imgResp.headers.get('content-type') || 'image/jpeg'
+    if (contentType === 'application/octet-stream') {
+      contentType = 'image/jpeg' // Force JPEG for Telegram photos if generic type
+    }
+    console.log(`[Avatar] Downloaded from Telegram, size: ${buf.length}, type: ${contentType} (original: ${imgResp.headers.get('content-type')})`)
 
     // 3. Upload to Supabase Storage
     // Use fixed filename to save space (overwrite existing)
