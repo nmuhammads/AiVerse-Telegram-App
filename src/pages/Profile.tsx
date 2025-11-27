@@ -204,7 +204,7 @@ export default function Profile() {
               {preview && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setPreview(null) }}>
                   <div className="relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
-                    <div className={`absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20 pointer-events-none ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(1rem+env(safe-area-inset-top))]'}`}>
+                    <div className={`absolute top-0 left-0 right-0 px-2 flex justify-between items-start z-20 pointer-events-none ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(0.5rem+env(safe-area-inset-top))]'}`}>
                       <button
                         onClick={() => {
                           impact('light')
