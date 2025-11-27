@@ -6,7 +6,7 @@ function stripQuotes(s: string) { return s.trim().replace(/^['"`]+|['"`]+$/g, ''
 
 const SUPABASE_URL = stripQuotes(process.env.SUPABASE_URL || '')
 const SUPABASE_KEY = stripQuotes(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '')
-const SUPABASE_BUCKET = stripQuotes(process.env.SUPABASE_AVATARS_BUCKET || 'avatars')
+const SUPABASE_BUCKET = stripQuotes(process.env.SUPABASE_USER_AVATARS_BUCKET || 'avatars')
 const DEFAULT_BOT_SOURCE = process.env.TELEGRAM_BOT_USERNAME || 'AiVerseAppBot'
 
 function supaHeaders() {
