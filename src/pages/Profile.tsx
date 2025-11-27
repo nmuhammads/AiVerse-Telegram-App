@@ -204,37 +204,39 @@ export default function Profile() {
               {preview && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setPreview(null) }}>
                   <div className="relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
-                    <div className={`absolute top-0 left-0 right-0 px-2 flex justify-between items-start z-20 pointer-events-none ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(0.5rem+env(safe-area-inset-top))]'}`}>
-                      <button
-                        onClick={() => {
-                          impact('light')
-                          if (navigator.share) {
-                            navigator.share({ title: 'AiVerse', text: preview.prompt, url: preview.image_url }).catch(() => { })
-                          } else {
-                            shareImage(preview.image_url, preview.prompt)
-                          }
-                        }}
-                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
-                      >
-                        <Share2 size={20} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          impact('light')
-                          setIsFullScreen(true)
-                        }}
-                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
-                      >
-                        <Maximize2 size={20} />
-                      </button>
-                      <button
-                        onClick={() => setPreview(null)}
-                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
-                      >
-                        <X size={20} />
-                      </button>
+                    <div className="relative w-full aspect-square bg-black">
+                      <div className={`absolute top-0 left-0 right-0 px-2 flex justify-between items-start z-20 pointer-events-none ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(0.5rem+env(safe-area-inset-top))]'}`}>
+                        <button
+                          onClick={() => {
+                            impact('light')
+                            if (navigator.share) {
+                              navigator.share({ title: 'AiVerse', text: preview.prompt, url: preview.image_url }).catch(() => { })
+                            } else {
+                              shareImage(preview.image_url, preview.prompt)
+                            }
+                          }}
+                          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
+                        >
+                          <Share2 size={20} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            impact('light')
+                            setIsFullScreen(true)
+                          }}
+                          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
+                        >
+                          <Maximize2 size={20} />
+                        </button>
+                        <button
+                          onClick={() => setPreview(null)}
+                          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <img src={preview.image_url} alt="Preview" className="w-full h-full object-contain" />
                     </div>
-                    <img src={preview.image_url} alt="Preview" className="w-full max-h-[70vh] object-contain bg-black" />
                     <div className="p-4 flex flex-col gap-3">
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button
