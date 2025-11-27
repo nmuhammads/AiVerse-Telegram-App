@@ -9,7 +9,7 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 export default function Profile() {
   const navigate = useNavigate()
   const { impact, notify } = useHaptics()
-  const { user, saveToGallery, shareImage } = useTelegram()
+  const { user, platform, saveToGallery, shareImage } = useTelegram()
   const [avatarSrc, setAvatarSrc] = useState<string>('')
   const fileRef = useRef<HTMLInputElement>(null)
   const [balance, setBalance] = useState<number | null>(null)
@@ -204,7 +204,7 @@ export default function Profile() {
               {preview && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setPreview(null) }}>
                   <div className="relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 p-4 pt-[calc(1rem+env(safe-area-inset-top))] flex justify-between items-start z-20 pointer-events-none">
+                    <div className={`absolute top-0 left-0 right-0 p-4 flex justify-between items-start z-20 pointer-events-none ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(1rem+env(safe-area-inset-top))]'}`}>
                       <button
                         onClick={() => {
                           impact('light')
@@ -308,7 +308,7 @@ export default function Profile() {
               )}
               {isFullScreen && preview && (
                 <div className="fixed inset-0 z-[200] bg-black flex flex-col">
-                  <div className="absolute top-0 right-0 z-50 p-4 pt-[calc(3.5rem+env(safe-area-inset-top))]">
+                  <div className={`absolute top-0 right-0 z-50 p-4 ${platform === 'android' ? 'pt-[calc(3.5rem+env(safe-area-inset-top))]' : 'pt-[calc(1rem+env(safe-area-inset-top))]'}`}>
                     <button
                       onClick={() => setIsFullScreen(false)}
                       className="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md"
