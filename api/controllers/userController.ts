@@ -184,7 +184,19 @@ export async function uploadAvatar(req: Request, res: Response) {
       if (!up.ok) return res.status(500).json({ error: 'upload to storage failed', detail: up.data })
 
       // Update user avatar_url if not set (or just always update to be safe)
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filePath}`
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filePath}?t=${Date.now()}`
+
+      // Verify if the public URL is accessible
+      try {
+        const verifyResp = await fetch(publicUrl)
+        console.log(`[Avatar] Manual upload verification: ${publicUrl} -> ${verifyResp.status} ${verifyResp.statusText}`)
+        if (!verifyResp.ok) {
+          console.error(`[Avatar] Manual upload public URL not accessible! Check bucket permissions.`)
+        }
+      } catch (err) {
+        console.error(`[Avatar] Manual upload verification failed:`, err)
+      }
+
       const upd = await supaPatch('users', `?user_id=eq.${userId}`, { avatar_url: publicUrl })
 
       return res.json({ ok: true, file_path: filePath, avatar_url: publicUrl })
