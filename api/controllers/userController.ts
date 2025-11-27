@@ -140,6 +140,17 @@ export async function syncAvatar(req: Request, res: Response) {
     // Add timestamp to force cache busting on client side
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${uploadPath}?t=${Date.now()}`
 
+    // Verify if the public URL is accessible
+    try {
+      const verifyResp = await fetch(publicUrl)
+      console.log(`[Avatar] Verification fetch: ${publicUrl} -> ${verifyResp.status} ${verifyResp.statusText}`)
+      if (!verifyResp.ok) {
+        console.error(`[Avatar] Public URL not accessible! Check bucket permissions.`)
+      }
+    } catch (err) {
+      console.error(`[Avatar] Verification fetch failed:`, err)
+    }
+
     // 5. Update users table
     const update = await supaPatch('users', `?user_id=eq.${userId}`, { avatar_url: publicUrl })
     if (!update.ok) return res.status(500).json({ error: 'db update failed', detail: update.data })

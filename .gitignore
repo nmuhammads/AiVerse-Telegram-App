@@ -36,3 +36,6 @@ docs/File upload API/URL File Upload.md
 docs/Tribute/Pay bot code/report.md
 docs/Tribute/Tribute products.json
 docs/Tribute/Webhook.md
+SQLSCHEME.sql
+migrations/*
+.env
