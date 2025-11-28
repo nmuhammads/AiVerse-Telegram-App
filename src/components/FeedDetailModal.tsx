@@ -68,13 +68,16 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
         year: 'numeric'
     })
 
+    // Check for 9:16 ratio in metadata
+    const is9_16 = item.prompt.includes('ratio=9:16') || item.prompt.includes('portrait_16_9')
+
     return (
         <div
             className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-2xl flex flex-col gap-4"
+                className={`w-full max-w-2xl flex flex-col gap-4 transition-transform ${is9_16 ? 'translate-y-8' : ''}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -131,8 +134,8 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                         <button
                             onClick={handleLikeClick}
                             className={`flex-1 h-12 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border ${item.is_liked
-                                    ? 'bg-pink-500/20 text-pink-500 border-pink-500/20'
-                                    : 'bg-zinc-900 text-white border-white/10 hover:bg-zinc-800'
+                                ? 'bg-pink-500/20 text-pink-500 border-pink-500/20'
+                                : 'bg-zinc-900 text-white border-white/10 hover:bg-zinc-800'
                                 }`}
                         >
                             <Heart
