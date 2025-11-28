@@ -343,12 +343,12 @@ export default function Home() {
         ) : (
           <div className="pb-20">
             <div className="flex gap-4 items-start">
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 min-w-0 space-y-4">
                 {filteredItems.filter((_, i) => i % 2 === 0).map(item => (
                   <FeedImage key={item.id} item={item} priority={true} handleRemix={handleRemix} />
                 ))}
               </div>
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 min-w-0 space-y-4">
                 {filteredItems.filter((_, i) => i % 2 !== 0).map(item => (
                   <FeedImage key={item.id} item={item} priority={true} handleRemix={handleRemix} />
                 ))}
