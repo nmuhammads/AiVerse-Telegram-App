@@ -298,7 +298,7 @@ export default function Studio() {
   const maxImages = selectedModel === 'qwen-edit' ? 1 : 8
 
   return (
-    <div className="min-h-dvh bg-black pb-32 flex flex-col">
+    <div className="min-h-dvh bg-black pb-32 flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 80px)' }}>
       <div className="mx-auto max-w-3xl w-full px-4 py-4 flex-1 flex flex-col gap-6">
 
         {/* Header */}
