@@ -300,8 +300,11 @@ export default function Home() {
     x.author.username.toLowerCase().includes(q.toLowerCase())
   )
 
+  const { platform } = useTelegram()
+  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 20px)' : 'calc(env(safe-area-inset-top) + 50px)'
+
   return (
-    <div className="min-h-dvh bg-black safe-bottom-tabbar" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 50px)' }}>
+    <div className="min-h-dvh bg-black safe-bottom-tabbar" style={{ paddingTop }}>
       <div className="mx-auto max-w-3xl px-4 py-4 space-y-4">
         <div className="flex items-center justify-between mb-4 px-1 h-10">
           {!isSearchOpen ? (

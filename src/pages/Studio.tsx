@@ -83,7 +83,7 @@ export default function Studio() {
     setParentGeneration,
   } = useGenerationStore()
 
-  const { shareImage, saveToGallery, user } = useTelegram()
+  const { shareImage, saveToGallery, user, platform } = useTelegram()
   const { impact, notify } = useHaptics()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showBalancePopup, setShowBalancePopup] = useState(false)
@@ -297,8 +297,10 @@ export default function Studio() {
   const ratios = SUPPORTED_RATIOS[selectedModel]
   const maxImages = selectedModel === 'qwen-edit' ? 1 : 8
 
+  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 20px)' : 'calc(env(safe-area-inset-top) + 50px)'
+
   return (
-    <div className="min-h-dvh bg-black pb-32 flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 50px)' }}>
+    <div className="min-h-dvh bg-black pb-32 flex flex-col" style={{ paddingTop }}>
       <div className="mx-auto max-w-3xl w-full px-4 py-4 flex-1 flex flex-col gap-6">
 
         {/* Header */}
