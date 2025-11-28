@@ -297,7 +297,7 @@ export default function Studio() {
   const ratios = SUPPORTED_RATIOS[selectedModel]
   const maxImages = selectedModel === 'qwen-edit' ? 1 : 8
 
-  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 20px)' : 'calc(env(safe-area-inset-top) + 50px)'
+  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
   return (
     <div className="min-h-dvh bg-black pb-32 flex flex-col" style={{ paddingTop }}>

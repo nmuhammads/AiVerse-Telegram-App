@@ -43,7 +43,7 @@ export default function Settings() {
     ]
 
     return (
-        <div className="min-h-dvh bg-black text-white pt-[calc(env(safe-area-inset-top)+20px)] pb-10">
+        <div className="min-h-dvh bg-black text-white pt-[calc(env(safe-area-inset-top)+5px)] pb-10">
             {/* Header */}
             <div className="px-4 py-4 flex items-center gap-4 relative">
                 <button

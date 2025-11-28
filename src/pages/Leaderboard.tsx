@@ -87,7 +87,7 @@ export default function Leaderboard() {
   }
 
   const { platform } = useTelegram()
-  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 20px)' : 'calc(env(safe-area-inset-top) + 50px)'
+  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
   return (
     <div className="min-h-dvh bg-black safe-bottom-tabbar" style={{ paddingTop }}>
