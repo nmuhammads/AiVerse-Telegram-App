@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users } from 'lucide-react'
+import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useEffect, useState } from 'react'
@@ -35,6 +35,20 @@ export default function Settings() {
         })
     }, [])
 
+    const [remixCount, setRemixCount] = useState(0)
+    const { user } = useTelegram()
+
+    useEffect(() => {
+        if (user?.id) {
+            fetch(`/api/user/info/${user.id}`).then(async r => {
+                const j = await r.json().catch(() => null)
+                if (r.ok && j && typeof j.remix_count === 'number') {
+                    setRemixCount(j.remix_count)
+                }
+            })
+        }
+    }, [user?.id])
+
     const sections = [
         {
             title: 'Основные',
@@ -47,14 +61,14 @@ export default function Settings() {
         {
             title: 'Реферальная система',
             items: [
-                { icon: Users, label: 'Накопления', value: '0', onClick: () => navigate('/accumulations') },
+                { icon: Users, label: 'Накопления', value: String(remixCount), onClick: () => navigate('/accumulations') },
             ]
         },
         {
             title: 'О приложении',
             items: [
-                { icon: Shield, label: 'Политика конфиденциальности', onClick: () => { } },
-                { icon: Info, label: 'О нас', value: 'v2.2', onClick: () => { } },
+                { icon: MessageCircle, label: 'Поддержка', onClick: () => tg.openTelegramLink('https://t.me/aiversebots?direct') },
+                { icon: Info, label: 'Версия', value: 'v2.2', onClick: () => { } },
             ]
         }
     ]
