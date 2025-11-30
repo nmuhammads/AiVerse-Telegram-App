@@ -222,7 +222,14 @@ async function recordSuccessAndDeduct(userId: number, imageUrl: string, prompt: 
     const promptWithMeta = prompt + metaString
 
     // 2. Save generation
-    const genBody: any = { user_id: userId, image_url: imageUrl, prompt: promptWithMeta, model }
+    const genBody: any = {
+      user_id: userId,
+      image_url: imageUrl,
+      prompt: promptWithMeta,
+      model,
+      status: 'completed',
+      completed_at: new Date().toISOString()
+    }
     if (parentId) genBody.parent_id = parentId
     if (inputImages && inputImages.length > 0) genBody.input_images = inputImages
     const genRes = await supaPost('generations', genBody)

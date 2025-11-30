@@ -478,7 +478,7 @@ export default function Studio() {
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             <div className="relative flex items-center gap-2">
               {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-              <span>{isGenerating ? 'Создание шедевра...' : generationMode === 'image' ? 'Редактировать' : 'Сгенерировать'}</span>
+              <span>{isGenerating ? 'Создание шедевра...' : generationMode === 'image' ? 'Сгенерировать' : 'Сгенерировать'}</span>
               {!isGenerating && <span className="bg-black/20 px-2 py-0.5 rounded text-xs font-normal ml-1">{MODEL_PRICES[selectedModel]} токена</span>}
             </div>
           </Button>
