@@ -376,6 +376,13 @@ export default function Home() {
           )}
         </div>
 
+        {/* Month Header */}
+        <div className="px-1 mb-2">
+          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+            Лента за {new Date().toLocaleString('ru', { month: 'long' })}
+          </h2>
+        </div>
+
         {loading ? (
           <div className="text-center text-zinc-500 py-10">Загрузка...</div>
         ) : (

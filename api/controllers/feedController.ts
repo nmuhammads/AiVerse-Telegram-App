@@ -58,7 +58,11 @@ export async function getFeed(req: Request, res: Response) {
             order = 'likes_count.desc,created_at.desc'
         }
 
-        const query = `?is_published=eq.true&order=${order}&limit=${limit}&offset=${offset}&${select}`
+        // Filter by current month
+        const now = new Date()
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        
+        const query = `?is_published=eq.true&created_at=gte.${startOfMonth}&order=${order}&limit=${limit}&offset=${offset}&${select}`
 
         const q = await supaSelect('generations', query)
         if (!q.ok) return res.status(500).json({ error: 'query failed', detail: q.data })
