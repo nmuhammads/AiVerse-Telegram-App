@@ -70,3 +70,50 @@ export async function uploadImageFromUrl(imageUrl: string): Promise<string> {
     }
 }
 
+
+export async function uploadImageFromBase64(base64Data: string): Promise<string> {
+    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
+    const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
+    const client = getS3Client()
+
+    console.log('Starting R2 upload for Base64 data')
+
+    if (!client || !R2_BUCKET_NAME || !R2_PUBLIC_URL) {
+        console.warn('R2 credentials missing for Base64 upload')
+        return base64Data // Return original data if upload not possible
+    }
+
+    try {
+        // 1. Parse Base64
+        // Format: "data:image/png;base64,iVBORw0KGgo..."
+        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+
+        if (!matches || matches.length !== 3) {
+            throw new Error('Invalid Base64 string format')
+        }
+
+        const contentType = matches[1]
+        const data = matches[2]
+        const buffer = Buffer.from(data, 'base64')
+
+        // 2. Generate unique filename
+        const hash = crypto.randomBytes(16).toString('hex')
+        const ext = contentType.split('/')[1] || 'png'
+        const fileName = `${hash}.${ext}`
+
+        // 3. Upload to R2
+        await client.send(new PutObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: fileName,
+            Body: buffer,
+            ContentType: contentType,
+        }))
+
+        const publicUrl = `${R2_PUBLIC_URL}/${fileName}`
+        console.log('R2 Base64 upload success:', publicUrl)
+        return publicUrl
+    } catch (error) {
+        console.error('R2 Base64 upload failed:', error)
+        return base64Data // Fallback to original on failure
+    }
+}

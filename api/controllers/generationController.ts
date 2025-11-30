@@ -458,15 +458,27 @@ export async function handleGenerateImage(req: Request, res: Response) {
       // Start R2 uploads in background
       console.log('Starting background R2 uploads for', images.length, 'images')
       r2ImagesPromise = Promise.all(images.map(async (img: string) => {
-        // Skip if not http
-        if (!img.startsWith('http')) return img
-
         try {
-          const result = await uploadImageFromUrl(img)
-          console.log('R2 upload complete. Original:', img, 'New:', result)
-          return result
+          // Case 1: Base64 Image
+          if (img.startsWith('data:image')) {
+            const { uploadImageFromBase64 } = await import('../services/r2Service.js')
+            const result = await uploadImageFromBase64(img)
+            console.log('R2 Base64 upload complete. New:', result)
+            return result
+          }
+
+          // Case 2: HTTP URL
+          if (img.startsWith('http')) {
+            const { uploadImageFromUrl } = await import('../services/r2Service.js')
+            const result = await uploadImageFromUrl(img)
+            console.log('R2 URL upload complete. Original:', img, 'New:', result)
+            return result
+          }
+
+          // Case 3: Unknown format
+          return img
         } catch (e) {
-          console.error('R2 upload failed for:', img, e)
+          console.error('R2 upload failed for image:', e)
           return img // Fallback to original
         }
       }))
