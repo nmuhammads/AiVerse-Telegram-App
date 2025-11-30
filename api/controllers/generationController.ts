@@ -222,7 +222,14 @@ async function recordSuccessAndDeduct(userId: number, imageUrl: string, prompt: 
     const promptWithMeta = prompt + metaString
 
     // 2. Save generation
-    const genBody: any = { user_id: userId, image_url: imageUrl, prompt: promptWithMeta, model }
+    const genBody: any = {
+      user_id: userId,
+      image_url: imageUrl,
+      prompt: promptWithMeta,
+      model,
+      status: 'completed',
+      completed_at: new Date().toISOString()
+    }
     if (parentId) genBody.parent_id = parentId
     if (inputImages && inputImages.length > 0) genBody.input_images = inputImages
     const genRes = await supaPost('generations', genBody)
@@ -448,6 +455,42 @@ export async function handleGenerateImage(req: Request, res: Response) {
       })
     }
 
+    // Upload input images to R2 (for DB) in parallel
+    // We use original images for generation to ensure compatibility
+    let r2ImagesPromise: Promise<string[]> = Promise.resolve(images || [])
+
+    if (images && images.length > 0) {
+      const { uploadImageFromUrl } = await import('../services/r2Service.js')
+
+      // Start R2 uploads in background
+      console.log('Starting background R2 uploads for', images.length, 'images')
+      r2ImagesPromise = Promise.all(images.map(async (img: string) => {
+        try {
+          // Case 1: Base64 Image
+          if (img.startsWith('data:image')) {
+            const { uploadImageFromBase64 } = await import('../services/r2Service.js')
+            const result = await uploadImageFromBase64(img)
+            console.log('R2 Base64 upload complete. New:', result)
+            return result
+          }
+
+          // Case 2: HTTP URL
+          if (img.startsWith('http')) {
+            const { uploadImageFromUrl } = await import('../services/r2Service.js')
+            const result = await uploadImageFromUrl(img)
+            console.log('R2 URL upload complete. Original:', img, 'New:', result)
+            return result
+          }
+
+          // Case 3: Unknown format
+          return img
+        } catch (e) {
+          console.error('R2 upload failed for image:', e)
+          return img // Fallback to original
+        }
+      }))
+    }
+
     // Проверка API ключа
     const apiKey = process.env.KIE_API_KEY
     if (!apiKey) {
@@ -494,8 +537,21 @@ export async function handleGenerateImage(req: Request, res: Response) {
           imagesCount: images ? images.length : 0
         }
 
-        // Pass inputImages from result (which are public URLs)
-        recordSuccessAndDeduct(Number(user_id), imageUrl, prompt, model, parent_id, metadata, result.inputImages).catch(() => { })
+        // Wait for R2 uploads to complete before saving to DB
+        let r2Images: string[] = []
+        try {
+          r2Images = await r2ImagesPromise
+        } catch (e) {
+          console.error('Failed to await R2 images:', e)
+          r2Images = images || [] // Fallback to original images
+        }
+
+        console.log('Saving to DB with images:', r2Images)
+
+        // Pass r2Images (permanent URLs) to DB
+        recordSuccessAndDeduct(Number(user_id), imageUrl, prompt, model, parent_id, metadata, r2Images).catch(err => {
+          console.error('Failed to record success:', err)
+        })
       }
       return res.json({
         image: imageUrl,
