@@ -355,7 +355,7 @@ export default function Studio() {
           {parentAuthorUsername && (
             <div className="flex items-center gap-1.5 text-xs font-medium text-violet-400 animate-in fade-in slide-in-from-bottom-2 mb-1 px-1">
               <Sparkles size={12} />
-              <span>Промпт от @{parentAuthorUsername}</span>
+              <span>Промпт от {parentAuthorUsername}</span>
               <button
                 onClick={() => {
                   setParentGeneration(null, null)
