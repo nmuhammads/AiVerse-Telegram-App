@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 interface LeaderboardUser {
   user_id: number
   first_name: string | null
+  last_name?: string | null
   username: string | null
   avatar_url: string | null
   like_count?: number
@@ -182,10 +183,10 @@ export default function Leaderboard() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-white truncate">
-                  {user.first_name} {user.username ? `(@${user.username})` : ''}
+                  {user.first_name} {user.last_name}
                 </div>
                 <div className="text-xs text-zinc-500 truncate">
-                  {activeTab === 'likes' ? 'Получено лайков' : 'Сделано ремиксов'}
+                  {user.username ? `@${user.username}` : ''}
                 </div>
               </div>
 
