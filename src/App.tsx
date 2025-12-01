@@ -4,6 +4,7 @@ import Home from "@/pages/Home";
 import Studio from "@/pages/Studio";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
+import PublicProfile from '@/pages/PublicProfile';
 import Settings from "@/pages/Settings";
 import Accumulations from "@/pages/Accumulations";
 import { Header } from "@/components/layout/Header";
@@ -79,6 +80,7 @@ export default function App() {
               <Route path="/studio" element={<Studio />} />
               <Route path="/top" element={<Leaderboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:userId" element={<PublicProfile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/accumulations" element={<Accumulations />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,6 +1,8 @@
 import { Crown, Heart, Repeat } from 'lucide-react'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useHaptics } from '@/hooks/useHaptics'
+import { useNavigate } from 'react-router-dom'
 
 interface LeaderboardUser {
   user_id: number
@@ -101,6 +103,8 @@ export default function Leaderboard() {
   }
 
   const { platform } = useTelegram()
+  const { impact } = useHaptics()
+  const navigate = useNavigate()
   const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 50px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
   return (
@@ -144,7 +148,11 @@ export default function Leaderboard() {
             <div
               ref={isLast ? lastElementRef : null}
               key={user.user_id}
-              className="relative bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex items-center gap-4 backdrop-blur-sm"
+              onClick={() => {
+                impact('light')
+                navigate(`/profile/${user.user_id}`)
+              }}
+              className="relative bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex items-center gap-4 backdrop-blur-sm active:scale-[0.98] transition-transform cursor-pointer"
             >
               {/* Rank */}
               <div className="w-8 flex flex-col items-center justify-center">

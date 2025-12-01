@@ -302,19 +302,51 @@ export async function listGenerations(req: Request, res: Response) {
     const userId = String(req.query.user_id || '')
     const limit = Number(req.query.limit || 6)
     const offset = Number(req.query.offset || 0)
+    const publishedOnly = req.query.published_only === 'true'
+    const viewerId = req.query.viewer_id ? Number(req.query.viewer_id) : null
+
     if (!userId) return res.status(400).json({ error: 'user_id required' })
     if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
-    const q = await supaSelect('generations', `?user_id=eq.${encodeURIComponent(userId)}&image_url=ilike.http%25&select=id,image_url,prompt,created_at,is_published,model&order=created_at.desc&limit=${limit}&offset=${offset}`)
+
+    // Enhanced query to get full details
+    let select = `select=id,image_url,prompt,created_at,is_published,model,likes_count,remix_count,input_images,user_id,users(username,first_name,last_name,avatar_url),generation_likes(user_id)`
+    let query = `?user_id=eq.${encodeURIComponent(userId)}&image_url=ilike.http%25&${select}&order=created_at.desc&limit=${limit}&offset=${offset}`
+
+    if (publishedOnly) {
+      query += `&is_published=eq.true`
+    }
+
+    const q = await supaSelect('generations', query)
     if (!q.ok) return res.status(500).json({ error: 'query failed', detail: q.data })
-    const itemsRaw = Array.isArray(q.data) ? q.data : [] as Array<{ id: number; image_url?: string | null; prompt?: string; created_at?: string | null; is_published?: boolean }>
-    const items = itemsRaw.map((it) => ({
-      id: it.id,
-      prompt: String(it.prompt || ''),
-      created_at: it.created_at || null,
-      image_url: sanitizeUrl(it.image_url),
-      is_published: !!it.is_published,
-      model: it.model || null
-    }))
+
+    const itemsRaw = Array.isArray(q.data) ? q.data : []
+
+    const items = itemsRaw.map((it: any) => {
+      const likes = Array.isArray(it.generation_likes) ? it.generation_likes : []
+      const author = it.users || {}
+
+      return {
+        id: it.id,
+        image_url: sanitizeUrl(it.image_url),
+        prompt: String(it.prompt || ''),
+        created_at: it.created_at || null,
+        is_published: !!it.is_published,
+        model: it.model || null,
+        likes_count: it.likes_count || 0,
+        remix_count: it.remix_count || 0,
+        input_images: it.input_images || [],
+        is_liked: viewerId ? likes.some((l: any) => l.user_id === viewerId) : false,
+        author: {
+          id: it.user_id,
+          username: author.username ? `@${author.username}` : (author.first_name ? `${author.first_name} ${author.last_name || ''}`.trim() : 'User'),
+          first_name: author.first_name,
+          avatar_url: author.avatar_url || (author.username
+            ? `https://api.dicebear.com/9.x/avataaars/svg?seed=${author.username}`
+            : `https://api.dicebear.com/9.x/avataaars/svg?seed=${it.user_id}`)
+        }
+      }
+    })
+
     const cr = String(q.headers['content-range'] || '')
     const total = (() => { const m = /\d+-\d+\/(\d+)/.exec(cr); return m ? Number(m[1]) : undefined })()
     return res.json({ items, total })
