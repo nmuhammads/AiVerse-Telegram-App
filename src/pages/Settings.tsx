@@ -69,7 +69,7 @@ export default function Settings() {
             title: 'О приложении',
             items: [
                 { icon: MessageCircle, label: 'Поддержка', onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots?direct', '_blank') : tg.openTelegramLink('https://t.me/aiversebots?direct') },
-                { icon: Info, label: 'Версия', value: 'v2.2', onClick: () => { } },
+                { icon: Info, label: 'Версия', value: 'v2.3', onClick: () => { } },
             ]
         }
     ]
