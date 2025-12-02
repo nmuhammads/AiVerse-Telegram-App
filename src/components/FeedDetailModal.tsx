@@ -123,7 +123,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                                 )}
                             </div>
                             <div>
-                                <div className="text-white font-semibold text-sm">@{item.author.username}</div>
+                                <div className="text-white font-semibold text-sm">{item.author.username}</div>
                                 <div className="text-zinc-500 text-xs">{date}</div>
                             </div>
                         </div>
