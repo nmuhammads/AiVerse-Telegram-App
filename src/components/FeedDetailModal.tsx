@@ -70,18 +70,20 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
         year: 'numeric'
     })
 
-    // Check for 9:16 ratio in metadata
-    const is9_16 = item.prompt.includes('ratio=9:16') || item.prompt.includes('portrait_16_9')
+    // Check for 9:16 ratio in metadata using regex for robustness
+    const is9_16 = /ratio\s*=\s*9:16/.test(item.prompt) || /portrait_16_9/.test(item.prompt)
 
-    const isIOS9_16 = is9_16 && platform === 'ios'
+    // Check for mobile platforms (iOS or Android)
+    const isMobile = platform === 'ios' || platform === 'android'
+    const isMobile9_16 = is9_16 && isMobile
 
     return (
         <div
-            className={`fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex ${isIOS9_16 ? 'items-start pt-24' : 'items-center'} justify-center p-4 animate-in fade-in duration-200`}
+            className={`fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex ${isMobile9_16 ? 'items-start pt-24' : 'items-center'} justify-center p-4 animate-in fade-in duration-200`}
             onClick={onClose}
         >
             <div
-                className={`w-full max-w-2xl flex flex-col gap-4 transition-transform ${is9_16 && !isIOS9_16 ? 'translate-y-8' : ''}`}
+                className={`w-full max-w-2xl flex flex-col gap-4 transition-transform ${is9_16 && !isMobile9_16 ? 'translate-y-8' : ''}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
