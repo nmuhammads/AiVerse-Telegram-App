@@ -621,3 +621,72 @@ export async function handleGenerateImage(req: Request, res: Response) {
     })
   }
 }
+
+export async function handleManualGeneration(req: Request, res: Response) {
+  console.log('handleManualGeneration called');
+  try {
+    const { user_id, prompt, image, input_images } = req.body
+    console.log('Payload received:', { user_id, prompt, imageLength: image?.length, inputImagesCount: input_images?.length });
+
+    if (!user_id || !prompt || !image) {
+      console.error('Missing required fields');
+      return res.status(400).json({ error: 'Missing required fields: user_id, prompt, image' })
+    }
+
+    // 1. Upload Main Image to R2
+    let mainImageUrl = image
+    if (image.startsWith('data:image') || image.startsWith('http')) {
+      console.log('Uploading main image...');
+      const { uploadImageFromBase64, uploadImageFromUrl } = await import('../services/r2Service.js')
+      if (image.startsWith('data:image')) {
+        mainImageUrl = await uploadImageFromBase64(image, 'manual')
+      } else {
+        mainImageUrl = await uploadImageFromUrl(image, 'manual')
+      }
+      console.log('Main image uploaded:', mainImageUrl);
+    }
+
+    // 2. Upload Reference Images to R2
+    let inputImageUrls: string[] = []
+    if (input_images && Array.isArray(input_images) && input_images.length > 0) {
+      console.log('Uploading reference images...');
+      const { uploadImageFromBase64, uploadImageFromUrl } = await import('../services/r2Service.js')
+      inputImageUrls = await Promise.all(input_images.map(async (img: string) => {
+        if (img.startsWith('data:image')) {
+          return await uploadImageFromBase64(img, 'manual')
+        } else if (img.startsWith('http')) {
+          return await uploadImageFromUrl(img, 'manual')
+        }
+        return img
+      }))
+      console.log('Reference images uploaded:', inputImageUrls);
+    }
+
+    // 3. Insert into Database
+    console.log('Inserting into database...');
+    const { ok, data } = await supaPost('generations', {
+      user_id: Number(user_id),
+      prompt: prompt,
+      image_url: mainImageUrl,
+      input_images: inputImageUrls.length > 0 ? inputImageUrls : undefined,
+      status: 'completed',
+      is_published: true,
+      model: req.body.model || 'manual',
+      completed_at: new Date().toISOString()
+    })
+
+    if (!ok) {
+      console.error('Database insertion failed:', data);
+      throw new Error('Failed to insert generation record: ' + JSON.stringify(data))
+    }
+
+    console.log('Manual generation successful:', data);
+    return res.json({ success: true, data })
+
+  } catch (error) {
+    console.error('Manual generation error:', error)
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Internal server error'
+    })
+  }
+}

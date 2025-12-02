@@ -7,6 +7,7 @@ import Profile from "@/pages/Profile";
 import PublicProfile from '@/pages/PublicProfile';
 import Settings from "@/pages/Settings";
 import Accumulations from "@/pages/Accumulations";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
 import { useEffect } from "react";
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="/profile/:userId" element={<PublicProfile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/accumulations" element={<Accumulations />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
