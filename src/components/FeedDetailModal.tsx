@@ -73,13 +73,15 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
     // Check for 9:16 ratio in metadata
     const is9_16 = item.prompt.includes('ratio=9:16') || item.prompt.includes('portrait_16_9')
 
+    const isIOS9_16 = is9_16 && platform === 'ios'
+
     return (
         <div
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+            className={`fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex ${isIOS9_16 ? 'items-start pt-24' : 'items-center'} justify-center p-4 animate-in fade-in duration-200`}
             onClick={onClose}
         >
             <div
-                className={`w-full max-w-2xl flex flex-col gap-4 transition-transform ${is9_16 ? (platform === 'ios' ? 'translate-y-8 mt-12' : 'translate-y-8') : ''}`}
+                className={`w-full max-w-2xl flex flex-col gap-4 transition-transform ${is9_16 && !isIOS9_16 ? 'translate-y-8' : ''}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -114,8 +116,8 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                             setIsFullScreen(true)
                         }}
                         className={`absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-opacity ${platform === 'ios' || platform === 'android'
-                                ? 'opacity-100'
-                                : 'opacity-0 group-hover:opacity-100'
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover:opacity-100'
                             }`}
                     >
                         <Maximize2 size={20} />
