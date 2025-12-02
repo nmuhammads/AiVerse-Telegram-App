@@ -11,14 +11,13 @@ interface PaymentModalProps {
 type PaymentMethod = 'stars' | 'card' | 'sbp'
 
 const PACKAGES_STARS = [
-    { id: 'test_1', tokens: 1, price: 1, label: 'TEST' },
     { id: 'star_20', tokens: 10, price: 20 },
     { id: 'star_50', tokens: 25, price: 50 },
     { id: 'star_100', tokens: 50, price: 100 },
     { id: 'star_200', tokens: 100, price: 200, popular: true },
     { id: 'star_300', tokens: 150, price: 300 },
     { id: 'star_600', tokens: 300, price: 600 },
-    { id: 'star_1000', tokens: 550, price: 1000, bonus: true },
+    { id: 'star_1000', tokens: 550, price: 1000, bonus: '+50 FREE', popular: true },
 ]
 
 const PACKAGES_FIAT = [
@@ -197,9 +196,9 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     key={pkg.id}
                                     onClick={() => { impact('light'); setSelectedPackage(pkg) }}
                                     className={`relative p-2 rounded-xl border transition-all flex flex-col items-start gap-1.5 ${isLast ? 'col-span-2 flex-row items-center' : ''
-                                        } ${isSelected
-                                            ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500'
-                                            : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800'
+                                        } ${pkg.price === 1000
+                                            ? (isSelected ? 'bg-gradient-to-br from-amber-500/20 to-yellow-600/20 border-amber-500 ring-1 ring-amber-500' : 'bg-gradient-to-br from-amber-500/10 to-yellow-600/10 border-amber-500/50 hover:from-amber-500/20 hover:to-yellow-600/20')
+                                            : (isSelected ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500' : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800')
                                         }`}
                                 >
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}>

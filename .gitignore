@@ -24,18 +24,11 @@ dist-ssr
 *.sw?
 .vite
 .agent/rules/answerlanguage.md
-docs/nanobananapro.md
+docs/
 buildlogs.txt
 deploylogs.txt
 mcp.txt
 SQLSCHEME.md
-docs/File upload API/Base64 File Upload.md
-docs/File upload API/File Stream Upload.md
-docs/File upload API/File Upload API Quickstart.md
-docs/File upload API/URL File Upload.md
-docs/Tribute/Pay bot code/report.md
-docs/Tribute/Tribute products.json
-docs/Tribute/Webhook.md
 SQLSCHEME.sql
 migrations/*
 .env
