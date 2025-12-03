@@ -1,13 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loginUserId, setLoginUserId] = useState('');
+    const [loginPassword, setLoginPassword] = useState('');
+    const [isLoginLoading, setIsLoginLoading] = useState(false);
+
     const [userId, setUserId] = useState('');
     const [prompt, setPrompt] = useState('');
     const [model, setModel] = useState('manual');
     const [mainImage, setMainImage] = useState<string | null>(null);
     const [referenceImages, setReferenceImages] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const auth = localStorage.getItem('isAdminAuthenticated');
+        if (auth === 'true') {
+            setIsAuthenticated(true);
+        }
+    }, []);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!loginUserId || !loginPassword) {
+            toast.error('Please enter User ID and Password');
+            return;
+        }
+
+        setIsLoginLoading(true);
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: loginUserId, password: loginPassword }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
+            }
+
+            localStorage.setItem('isAdminAuthenticated', 'true');
+            setIsAuthenticated(true);
+            toast.success('Login successful');
+        } catch (error) {
+            console.error(error);
+            toast.error(error instanceof Error ? error.message : 'Login failed');
+        } finally {
+            setIsLoginLoading(false);
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('isAdminAuthenticated');
+        setIsAuthenticated(false);
+        setLoginUserId('');
+        setLoginPassword('');
+        toast.success('Logged out');
+    };
 
     const MODELS = [
         { id: 'manual', name: 'Manual (Default)' },
@@ -80,13 +132,63 @@ export default function AdminDashboard() {
         }
     };
 
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen bg-black text-white flex items-center justify-center p-6">
+                <div className="w-full max-w-md bg-zinc-900 p-8 rounded-xl border border-zinc-800">
+                    <h1 className="text-2xl font-bold mb-6 text-center">Admin Login</h1>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">User ID (Telegram ID)</label>
+                            <input
+                                type="text"
+                                value={loginUserId}
+                                onChange={(e) => setLoginUserId(e.target.value)}
+                                className="w-full bg-black border border-zinc-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-600"
+                                placeholder="Enter User ID"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Password</label>
+                            <input
+                                type="password"
+                                value={loginPassword}
+                                onChange={(e) => setLoginPassword(e.target.value)}
+                                className="w-full bg-black border border-zinc-700 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-violet-600"
+                                placeholder="Enter Password"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isLoginLoading}
+                            className={`w-full py-3 rounded-lg font-bold text-lg transition-colors ${isLoginLoading
+                                ? 'bg-zinc-700 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500'
+                                }`}
+                        >
+                            {isLoginLoading ? 'Logging in...' : 'Login'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-black text-white p-6 pb-24">
-            <h1 className="text-2xl font-bold mb-6">Admin Dashboard - Manual Generation</h1>
+            <div className="flex justify-between items-center mb-6 max-w-2xl mx-auto">
+                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                <button
+                    onClick={handleLogout}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                    Logout
+                </button>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
                 <div>
-                    <label className="block text-sm font-medium mb-2">User ID</label>
+                    <label className="block text-sm font-medium mb-2">User ID (Target)</label>
                     <input
                         type="text"
                         value={userId}
@@ -105,8 +207,8 @@ export default function AdminDashboard() {
                                 type="button"
                                 onClick={() => setModel(m.id)}
                                 className={`p-2 rounded-lg text-sm font-medium transition-colors ${model === m.id
-                                        ? 'bg-violet-600 text-white'
-                                        : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
+                                    ? 'bg-violet-600 text-white'
+                                    : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800'
                                     }`}
                             >
                                 {m.name}
