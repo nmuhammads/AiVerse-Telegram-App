@@ -70,6 +70,7 @@ export default function Settings() {
             items: [
                 { icon: MessageCircle, label: 'Поддержка', onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots', '_blank') : tg.openTelegramLink('https://t.me/aiversebots') },
                 { icon: Info, label: 'Версия', value: 'v2.5', onClick: () => { } },
+                { icon: Shield, label: 'Admin Panel', onClick: () => navigate('/admin') },
             ]
         }
     ]
