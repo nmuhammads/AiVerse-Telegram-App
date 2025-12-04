@@ -280,6 +280,14 @@ const MODEL_PRICES: Record<string, number> = {
 
 async function completeGeneration(generationId: number, userId: number, imageUrl: string, model: string, cost: number, parentId?: number, contestEntryId?: number) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !userId || !generationId) return
+
+  // 0. Check if already completed to prevent double charge
+  const check = await supaSelect('generations', `?id=eq.${generationId}&select=status`)
+  if (check.ok && Array.isArray(check.data) && check.data[0]?.status === 'completed') {
+    console.log(`[DB] Generation ${generationId} already completed, skipping.`)
+    return
+  }
+
   console.log(`[DB] Completing generation ${generationId} for user ${userId}`)
   try {
     // 1. Update generation status
@@ -627,7 +635,9 @@ export async function handleGenerateImage(req: Request, res: Response) {
         status: 'pending',
         input_images: r2Images.length > 0 ? r2Images : undefined,
         parent_id: parent_id,
-        cost: cost
+
+        cost: cost,
+        resolution: resolution
       }
 
       console.log('[DB] Creating pending generation record...')
@@ -729,8 +739,8 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
 
   console.log(`[CheckStatus] Checking pending generations for user ${user_id}`)
 
-  // Get pending generations with task_id
-  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending&task_id=not.is.null`)
+  // Get pending generations (all of them, to handle missing task_id too)
+  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending`)
   if (!q.ok || !Array.isArray(q.data)) {
     return res.json({ checked: 0, updated: 0 })
   }
@@ -740,7 +750,18 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   const apiKey = process.env.KIE_API_KEY || ''
 
   for (const gen of pending) {
-    if (!gen.task_id || !gen.model) continue
+    if (!gen.model) continue
+
+    // Handle missing task_id
+    if (!gen.task_id) {
+      console.log(`[CheckStatus] Gen ${gen.id} missing task_id, marking failed`)
+      await supaPatch('generations', `?id=eq.${gen.id}`, {
+        status: 'failed',
+        error_message: 'Missing task ID'
+      })
+      updated++
+      continue
+    }
 
     let result = { status: 'pending', imageUrl: '', error: '' }
 
@@ -752,7 +773,17 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
       }
 
       if (result.status === 'success' && result.imageUrl) {
-        const cost = gen.cost || MODEL_PRICES[gen.model] || 0
+        let cost = gen.cost
+
+        // Fallback cost calculation if not saved
+        if (typeof cost !== 'number') {
+          if (gen.model === 'nanobanana-pro' && gen.resolution === '2K') {
+            cost = 10
+          } else {
+            cost = MODEL_PRICES[gen.model] || 0
+          }
+        }
+
         await completeGeneration(gen.id, gen.user_id, result.imageUrl, gen.model, cost, gen.parent_id)
         updated++
       } else if (result.status === 'failed') {

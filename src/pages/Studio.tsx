@@ -577,9 +577,13 @@ export default function Studio() {
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim() || (generationMode === 'image' && uploadedImages.length === 0)}
-            className={`w-full py-6 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-[0.98] relative overflow-hidden group ${isGenerating ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed border border-zinc-800' : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/25 border border-white/10'}`}
+            className={`w-full py-6 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-[0.98] relative overflow-hidden group ${isGenerating ? 'bg-zinc-900/80 text-violet-200 cursor-wait border border-violet-500/20' : 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/25 border border-white/10'}`}
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            {isGenerating ? (
+              <div className="absolute inset-0 bg-violet-500/10 animate-pulse" />
+            ) : (
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+            )}
             <div className="relative flex items-center gap-2">
               {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
               <span>{isGenerating ? 'Создание шедевра...' : generationMode === 'image' ? 'Сгенерировать' : 'Сгенерировать'}</span>
@@ -588,6 +592,12 @@ export default function Studio() {
               </span>}
             </div>
           </Button>
+          {isGenerating && (
+            <p className="text-[10px] text-zinc-500 text-center mt-3 animate-in fade-in slide-in-from-top-1 px-4 leading-relaxed">
+              Если процесс идет долго, можете свернуть приложение. <br />
+              Результат появится в разделе <span className="text-zinc-400 font-medium">Мои генерации</span> в профиле.
+            </p>
+          )}
         </div>
 
       </div>

@@ -156,9 +156,9 @@ export function useTelegram() {
 
   const user = (import.meta.env.DEV && !WebApp.initDataUnsafe.user) ? {
     id: 817308975,
-    first_name: 'Mock',
-    last_name: 'User',
-    username: 'mock_user',
+    first_name: 'Muhammad',
+    last_name: 'Nuriddinov',
+    username: 'mortymn',
     language_code: 'en',
     is_premium: true
   } : WebApp.initDataUnsafe.user
