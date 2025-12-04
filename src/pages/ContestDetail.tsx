@@ -4,6 +4,7 @@ import { ArrowLeft, Trophy, Calendar, Info, Grid, Medal, Loader2, Clock } from '
 import { useHaptics } from '@/hooks/useHaptics';
 import { useTelegram } from '@/hooks/useTelegram';
 import { FeedImage, FeedItem } from '@/components/FeedImage';
+import { FeedDetailModal } from '@/components/FeedDetailModal';
 import { GenerationSelector } from '@/components/GenerationSelector';
 import { toast } from 'sonner';
 
@@ -53,6 +54,7 @@ export default function ContestDetail() {
     const [activeTab, setActiveTab] = useState<'info' | 'gallery' | 'leaderboard'>('info');
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [joining, setJoining] = useState(false);
+    const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
 
     const isMobile = platform === 'ios' || platform === 'android';
 
@@ -142,13 +144,76 @@ export default function ContestDetail() {
         }
     };
 
-    const handleRemix = (item: FeedItem) => {
+    const handleRemix = (item: FeedItem, contestEntryId?: number) => {
         impact('light');
-        navigate(`/studio?remix=${item.id}`);
+        let url = `/studio?remix=${item.id}`;
+        if (contestEntryId) {
+            url += `&contest_entry=${contestEntryId}`;
+        }
+        navigate(url);
     };
 
     const handleImageClick = (item: FeedItem) => {
-        // Optional: Open full screen modal
+        setSelectedEntryId(item.id);
+    };
+
+    const handleLike = async (id: number, isLiked: boolean) => {
+        if (!user?.id) return;
+        // Optimistic update
+        setEntries(prev => prev.map(e => {
+            if (e.generation.id === id) {
+                return {
+                    ...e,
+                    generation: {
+                        ...e.generation,
+                        is_liked: !isLiked,
+                        likes_count: isLiked ? e.generation.likes_count - 1 : e.generation.likes_count + 1
+                    }
+                };
+            }
+            return e;
+        }));
+
+        try {
+            const res = await fetch('/api/contests/like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entryId: entries.find(e => e.generation.id === id)?.id, userId: user.id })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                // Revert if failed
+                setEntries(prev => prev.map(e => {
+                    if (e.generation.id === id) {
+                        return {
+                            ...e,
+                            generation: {
+                                ...e.generation,
+                                is_liked: isLiked,
+                                likes_count: isLiked ? e.generation.likes_count + 1 : e.generation.likes_count - 1
+                            }
+                        };
+                    }
+                    return e;
+                }));
+                toast.error('Ошибка при лайке');
+            }
+        } catch (e) {
+            // Revert
+            setEntries(prev => prev.map(e => {
+                if (e.generation.id === id) {
+                    return {
+                        ...e,
+                        generation: {
+                            ...e.generation,
+                            is_liked: isLiked,
+                            likes_count: isLiked ? e.generation.likes_count + 1 : e.generation.likes_count - 1
+                        }
+                    };
+                }
+                return e;
+            }));
+        }
     };
 
     if (loading) {
@@ -277,8 +342,9 @@ export default function ContestDetail() {
                                         is_liked: entry.generation.is_liked,
                                         model: entry.generation.model
                                     }}
-                                    handleRemix={handleRemix}
+                                    handleRemix={(item) => handleRemix(item, entry.id)}
                                     onClick={handleImageClick}
+                                    onLike={handleLike}
                                 />
                             ))}
                         </div>
@@ -290,7 +356,26 @@ export default function ContestDetail() {
                         {entries
                             .sort((a, b) => (b.generation.likes_count || 0) - (a.generation.likes_count || 0))
                             .map((entry, index) => (
-                                <div key={entry.id} className="flex items-center gap-3 bg-[#1c1c1e] p-3 rounded-xl border border-white/5">
+                                <div
+                                    key={entry.id}
+                                    onClick={() => handleImageClick({
+                                        id: entry.generation.id,
+                                        image_url: entry.generation.image_url,
+                                        prompt: entry.generation.prompt,
+                                        created_at: entry.created_at,
+                                        author: {
+                                            id: 0,
+                                            username: entry.author.username,
+                                            avatar_url: entry.author.avatar_url,
+                                            first_name: entry.author.first_name
+                                        },
+                                        likes_count: entry.generation.likes_count,
+                                        remix_count: entry.generation.remix_count,
+                                        is_liked: entry.generation.is_liked,
+                                        model: entry.generation.model
+                                    })}
+                                    className="flex items-center gap-3 bg-[#1c1c1e] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors active:scale-[0.98]"
+                                >
                                     <div className={`w-8 h-8 flex items-center justify-center font-bold rounded-full ${index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
                                         index === 1 ? 'bg-zinc-400/20 text-zinc-400' :
                                             index === 2 ? 'bg-amber-700/20 text-amber-700' :
@@ -339,6 +424,37 @@ export default function ContestDetail() {
                 onClose={() => setIsSelectorOpen(false)}
                 onSelect={handleJoin}
             />
+
+            {selectedEntryId && (() => {
+                const entry = entries.find(e => e.generation.id === selectedEntryId);
+                if (!entry) return null;
+
+                const item: FeedItem = {
+                    id: entry.generation.id,
+                    image_url: entry.generation.image_url,
+                    prompt: entry.generation.prompt,
+                    created_at: entry.created_at,
+                    author: {
+                        id: 0,
+                        username: entry.author.username,
+                        avatar_url: entry.author.avatar_url,
+                        first_name: entry.author.first_name
+                    },
+                    likes_count: entry.generation.likes_count,
+                    remix_count: entry.generation.remix_count,
+                    is_liked: entry.generation.is_liked,
+                    model: entry.generation.model
+                };
+
+                return (
+                    <FeedDetailModal
+                        item={item}
+                        onClose={() => setSelectedEntryId(null)}
+                        onRemix={(item) => handleRemix(item, selectedEntryId)}
+                        onLike={(item) => handleLike(item.id, item.is_liked)}
+                    />
+                );
+            })()}
         </div>
     );
 }

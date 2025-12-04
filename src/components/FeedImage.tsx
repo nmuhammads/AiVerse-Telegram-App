@@ -34,7 +34,7 @@ function getModelDisplayName(model: string | null): string {
     }
 }
 
-export const FeedImage = ({ item, priority = false, handleRemix, onClick }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void }) => {
+export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void; onLike?: (id: number, isLiked: boolean) => void }) => {
     const [loaded, setLoaded] = useState(false)
     const { impact } = useHaptics()
     const { user } = useTelegram()
@@ -55,6 +55,11 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick }: { it
             return
         }
         impact('light')
+
+        if (onLike) {
+            onLike(item.id, isLiked)
+            return
+        }
 
         // Optimistic update
         const newLiked = !isLiked

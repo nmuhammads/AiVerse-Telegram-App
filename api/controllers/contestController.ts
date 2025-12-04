@@ -77,14 +77,13 @@ export async function getContestEntries(req: Request, res: Response) {
         if (!id) return res.status(400).json({ error: 'Contest ID required' })
 
         // Join with generations to get image details and users to get author info
-        // Also need likes count from generations table
-        // Use !inner to filter out entries where generation model is seedream4.5
-        // We also join generation_likes to check if the current user liked the generation
-        const select = `select=id,final_rank,prize_awarded,created_at,generation_id,generations!inner(id,image_url,likes_count,remix_count,prompt,model,generation_likes(user_id)),users(username,first_name,last_name,avatar_url)`
+        // NOW using contest_entries.likes_count instead of generations.likes_count
+        // Also check contest_entry_likes for is_liked
+        const select = `select=id,final_rank,prize_awarded,created_at,likes_count,remix_count,generation_id,generations!inner(id,image_url,prompt,model),users(username,first_name,last_name,avatar_url),contest_entry_likes(user_id)`
 
         let orderQuery = ''
         if (sort === 'popular') {
-            orderQuery = '&order=generations(likes_count).desc'
+            orderQuery = '&order=likes_count.desc'
         } else {
             orderQuery = '&order=created_at.desc'
         }
@@ -97,15 +96,16 @@ export async function getContestEntries(req: Request, res: Response) {
         const items = (q.data as any[]).map(it => {
             const gen = it.generations || {}
             const author = it.users || {}
-            const likes = Array.isArray(gen.generation_likes) ? gen.generation_likes : []
+            const likes = Array.isArray(it.contest_entry_likes) ? it.contest_entry_likes : []
 
             return {
                 id: it.id,
                 generation: {
                     id: gen.id,
                     image_url: gen.image_url,
-                    likes_count: gen.likes_count || 0,
-                    remix_count: gen.remix_count || 0,
+                    // Use contest-specific counts
+                    likes_count: it.likes_count || 0,
+                    remix_count: it.remix_count || 0,
                     prompt: gen.prompt,
                     model: gen.model,
                     is_liked: currentUserId ? likes.some((l: any) => l.user_id === currentUserId) : false
@@ -141,10 +141,7 @@ export async function joinContest(req: Request, res: Response) {
             return res.status(400).json({ error: 'Contest is not active' })
         }
 
-        // Check if already joined with this generation or user already joined? 
-        // Plan didn't specify "one entry per user", but usually it's implied or limited.
-        // Let's assume multiple entries allowed for now unless specified.
-        // But let's check if THIS generation is already entered.
+        // Check if already joined with this generation
         const entryCheck = await supaSelect('contest_entries', `?contest_id=eq.${id}&generation_id=eq.${generationId}&select=id`)
         if (entryCheck.ok && entryCheck.data.length > 0) {
             return res.status(400).json({ error: 'This generation is already in the contest' })
@@ -154,7 +151,9 @@ export async function joinContest(req: Request, res: Response) {
         const insert = await supaPost('contest_entries', {
             contest_id: id,
             user_id: userId,
-            generation_id: generationId
+            generation_id: generationId,
+            likes_count: 0,
+            remix_count: 0
         })
 
         if (!insert.ok) return res.status(500).json({ error: 'Failed to join contest' })
@@ -162,6 +161,59 @@ export async function joinContest(req: Request, res: Response) {
         return res.json({ success: true, entry: insert.data[0] })
     } catch (e) {
         console.error('joinContest error:', e)
+        return res.status(500).json({ error: 'Internal server error' })
+    }
+}
+
+export async function likeContestEntry(req: Request, res: Response) {
+    try {
+        const { entryId, userId } = req.body
+        if (!entryId || !userId) return res.status(400).json({ error: 'Missing entryId or userId' })
+
+        // Check if already liked
+        const check = await supaSelect('contest_entry_likes', `?contest_entry_id=eq.${entryId}&user_id=eq.${userId}&select=id`)
+        const isLiked = check.ok && check.data.length > 0
+
+        if (isLiked) {
+            // Unlike
+            const likeId = check.data[0].id
+            await fetch(`${SUPABASE_URL}/rest/v1/contest_entry_likes?id=eq.${likeId}`, {
+                method: 'DELETE',
+                headers: supaHeaders()
+            })
+
+            // Decrement count
+            const entry = await supaSelect('contest_entries', `?id=eq.${entryId}&select=likes_count`)
+            if (entry.ok && entry.data.length > 0) {
+                const newCount = Math.max(0, (entry.data[0].likes_count || 0) - 1)
+                await fetch(`${SUPABASE_URL}/rest/v1/contest_entries?id=eq.${entryId}`, {
+                    method: 'PATCH',
+                    headers: { ...supaHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ likes_count: newCount })
+                })
+            }
+            return res.json({ success: true, liked: false })
+        } else {
+            // Like
+            await supaPost('contest_entry_likes', {
+                contest_entry_id: entryId,
+                user_id: userId
+            })
+
+            // Increment count
+            const entry = await supaSelect('contest_entries', `?id=eq.${entryId}&select=likes_count`)
+            if (entry.ok && entry.data.length > 0) {
+                const newCount = (entry.data[0].likes_count || 0) + 1
+                await fetch(`${SUPABASE_URL}/rest/v1/contest_entries?id=eq.${entryId}`, {
+                    method: 'PATCH',
+                    headers: { ...supaHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ likes_count: newCount })
+                })
+            }
+            return res.json({ success: true, liked: true })
+        }
+    } catch (e) {
+        console.error('likeContestEntry error:', e)
         return res.status(500).json({ error: 'Internal server error' })
     }
 }

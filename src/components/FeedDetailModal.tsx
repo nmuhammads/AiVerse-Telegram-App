@@ -3,6 +3,7 @@ import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useState, useEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { useNavigate } from 'react-router-dom'
 
 interface FeedItem {
     id: number
@@ -46,6 +47,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
     const { user, platform } = useTelegram()
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
     const [isFullScreen, setIsFullScreen] = useState(false)
+    const navigate = useNavigate()
 
     // Close on escape
     useEffect(() => {
@@ -61,6 +63,13 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
         setIsLikeAnimating(true)
         onLike(item)
         setTimeout(() => setIsLikeAnimating(false), 300)
+    }
+
+    const handleProfileClick = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        impact('light')
+        onClose()
+        navigate(`/profile/${item.author.id}`)
     }
 
     const modelName = getModelDisplayName(item.model || null)
@@ -131,7 +140,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
 
                     {/* User & Date */}
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={handleProfileClick}>
                             <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden">
                                 {item.author.avatar_url ? (
                                     <img src={item.author.avatar_url} alt={item.author.username} className="w-full h-full object-cover" />

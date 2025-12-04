@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info } from 'lucide-react'
@@ -12,14 +13,14 @@ import { compressImage } from '@/utils/imageCompression'
 const MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
   { id: 'nanobanana', name: 'NanoBanana', desc: '3 токена', color: 'from-yellow-400 to-orange-500', icon: '/models/nanobanana.png' },
   { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '15 токенов', color: 'from-pink-500 to-rose-500', icon: '/models/nanobanana-pro.png' },
-  { id: 'seedream4', name: 'Seedream 4', desc: '3 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/seedream.png' },
+  { id: 'seedream4', name: 'Seedream 4', desc: '4 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/seedream.png' },
   { id: 'qwen-edit', name: 'Qwen Edit', desc: '3 токена', color: 'from-emerald-400 to-teal-500', icon: '/models/qwen.png' },
 ]
 
 const MODEL_PRICES: Record<ModelType, number> = {
   nanobanana: 3,
   'nanobanana-pro': 15,
-  seedream4: 3,
+  seedream4: 4,
   'qwen-edit': 3,
 }
 
@@ -93,6 +94,8 @@ export default function Studio() {
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [scale, setScale] = useState(1)
   const [resolution, setResolution] = useState<'2K' | '4K'>('4K')
+  const [searchParams] = useSearchParams()
+  const [contestEntryId, setContestEntryId] = useState<number | null>(null)
 
   // Reset scale when closing fullscreen
   useEffect(() => {
@@ -107,6 +110,40 @@ export default function Studio() {
       })
     }
   }, [user?.id, isPaymentModalOpen]) // Refresh when payment modal closes
+
+  // Handle Remix & Contest Entry
+  useEffect(() => {
+    const remixId = searchParams.get('remix')
+    const contestEntry = searchParams.get('contest_entry')
+
+    if (contestEntry) {
+      setContestEntryId(Number(contestEntry))
+    }
+
+    if (remixId) {
+      fetch(`/api/generations/${remixId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && !data.error) {
+            setPrompt(data.prompt)
+            if (data.model) setSelectedModel(data.model as ModelType)
+            // Try to infer aspect ratio or use default
+            // If data has aspect_ratio, use it. Otherwise default.
+            // Assuming the API returns aspect_ratio if stored, or we infer from dimensions if available.
+            // For now, let's stick to model defaults unless we store ratio.
+            // If we want to be precise, we should store aspect_ratio in DB.
+            // Let's assume we might not have it, so we rely on user or default.
+
+            setParentGeneration(data.id, data.users?.username || 'Unknown')
+
+            // If it's image-to-image and has input images, we might want to load them?
+            // Usually remix implies using the prompt. If it was img2img, maybe we don't load the original source image to avoid confusion/privacy issues, 
+            // or we do. Let's stick to prompt for now as per standard remix behavior.
+          }
+        })
+        .catch(err => console.error('Failed to load remix data', err))
+    }
+  }, [searchParams, setPrompt, setSelectedModel, setParentGeneration])
 
   // Default ratio logic
   useEffect(() => {
@@ -193,7 +230,8 @@ export default function Studio() {
           images: generationMode === 'image' ? uploadedImages : [],
           user_id: user?.id || null,
           parent_id: parentGenerationId || undefined,
-          resolution: selectedModel === 'nanobanana-pro' ? resolution : undefined
+          resolution: selectedModel === 'nanobanana-pro' ? resolution : undefined,
+          contest_entry_id: contestEntryId || undefined
         }),
         signal: controller.signal
       })
