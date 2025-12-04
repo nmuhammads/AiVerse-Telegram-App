@@ -67,8 +67,34 @@ export async function getFeed(req: Request, res: Response) {
         const startOfMonth = new Date(Date.UTC(targetTime.getUTCFullYear(), targetTime.getUTCMonth(), 1)).toISOString()
 
         const model = req.query.model ? String(req.query.model) : null
+        const includeUnpublished = req.query.include_unpublished === 'true'
 
-        const query = `?is_published=eq.true&created_at=gte.${startOfMonth}${model && model !== 'all' ? `&model=eq.${model}` : ''}&order=${order}&limit=${limit}&offset=${offset}&${select}`
+        let baseQuery = ''
+        if (currentUserId && includeUnpublished) {
+            // If fetching user history, filter by user_id and ignore date/published status
+            // BUT we must only show completed generations
+            baseQuery = `user_id=eq.${currentUserId}&status=eq.completed`
+        } else {
+            baseQuery = `is_published=eq.true&created_at=gte.${startOfMonth}`
+        }
+
+        let queryParts = []
+        if (baseQuery) {
+            queryParts.push(baseQuery)
+        }
+        if (model && model !== 'all') {
+            queryParts.push(`model=eq.${model}`)
+        } else {
+            // Exclude seedream4.5 if no specific model is requested (or 'all' is requested)
+            // We want to show everything EXCEPT seedream4.5
+            queryParts.push(`model=neq.seedream4.5`)
+        }
+        queryParts.push(`order=${order}`)
+        queryParts.push(`limit=${limit}`)
+        queryParts.push(`offset=${offset}`)
+        queryParts.push(select)
+
+        const query = `?${queryParts.join('&')}`
 
         const q = await supaSelect('generations', query)
         if (!q.ok) return res.status(500).json({ error: 'query failed', detail: q.data })

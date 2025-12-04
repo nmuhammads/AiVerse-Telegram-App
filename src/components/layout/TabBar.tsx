@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Trophy, Settings2, User } from 'lucide-react'
+import { Home, Trophy, Settings2, User, Gamepad as GamepadIcon } from 'lucide-react'
 import WebApp from '@twa-dev/sdk'
 
 export function TabBar() {
@@ -11,6 +11,7 @@ export function TabBar() {
         <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
             { to: '/', label: 'Главная', icon: <Home size={20} /> },
+            { to: '/contests', label: 'Конкурсы', icon: <GamepadIcon size={20} /> },
             { to: '/top', label: 'Топ', icon: <Trophy size={20} /> },
             { to: '/studio', label: 'Студия', icon: <Settings2 size={20} /> },
             { to: '/profile', label: 'Профиль', icon: <User size={20} /> },

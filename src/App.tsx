@@ -6,6 +6,8 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import PublicProfile from '@/pages/PublicProfile';
 import Settings from "@/pages/Settings";
+import Contests from "@/pages/Contests";
+import ContestDetail from "@/pages/ContestDetail";
 import Accumulations from "@/pages/Accumulations";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
@@ -83,6 +85,8 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:userId" element={<PublicProfile />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/contests" element={<Contests />} />
+              <Route path="/contests/:id" element={<ContestDetail />} />
               <Route path="/accumulations" element={<Accumulations />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
