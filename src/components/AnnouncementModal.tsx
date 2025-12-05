@@ -55,7 +55,11 @@ export function AnnouncementModal() {
     const handleSecondaryAction = () => {
         impact('medium')
         if (ANNOUNCEMENT.secondaryLink) {
-            window.open(ANNOUNCEMENT.secondaryLink, '_blank')
+             if (ANNOUNCEMENT.secondaryLink.startsWith('/')) {
+                navigate(ANNOUNCEMENT.secondaryLink)
+            } else {
+                window.open(ANNOUNCEMENT.secondaryLink, '_blank')
+            }
         }
         handleClose()
     }
