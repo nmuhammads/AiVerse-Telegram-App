@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Heart, Repeat } from 'lucide-react'
+import { Heart, Repeat, Trophy } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useNavigate } from 'react-router-dom'
@@ -20,6 +20,11 @@ export interface FeedItem {
     input_images?: string[]
     is_liked: boolean
     model?: string | null
+    is_contest_entry?: boolean
+    contest?: {
+        id: number
+        title: string
+    } | null
 }
 
 function getModelDisplayName(model: string | null): string {
@@ -34,7 +39,7 @@ function getModelDisplayName(model: string | null): string {
     }
 }
 
-export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void; onLike?: (id: number, isLiked: boolean) => void }) => {
+export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike, showRemix = true }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void; onLike?: (id: number, isLiked: boolean) => void; showRemix?: boolean }) => {
     const [loaded, setLoaded] = useState(false)
     const { impact } = useHaptics()
     const { user } = useTelegram()
@@ -112,6 +117,11 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                             {modelName}
                         </div>
                     )}
+                    {item.is_contest_entry && (
+                        <div className="absolute top-2 right-2 bg-yellow-500/20 backdrop-blur-md text-yellow-500 p-1.5 rounded-full border border-yellow-500/30">
+                            <Trophy size={12} />
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-3">
@@ -126,16 +136,18 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleRemix(item)
-                                }}
-                                className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
-                            >
-                                <Repeat size={14} />
-                                {item.remix_count > 0 && <span className="text-xs font-medium">{item.remix_count}</span>}
-                            </button>
+                            {showRemix && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleRemix(item)
+                                    }}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+                                >
+                                    <Repeat size={14} />
+                                    {item.remix_count > 0 && <span className="text-xs font-medium">{item.remix_count}</span>}
+                                </button>
+                            )}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation()

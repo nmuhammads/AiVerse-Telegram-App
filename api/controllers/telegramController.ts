@@ -123,7 +123,7 @@ export async function webhook(req: Request, res: Response) {
 
       if (q.ok && q.data && q.data.length > 0) {
         const contest = q.data[0]
-        const caption = `🏆 <b>${contest.title}</b>\n\n${contest.description}\n\n👇 Жми кнопку ниже, чтобы участвовать!`
+        const caption = `🏆 <b>${contest.title}</b>\n\n${contest.description}\n\nЧтобы поставить лайк перейдите на гелерею\n\n👇 Жми кнопку ниже, чтобы участвовать или поставить лайк!`
         const deepLink = `contest-${contest.id}`
 
         // Get bot username dynamically
@@ -141,7 +141,7 @@ export async function webhook(req: Request, res: Response) {
 
         const kb = {
           inline_keyboard: [[
-            { text: 'Участвовать 🚀', url: url }
+            { text: 'Участвовать🚀/Оценить❤️', url: url }
           ]]
         }
 

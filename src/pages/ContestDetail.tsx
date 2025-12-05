@@ -60,17 +60,18 @@ export default function ContestDetail() {
 
     const location = useLocation();
 
+    const handleBack = () => {
+        impact('light');
+        if (location.state?.fromDeepLink) {
+            navigate('/', { replace: true });
+        } else {
+            navigate(-1);
+        }
+    };
+
     useEffect(() => {
         if (isMobile) {
             tg.BackButton.show();
-            const handleBack = () => {
-                impact('light');
-                if (location.state?.fromDeepLink) {
-                    navigate('/', { replace: true });
-                } else {
-                    navigate(-1);
-                }
-            };
             tg.BackButton.onClick(handleBack);
             return () => {
                 tg.BackButton.hide();
@@ -196,6 +197,7 @@ export default function ContestDetail() {
                             generation: {
                                 ...e.generation,
                                 is_liked: isLiked,
+                                ...e.generation,
                                 likes_count: isLiked ? e.generation.likes_count + 1 : e.generation.likes_count - 1
                             }
                         };
@@ -247,9 +249,8 @@ export default function ContestDetail() {
 
                 {!isMobile && (
                     <button
-                        onClick={() => navigate(-1)}
-                        className="absolute top-4 left-4 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors z-10"
-                        style={{ top: 'calc(env(safe-area-inset-top) + 1rem)' }}
+                        onClick={handleBack}
+                        className="absolute top-4 left-4 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors z-[60]"
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -358,6 +359,7 @@ export default function ContestDetail() {
                                     handleRemix={(item) => handleRemix(item, entry.id)}
                                     onClick={handleImageClick}
                                     onLike={handleLike}
+                                    showRemix={false}
                                 />
                             ))}
                         </div>
