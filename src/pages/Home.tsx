@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Search, X, Heart, Repeat, ChevronDown } from 'lucide-react'
+import { Search, X, Heart, Repeat, ChevronDown, LayoutGrid, Grid3x3 } from 'lucide-react'
 import { FeedDetailModal } from '@/components/FeedDetailModal'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -22,6 +22,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
+  const [viewMode, setViewMode] = useState<'standard' | 'compact'>('standard')
 
   const LIMIT_INITIAL = 6
   const LIMIT_MORE = 4
@@ -36,7 +37,7 @@ export default function Home() {
       }
 
       const currentOffset = reset ? 0 : offset
-      const limit = reset ? LIMIT_INITIAL : LIMIT_MORE
+      const limit = viewMode === 'compact' ? 9 : (reset ? LIMIT_INITIAL : LIMIT_MORE)
       const userIdParam = user?.id ? `&user_id=${user.id}` : ''
 
       const res = await fetch(`/api/feed?limit=${limit}&offset=${currentOffset}&sort=${sort}${userIdParam}&model=${selectedModelFilter}`)
@@ -68,7 +69,7 @@ export default function Home() {
       setLoading(false)
       setIsFetchingMore(false)
     }
-  }, [user?.id, sort, offset, selectedModelFilter])
+  }, [user?.id, sort, offset, selectedModelFilter, viewMode])
 
   useEffect(() => {
     fetchFeed(true)
@@ -237,23 +238,47 @@ export default function Home() {
           )}
         </div>
 
-        {/* Month Header */}
-        <div className="px-1 mb-2 flex items-center justify-between">
-          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-            Лента за {new Date().toLocaleString('ru', { month: 'long' })}
-          </h2>
-          <div className="relative">
-            <select
-              value={selectedModelFilter}
-              onChange={(e) => { setSelectedModelFilter(e.target.value); impact('light') }}
-              className="appearance-none bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 rounded-lg py-1.5 pl-3 pr-8 focus:outline-none focus:border-violet-500/50 transition-colors"
-            >
-              <option value="all">Все модели</option>
-              <option value="nanobanana">NanoBanana</option>
-              <option value="nanobanana-pro">NanoBanana Pro</option>
-              <option value="seedream4">SeeDream 4</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+
+
+        {/* Filters & Toggles */}
+        <div className="px-1 mb-2 flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider truncate">
+              Лента за {new Date().toLocaleString('ru', { month: 'long' })}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {/* View Toggle */}
+            <div className="bg-[#1c1c1e] p-0.5 rounded-lg flex gap-0.5 border border-white/5">
+              <button
+                onClick={() => { setViewMode('standard'); impact('light') }}
+                className={`p-1 rounded-md transition-all ${viewMode === 'standard' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                onClick={() => { setViewMode('compact'); impact('light') }}
+                className={`p-1 rounded-md transition-all ${viewMode === 'compact' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                <Grid3x3 size={14} />
+              </button>
+            </div>
+
+            <div className="relative">
+              <select
+                value={selectedModelFilter}
+                onChange={(e) => { setSelectedModelFilter(e.target.value); impact('light') }}
+                className="appearance-none bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 rounded-lg py-1.5 pl-3 pr-8 focus:outline-none focus:border-violet-500/50 transition-colors"
+              >
+                <option value="all">Все модели</option>
+                <option value="nanobanana">NanoBanana</option>
+                <option value="nanobanana-pro">NanoBanana Pro</option>
+                <option value="seedream4">SeeDream 4</option>
+                <option value="seedream4-5">SeeDream 4.5</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -261,17 +286,14 @@ export default function Home() {
           <div className="text-center text-zinc-500 py-10">Загрузка...</div>
         ) : (
           <div className="pb-20">
-            <div className="flex gap-4 items-start">
-              <div className="flex-1 min-w-0 space-y-4">
-                {filteredItems.filter((_, i) => i % 2 === 0).map(item => (
-                  <FeedImage key={item.id} item={item} priority={true} handleRemix={handleRemix} onClick={setSelectedItem} />
-                ))}
-              </div>
-              <div className="flex-1 min-w-0 space-y-4">
-                {filteredItems.filter((_, i) => i % 2 !== 0).map(item => (
-                  <FeedImage key={item.id} item={item} priority={true} handleRemix={handleRemix} onClick={setSelectedItem} />
-                ))}
-              </div>
+            <div className={`flex items-start ${viewMode === 'standard' ? 'gap-4' : 'gap-2'}`}>
+              {Array.from({ length: viewMode === 'standard' ? 2 : 3 }).map((_, colIndex) => (
+                <div key={colIndex} className={`flex-1 min-w-0 ${viewMode === 'standard' ? 'space-y-4' : 'space-y-2'}`}>
+                  {filteredItems.filter((_, i) => i % (viewMode === 'standard' ? 2 : 3) === colIndex).map(item => (
+                    <FeedImage key={item.id} item={item} priority={true} handleRemix={handleRemix} onClick={setSelectedItem} />
+                  ))}
+                </div>
+              ))}
             </div>
             {!loading && filteredItems.length === 0 && (
               <div className="text-center text-zinc-500 py-10 w-full">Нет публикаций</div>
@@ -281,16 +303,16 @@ export default function Home() {
             )}
           </div>
         )}
+        {selectedItem && (
+          <FeedDetailModal
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            onRemix={(item) => { setSelectedItem(null); handleRemix(item) }}
+            onLike={handleLike}
+          />
+        )}
       </div>
-
-      {selectedItem && (
-        <FeedDetailModal
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onRemix={(item) => { setSelectedItem(null); handleRemix(item) }}
-          onLike={handleLike}
-        />
-      )}
     </div>
+
   )
 }
