@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 export interface FeedItem {
     id: number
     image_url: string
+    compressed_url?: string | null
     prompt: string
     created_at: string
     author: {
@@ -49,11 +50,28 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
     const [isLiked, setIsLiked] = useState(item.is_liked)
     const [likesCount, setLikesCount] = useState(item.likes_count)
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
+    const [imgSrc, setImgSrc] = useState(item.compressed_url || item.image_url)
+    const [hasError, setHasError] = useState(false)
 
     useEffect(() => {
         setIsLiked(item.is_liked)
         setLikesCount(item.likes_count)
     }, [item.is_liked, item.likes_count])
+
+    useEffect(() => {
+        setImgSrc(item.compressed_url || item.image_url)
+        setHasError(false)
+        setLoaded(false)
+    }, [item.compressed_url, item.image_url])
+
+    const handleImageError = () => {
+        if (!hasError && item.compressed_url && imgSrc !== item.image_url) {
+            // First failure (thumbnail): try original
+            setImgSrc(item.image_url)
+        } else {
+            setHasError(true)
+        }
+    }
 
     const handleLike = async () => {
         console.log('handleLike called', { userId: user?.id, itemId: item.id })
@@ -104,16 +122,23 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
         <div className="mb-4 break-inside-avoid" onClick={() => onClick(item)}>
             <div className="relative rounded-xl overflow-hidden bg-zinc-900 shadow-sm border border-white/5">
                 <div className="aspect-auto w-full relative">
-                    {!loaded && (
+                    {!loaded && !hasError && (
                         <div className="absolute inset-0 bg-zinc-800 animate-pulse" />
                     )}
-                    <img
-                        src={item.image_url}
-                        alt={item.prompt}
-                        loading={priority ? "eager" : "lazy"}
-                        className={`w-full h-auto block transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-                        onLoad={() => setLoaded(true)}
-                    />
+                    {hasError ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-white/40 text-xs">
+                            Image unavailable
+                        </div>
+                    ) : (
+                        <img
+                            src={imgSrc}
+                            alt={item.prompt}
+                            loading={priority ? "eager" : "lazy"}
+                            className={`w-full h-auto block transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                            onLoad={() => setLoaded(true)}
+                            onError={handleImageError}
+                        />
+                    )}
                     {modelName && (
                         <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md border border-white/10 font-medium">
                             {modelName}

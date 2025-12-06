@@ -3,6 +3,8 @@ import fs from 'fs'
 import path from 'path'
 
 // Типы для запросов к Kie.ai
+import { uploadImageFromBase64, uploadImageFromUrl, createThumbnail } from '../services/r2Service.js'
+
 interface KieAIRequest {
   model: string
   prompt: string
@@ -358,6 +360,15 @@ async function completeGeneration(generationId: number, userId: number, imageUrl
         }
       }
     }
+
+
+    // 4. Generate Thumbnail (Async, don't block response)
+    if (imageUrl) {
+      createThumbnail(imageUrl, imageUrl, `gen_${generationId}_thumb.jpg`).catch(err => {
+        console.error(`[Thumbnail] Failed to generate thumbnail for ${generationId}:`, err)
+      })
+    }
+
   } catch (e) {
     console.error('completeGeneration error:', e)
   }
