@@ -27,33 +27,50 @@ export default function Home() {
   const LIMIT_INITIAL = 6
   const LIMIT_MORE = 4
 
+  const abortControllerRef = React.useRef<AbortController | null>(null)
+
   const fetchFeed = useCallback(async (reset = false) => {
     try {
+      let signal = abortControllerRef.current?.signal
+
       if (reset) {
+        // Cancel previous request if we are resetting
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+        const controller = new AbortController()
+        abortControllerRef.current = controller
+        signal = controller.signal
+
         setLoading(true)
         setOffset(0)
       } else {
         setIsFetchingMore(true)
       }
 
+      console.log(`[Home] Fetching feed: reset=${reset}, sort=${sort}, offset=${reset ? 0 : offset}, model=${selectedModelFilter}`)
+
       const currentOffset = reset ? 0 : offset
       const limit = viewMode === 'compact' ? 9 : (reset ? LIMIT_INITIAL : LIMIT_MORE)
       const userIdParam = user?.id ? `&user_id=${user.id}` : ''
 
-      const res = await fetch(`/api/feed?limit=${limit}&offset=${currentOffset}&sort=${sort}${userIdParam}&model=${selectedModelFilter}`)
+      const res = await fetch(`/api/feed?limit=${limit}&offset=${currentOffset}&sort=${sort}${userIdParam}&model=${selectedModelFilter}`, { signal })
 
       if (res.ok) {
         const data = await res.json()
         const newItems = data.items || []
+        console.log(`[Home] Fetched ${newItems.length} items`)
 
         if (reset) {
           setItems(newItems)
+          setLoading(false) // Success: Stop loading
         } else {
           setItems(prev => {
             const existingIds = new Set(prev.map(i => i.id))
             const uniqueNewItems = newItems.filter((i: FeedItem) => !existingIds.has(i.id))
             return [...prev, ...uniqueNewItems]
           })
+          setIsFetchingMore(false) // Success: Stop fetching more
         }
 
         if (newItems.length < limit) {
@@ -62,12 +79,22 @@ export default function Home() {
           setHasMore(true)
           setOffset(currentOffset + limit)
         }
+      } else {
+        console.error('[Home] Fetch failed:', res.status)
+        // Error State Clean Up
+        if (reset) setLoading(false)
+        else setIsFetchingMore(false)
       }
-    } catch (e) {
-      console.error('Failed to fetch feed', e)
-    } finally {
-      setLoading(false)
-      setIsFetchingMore(false)
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        console.log('[Home] Fetch aborted')
+        return // ABORT: Do NOT touch loading state, let the new request handle it
+      }
+      console.error('[Home] Failed to fetch feed', e)
+
+      // Real Error: Stop loading
+      if (reset) setLoading(false)
+      else setIsFetchingMore(false)
     }
   }, [user?.id, sort, offset, selectedModelFilter, viewMode])
 

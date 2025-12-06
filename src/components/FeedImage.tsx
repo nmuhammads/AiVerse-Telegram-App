@@ -53,6 +53,8 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
     const [imgSrc, setImgSrc] = useState(item.compressed_url || item.image_url)
     const [hasError, setHasError] = useState(false)
 
+    const imgRef = React.useRef<HTMLImageElement>(null)
+
     useEffect(() => {
         setIsLiked(item.is_liked)
         setLikesCount(item.likes_count)
@@ -64,11 +66,21 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
         setLoaded(false)
     }, [item.compressed_url, item.image_url])
 
+    // Check for cached images
+    useEffect(() => {
+        if (imgRef.current && imgRef.current.complete) {
+            setLoaded(true)
+        }
+    }, [imgSrc])
+
     const handleImageError = () => {
+        console.warn('Image load error for:', imgSrc)
         if (!hasError && item.compressed_url && imgSrc !== item.image_url) {
             // First failure (thumbnail): try original
+            console.log('Falling back to original:', item.image_url)
             setImgSrc(item.image_url)
         } else {
+            console.error('Both thumbnail and original failed')
             setHasError(true)
         }
     }
@@ -131,11 +143,15 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                         </div>
                     ) : (
                         <img
+                            ref={imgRef}
                             src={imgSrc}
                             alt={item.prompt}
                             loading={priority ? "eager" : "lazy"}
                             className={`w-full h-auto block transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-                            onLoad={() => setLoaded(true)}
+                            onLoad={() => {
+                                // console.log('Image loaded:', imgSrc)
+                                setLoaded(true)
+                            }}
                             onError={handleImageError}
                         />
                     )}
