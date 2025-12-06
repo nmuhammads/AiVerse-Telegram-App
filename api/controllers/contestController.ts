@@ -88,7 +88,7 @@ export async function getContestEntries(req: Request, res: Response) {
             orderQuery = '&order=created_at.desc'
         }
 
-        const query = `?contest_id=eq.${id}${orderQuery}&limit=${limit}&offset=${offset}&${select}&generations.model=neq.seedream4.5`
+        const query = `?contest_id=eq.${id}${orderQuery}&limit=${limit}&offset=${offset}&${select}&generations.or=(model.neq.seedream4.5,model.is.null)`
 
         const q = await supaSelect('contest_entries', query)
         if (!q.ok) return res.status(500).json({ error: 'Failed to fetch entries', detail: q.data })
