@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Trophy, Calendar, Info, Grid, Medal, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, Trophy, Calendar, Info, Grid, Medal, Loader2, Clock, LayoutGrid, Grid3x3 } from 'lucide-react';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useTelegram } from '@/hooks/useTelegram';
 import { FeedImage, FeedItem } from '@/components/FeedImage';
@@ -56,6 +56,10 @@ export default function ContestDetail() {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [joining, setJoining] = useState(false);
     const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'standard' | 'compact'>('standard');
+    const [offset, setOffset] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
 
     const isMobile = platform === 'ios' || platform === 'android';
 
@@ -91,9 +95,31 @@ export default function ContestDetail() {
     useEffect(() => {
         if (id) {
             fetchContestDetails();
-            fetchEntries();
+            fetchEntries(true);
         }
     }, [id, user?.id]);
+
+    useEffect(() => {
+        // Reset and refetch when viewMode changes to ensure alignment
+        if (id && entries.length > 0) {
+            // Optional: Uncomment to reset on view change. For now, we prefer keeping content.
+            // fetchEntries(true);
+        }
+    }, [viewMode]);
+
+    // Infinite scroll listener
+    useEffect(() => {
+        const handleScroll = () => {
+            if (activeTab !== 'gallery') return;
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+                if (!loading && !isFetchingMore && hasMore) {
+                    fetchEntries(false);
+                }
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loading, isFetchingMore, hasMore, activeTab, viewMode]);
 
     const fetchContestDetails = async () => {
         try {
@@ -107,21 +133,48 @@ export default function ContestDetail() {
         }
     };
 
-    const fetchEntries = async () => {
+    const fetchEntries = async (reset = false) => {
         try {
-            let url = `/api/contests/${id}/entries?limit=100`;
+            if (reset) {
+                setLoading(true);
+                setOffset(0);
+            } else {
+                setIsFetchingMore(true);
+            }
+
+            const currentOffset = reset ? 0 : offset;
+            const limit = viewMode === 'compact' ? 9 : 6;
+
+            let url = `/api/contests/${id}/entries?limit=${limit}&offset=${currentOffset}`;
             if (user?.id) {
                 url += `&user_id=${user.id}`;
             }
             const res = await fetch(url);
             const data = await res.json();
+
             if (data.items) {
-                setEntries(data.items);
+                if (reset) {
+                    setEntries(data.items);
+                } else {
+                    setEntries(prev => {
+                        const existingIds = new Set(prev.map(i => i.id));
+                        const uniqueNewItems = data.items.filter((i: ContestEntry) => !existingIds.has(i.id));
+                        return [...prev, ...uniqueNewItems];
+                    });
+                }
+
+                if (data.items.length < limit) {
+                    setHasMore(false);
+                } else {
+                    setHasMore(true);
+                    setOffset(currentOffset + limit);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch entries', error);
         } finally {
             setLoading(false);
+            setIsFetchingMore(false);
         }
     };
 
@@ -139,7 +192,8 @@ export default function ContestDetail() {
             if (data.success) {
                 toast.success('Работа добавлена в конкурс!');
                 impact('medium');
-                fetchEntries(); // Refresh entries
+                impact('medium');
+                fetchEntries(true); // Refresh entries
                 setActiveTab('gallery');
             } else {
                 toast.error(data.error || 'Ошибка при добавлении');
@@ -337,33 +391,58 @@ export default function ContestDetail() {
                             Пока нет работ. Будьте первым!
                         </div>
                     ) : (
-                        <div className="columns-2 gap-4 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            {entries.map((entry) => (
-                                <FeedImage
-                                    key={entry.id}
-                                    item={{
-                                        id: entry.generation.id,
-                                        image_url: entry.generation.image_url,
-                                        prompt: entry.generation.prompt,
-                                        created_at: entry.created_at,
-                                        author: {
-                                            id: entry.author.id,
-                                            username: entry.author.username,
-                                            avatar_url: entry.author.avatar_url,
-                                            first_name: entry.author.first_name
-                                        },
-                                        likes_count: entry.generation.likes_count,
-                                        remix_count: entry.generation.remix_count,
-                                        is_liked: entry.generation.is_liked,
-                                        model: entry.generation.model
-                                    }}
-                                    handleRemix={(item) => handleRemix(item, entry.id)}
-                                    onClick={handleImageClick}
-                                    onLike={handleLike}
-                                    showRemix={false}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="flex justify-end mb-4 px-2">
+                                <div className="bg-[#1c1c1e] p-1 rounded-lg flex gap-1 border border-white/5">
+                                    <button
+                                        onClick={() => setViewMode('standard')}
+                                        className={`p-2 rounded-md transition-all ${viewMode === 'standard' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        <LayoutGrid size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('compact')}
+                                        className={`p-2 rounded-md transition-all ${viewMode === 'compact' ? 'bg-white/10 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        <Grid3x3 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className={`flex items-start ${viewMode === 'standard' ? 'gap-4' : 'gap-2'} animate-in fade-in slide-in-from-bottom-4 duration-300`}>
+                                {Array.from({ length: viewMode === 'standard' ? 2 : 3 }).map((_, colIndex) => (
+                                    <div key={colIndex} className={`flex-1 min-w-0 ${viewMode === 'standard' ? 'space-y-4' : 'space-y-2'}`}>
+                                        {entries.filter((_, i) => i % (viewMode === 'standard' ? 2 : 3) === colIndex).map((entry) => (
+                                            <FeedImage
+                                                key={entry.id}
+                                                item={{
+                                                    id: entry.generation.id,
+                                                    image_url: entry.generation.image_url,
+                                                    prompt: entry.generation.prompt,
+                                                    created_at: entry.created_at,
+                                                    author: {
+                                                        id: entry.author.id,
+                                                        username: entry.author.username,
+                                                        avatar_url: entry.author.avatar_url,
+                                                        first_name: entry.author.first_name
+                                                    },
+                                                    likes_count: entry.generation.likes_count,
+                                                    remix_count: entry.generation.remix_count,
+                                                    is_liked: entry.generation.is_liked,
+                                                    model: entry.generation.model
+                                                }}
+                                                handleRemix={(item) => handleRemix(item, entry.id)}
+                                                onClick={handleImageClick}
+                                                onLike={handleLike}
+                                                showRemix={false}
+                                            />
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                            {isFetchingMore && (
+                                <div className="text-center text-zinc-500 py-4 w-full">Loading more...</div>
+                            )}
+                        </>
                     )
                 )}
 
@@ -423,20 +502,22 @@ export default function ContestDetail() {
             </div>
 
             {/* Join Button */}
-            {contest.status === 'active' && (
-                <div
-                    className="fixed left-0 right-0 px-4 flex justify-center z-30 pointer-events-none"
-                    style={{ bottom: getButtonBottom() }}
-                >
-                    <button
-                        onClick={() => setIsSelectorOpen(true)}
-                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-transform active:scale-95"
+            {
+                contest.status === 'active' && (
+                    <div
+                        className="fixed left-0 right-0 px-4 flex justify-center z-30 pointer-events-none"
+                        style={{ bottom: getButtonBottom() }}
                     >
-                        <Trophy size={18} />
-                        Участвовать
-                    </button>
-                </div>
-            )}
+                        <button
+                            onClick={() => setIsSelectorOpen(true)}
+                            className="pointer-events-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-transform active:scale-95"
+                        >
+                            <Trophy size={18} />
+                            Участвовать
+                        </button>
+                    </div>
+                )
+            }
 
             <GenerationSelector
                 isOpen={isSelectorOpen}
@@ -444,36 +525,38 @@ export default function ContestDetail() {
                 onSelect={handleJoin}
             />
 
-            {selectedEntryId && (() => {
-                const entry = entries.find(e => e.generation.id === selectedEntryId);
-                if (!entry) return null;
+            {
+                selectedEntryId && (() => {
+                    const entry = entries.find(e => e.generation.id === selectedEntryId);
+                    if (!entry) return null;
 
-                const item: FeedItem = {
-                    id: entry.generation.id,
-                    image_url: entry.generation.image_url,
-                    prompt: entry.generation.prompt,
-                    created_at: entry.created_at,
-                    author: {
-                        id: entry.author.id,
-                        username: entry.author.username,
-                        avatar_url: entry.author.avatar_url,
-                        first_name: entry.author.first_name
-                    },
-                    likes_count: entry.generation.likes_count,
-                    remix_count: entry.generation.remix_count,
-                    is_liked: entry.generation.is_liked,
-                    model: entry.generation.model
-                };
+                    const item: FeedItem = {
+                        id: entry.generation.id,
+                        image_url: entry.generation.image_url,
+                        prompt: entry.generation.prompt,
+                        created_at: entry.created_at,
+                        author: {
+                            id: entry.author.id,
+                            username: entry.author.username,
+                            avatar_url: entry.author.avatar_url,
+                            first_name: entry.author.first_name
+                        },
+                        likes_count: entry.generation.likes_count,
+                        remix_count: entry.generation.remix_count,
+                        is_liked: entry.generation.is_liked,
+                        model: entry.generation.model
+                    };
 
-                return (
-                    <FeedDetailModal
-                        item={item}
-                        onClose={() => setSelectedEntryId(null)}
-                        onRemix={(item) => handleRemix(item, selectedEntryId)}
-                        onLike={(item) => handleLike(item.id, item.is_liked)}
-                    />
-                );
-            })()}
-        </div>
+                    return (
+                        <FeedDetailModal
+                            item={item}
+                            onClose={() => setSelectedEntryId(null)}
+                            onRemix={(item) => handleRemix(item, selectedEntryId)}
+                            onLike={(item) => handleLike(item.id, item.is_liked)}
+                        />
+                    );
+                })()
+            }
+        </div >
     );
 }
