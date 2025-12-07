@@ -26,6 +26,7 @@ interface ContestEntry {
     generation: {
         id: number;
         image_url: string;
+        compressed_url?: string | null;
         likes_count: number;
         remix_count: number;
         prompt: string;
