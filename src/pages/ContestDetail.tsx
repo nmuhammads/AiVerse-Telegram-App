@@ -52,6 +52,11 @@ export default function ContestDetail() {
 
     const [contest, setContest] = useState<ContestDetail | null>(null);
     const [entries, setEntries] = useState<ContestEntry[]>([]);
+
+    // New state for leaderboard
+    const [leaderboardEntries, setLeaderboardEntries] = useState<ContestEntry[]>([]);
+    const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'info' | 'gallery' | 'leaderboard'>('info');
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -122,6 +127,13 @@ export default function ContestDetail() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [loading, isFetchingMore, hasMore, activeTab, viewMode]);
 
+    // Leaderboard fetch effect
+    useEffect(() => {
+        if (activeTab === 'leaderboard' && leaderboardEntries.length === 0) {
+            fetchLeaderboard();
+        }
+    }, [activeTab, id]);
+
     const fetchContestDetails = async () => {
         try {
             const res = await fetch(`/api/contests/${id}`);
@@ -179,6 +191,23 @@ export default function ContestDetail() {
         }
     };
 
+    const fetchLeaderboard = async () => {
+        if (!id) return;
+        try {
+            setLeaderboardLoading(true);
+            // Fetch top 100 for leaderboard
+            const res = await fetch(`/api/contests/${id}/entries?limit=100&sort=popular`);
+            const data = await res.json();
+            if (data.items) {
+                setLeaderboardEntries(data.items);
+            }
+        } catch (error) {
+            console.error('Failed to fetch leaderboard', error);
+        } finally {
+            setLeaderboardLoading(false);
+        }
+    };
+
     const handleJoin = async (generationId: number) => {
         if (!user?.id || !id) return;
         setJoining(true);
@@ -222,61 +251,47 @@ export default function ContestDetail() {
 
     const handleLike = async (id: number, isLiked: boolean) => {
         if (!user?.id) return;
-        // Optimistic update
-        setEntries(prev => prev.map(e => {
+
+        const updateList = (list: ContestEntry[]) => list.map(e => {
             if (e.generation.id === id) {
+                const currentLiked = e.generation.is_liked;
                 return {
                     ...e,
                     generation: {
                         ...e.generation,
-                        is_liked: !isLiked,
-                        likes_count: isLiked ? e.generation.likes_count - 1 : e.generation.likes_count + 1
+                        is_liked: !currentLiked,
+                        likes_count: currentLiked ? e.generation.likes_count - 1 : e.generation.likes_count + 1
                     }
                 };
             }
             return e;
-        }));
+        });
+
+        // Optimistic update
+        setEntries(prev => updateList(prev));
+        setLeaderboardEntries(prev => updateList(prev));
+
+        const entryId = entries.find(e => e.generation.id === id)?.id || leaderboardEntries.find(e => e.generation.id === id)?.id;
+
+        if (!entryId) return;
 
         try {
             const res = await fetch('/api/contests/like', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entryId: entries.find(e => e.generation.id === id)?.id, userId: user.id })
+                body: JSON.stringify({ entryId, userId: user.id })
             });
             const data = await res.json();
             if (!data.success) {
                 // Revert if failed
-                setEntries(prev => prev.map(e => {
-                    if (e.generation.id === id) {
-                        return {
-                            ...e,
-                            generation: {
-                                ...e.generation,
-                                is_liked: isLiked,
-                                ...e.generation,
-                                likes_count: isLiked ? e.generation.likes_count + 1 : e.generation.likes_count - 1
-                            }
-                        };
-                    }
-                    return e;
-                }));
+                setEntries(prev => updateList(prev));
+                setLeaderboardEntries(prev => updateList(prev));
                 toast.error('Ошибка при лайке');
             }
         } catch (e) {
             // Revert
-            setEntries(prev => prev.map(e => {
-                if (e.generation.id === id) {
-                    return {
-                        ...e,
-                        generation: {
-                            ...e.generation,
-                            is_liked: isLiked,
-                            likes_count: isLiked ? e.generation.likes_count + 1 : e.generation.likes_count - 1
-                        }
-                    };
-                }
-                return e;
-            }));
+            setEntries(prev => updateList(prev));
+            setLeaderboardEntries(prev => updateList(prev));
         }
     };
 
@@ -450,55 +465,60 @@ export default function ContestDetail() {
 
                 {activeTab === 'leaderboard' && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        {entries
-                            .sort((a, b) => (b.generation.likes_count || 0) - (a.generation.likes_count || 0))
-                            .map((entry, index) => (
-                                <div
-                                    key={entry.id}
-                                    onClick={() => handleImageClick({
-                                        id: entry.generation.id,
-                                        image_url: entry.generation.image_url,
-                                        prompt: entry.generation.prompt,
-                                        created_at: entry.created_at,
-                                        author: {
-                                            id: entry.author.id,
-                                            username: entry.author.username,
-                                            avatar_url: entry.author.avatar_url,
-                                            first_name: entry.author.first_name
-                                        },
-                                        likes_count: entry.generation.likes_count,
-                                        remix_count: entry.generation.remix_count,
-                                        is_liked: entry.generation.is_liked,
-                                        model: entry.generation.model
-                                    })}
-                                    className="flex items-center gap-3 bg-[#1c1c1e] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors active:scale-[0.98]"
-                                >
-                                    <div className={`w-8 h-8 flex items-center justify-center font-bold rounded-full ${index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
-                                        index === 1 ? 'bg-zinc-400/20 text-zinc-400' :
-                                            index === 2 ? 'bg-amber-700/20 text-amber-700' :
-                                                'bg-white/5 text-zinc-500'
-                                        }`}>
-                                        {index + 1}
-                                    </div>
-
-                                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800 shrink-0">
-                                        <img src={entry.generation.compressed_url || entry.generation.image_url} className="w-full h-full object-cover" />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-white font-medium truncate">{entry.author.username}</div>
-                                        <div className="text-xs text-zinc-500 flex items-center gap-2">
-                                            <span className="flex items-center gap-1"><Trophy size={10} /> {entry.generation.likes_count} лайков</span>
+                        {leaderboardLoading ? (
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="animate-spin text-zinc-500" />
+                            </div>
+                        ) : (
+                            leaderboardEntries
+                                .map((entry, index) => (
+                                    <div
+                                        key={entry.id}
+                                        onClick={() => handleImageClick({
+                                            id: entry.generation.id,
+                                            image_url: entry.generation.image_url,
+                                            prompt: entry.generation.prompt,
+                                            created_at: entry.created_at,
+                                            author: {
+                                                id: entry.author.id,
+                                                username: entry.author.username,
+                                                avatar_url: entry.author.avatar_url,
+                                                first_name: entry.author.first_name
+                                            },
+                                            likes_count: entry.generation.likes_count,
+                                            remix_count: entry.generation.remix_count,
+                                            is_liked: entry.generation.is_liked,
+                                            model: entry.generation.model
+                                        })}
+                                        className="flex items-center gap-3 bg-[#1c1c1e] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors active:scale-[0.98]"
+                                    >
+                                        <div className={`w-8 h-8 flex items-center justify-center font-bold rounded-full ${index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
+                                            index === 1 ? 'bg-zinc-400/20 text-zinc-400' :
+                                                index === 2 ? 'bg-amber-700/20 text-amber-700' :
+                                                    'bg-white/5 text-zinc-500'
+                                            }`}>
+                                            {index + 1}
                                         </div>
-                                    </div>
 
-                                    {contest.status === 'completed' && entry.prize_awarded && (
-                                        <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">
-                                            {entry.prize_awarded}
+                                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800 shrink-0">
+                                            <img src={entry.generation.compressed_url || entry.generation.image_url} className="w-full h-full object-cover" />
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-white font-medium truncate">{entry.author.username}</div>
+                                            <div className="text-xs text-zinc-500 flex items-center gap-2">
+                                                <span className="flex items-center gap-1"><Trophy size={10} /> {entry.generation.likes_count} лайков</span>
+                                            </div>
+                                        </div>
+
+                                        {contest.status === 'completed' && entry.prize_awarded && (
+                                            <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">
+                                                {entry.prize_awarded}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                        )}
                     </div>
                 )}
             </div>
@@ -529,7 +549,7 @@ export default function ContestDetail() {
 
             {
                 selectedEntryId && (() => {
-                    const entry = entries.find(e => e.generation.id === selectedEntryId);
+                    const entry = entries.find(e => e.generation.id === selectedEntryId) || leaderboardEntries.find(e => e.generation.id === selectedEntryId);
                     if (!entry) return null;
 
                     const item: FeedItem = {
