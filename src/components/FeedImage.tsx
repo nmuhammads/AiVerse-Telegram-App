@@ -147,7 +147,7 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                             src={imgSrc}
                             alt={item.prompt}
                             loading={priority ? "eager" : "lazy"}
-                            className={`w-full h-auto block transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                            className="w-full h-auto block"
                             onLoad={() => {
                                 // console.log('Image loaded:', imgSrc)
                                 setLoaded(true)

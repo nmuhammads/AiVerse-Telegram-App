@@ -417,6 +417,7 @@ export default function ContestDetail() {
                                                 item={{
                                                     id: entry.generation.id,
                                                     image_url: entry.generation.image_url,
+                                                    compressed_url: entry.generation.compressed_url,
                                                     prompt: entry.generation.prompt,
                                                     created_at: entry.created_at,
                                                     author: {

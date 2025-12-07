@@ -29,7 +29,7 @@ const GridImage = ({ src, originalUrl, alt, className }: { src: string, original
         ref={imgRef}
         src={imgSrc}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        className="w-full h-full object-cover"
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (!error && imgSrc !== originalUrl) {
