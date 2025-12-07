@@ -221,6 +221,7 @@ export async function listGenerations(req: Request, res: Response) {
       return {
         id: it.id,
         image_url: sanitizeUrl(it.image_url),
+        compressed_url: process.env.R2_PUBLIC_URL_THUMBNAILS ? `${process.env.R2_PUBLIC_URL_THUMBNAILS}/gen_${it.id}_thumb.jpg` : null,
         prompt: String(it.prompt || ''),
         created_at: it.created_at || null,
         is_published: !!it.is_published,

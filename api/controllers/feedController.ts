@@ -109,6 +109,7 @@ export async function getFeed(req: Request, res: Response) {
             return {
                 id: it.id,
                 image_url: it.image_url,
+                compressed_url: process.env.R2_PUBLIC_URL_THUMBNAILS ? `${process.env.R2_PUBLIC_URL_THUMBNAILS}/gen_${it.id}_thumb.jpg` : null,
                 prompt: it.prompt,
                 created_at: it.created_at,
                 author: {

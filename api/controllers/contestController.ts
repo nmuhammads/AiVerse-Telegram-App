@@ -103,6 +103,7 @@ export async function getContestEntries(req: Request, res: Response) {
                 generation: {
                     id: gen.id,
                     image_url: gen.image_url,
+                    compressed_url: process.env.R2_PUBLIC_URL_THUMBNAILS ? `${process.env.R2_PUBLIC_URL_THUMBNAILS}/gen_${gen.id}_thumb.jpg` : null,
                     // Use contest-specific counts
                     likes_count: it.likes_count || 0,
                     remix_count: it.remix_count || 0,

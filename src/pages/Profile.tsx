@@ -1,6 +1,49 @@
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw } from 'lucide-react'
+
+// Custom GridImage component for handling load states
+const GridImage = ({ src, originalUrl, alt, className }: { src: string, originalUrl: string, alt: string, className?: string }) => {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+  const [imgSrc, setImgSrc] = useState(src)
+  const imgRef = React.useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    setImgSrc(src)
+    setError(false)
+    setLoaded(false)
+  }, [src])
+
+  // Check for cached images
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      setLoaded(true)
+    }
+  }, [imgSrc])
+
+  return (
+    <div className={`relative w-full h-full overflow-hidden bg-zinc-800 ${className}`}>
+      {!loaded && !error && <div className="absolute inset-0 animate-pulse bg-zinc-800" />}
+      {error && <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-zinc-600 text-[10px]">Error</div>}
+      <img
+        ref={imgRef}
+        src={imgSrc}
+        alt={alt}
+        className="w-full h-full object-cover"
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (!error && imgSrc !== originalUrl) {
+            setImgSrc(originalUrl)
+          } else {
+            setError(true)
+          }
+        }}
+      />
+    </div>
+  )
+}
+
 import { PaymentModal } from '@/components/PaymentModal'
-import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -44,7 +87,7 @@ export default function Profile() {
   const [balance, setBalance] = useState<number | null>(null)
   const [likes, setLikes] = useState<number>(0)
   const [remixCount, setRemixCount] = useState<number>(0)
-  const [items, setItems] = useState<{ id: number; image_url: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null }[]>([])
+  const [items, setItems] = useState<{ id: number; image_url: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null }[]>([])
   const [preview, setPreview] = useState<{ id: number; image_url: string; prompt: string; is_published: boolean; model?: string | null } | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -53,9 +96,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const displayName = (user?.first_name && user?.last_name)
-    ? `${user.first_name} ${user.last_name}`
+    ? `${user.first_name} ${user.last_name} `
     : (user?.first_name || user?.username || 'Гость')
-  const username = user?.username ? `@${user.username}` : '—'
+  const username = user?.username ? `@${user.username} ` : '—'
   const avatarSeed = user?.username || String(user?.id || 'guest')
   const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(avatarSeed)}`
 
@@ -367,7 +410,12 @@ export default function Profile() {
                   {items.filter(h => !!h.image_url).map((h) => (
                     <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
                       <button onClick={() => setPreview({ id: h.id, image_url: h.image_url || '', prompt: h.prompt, is_published: h.is_published, model: h.model })} className="block w-full">
-                        <img src={h.image_url || ''} alt="History" className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <GridImage
+                          src={h.compressed_url || h.image_url || ''}
+                          originalUrl={h.image_url || ''}
+                          alt="History"
+                          className="w-full aspect-square object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                       </button>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none"></div>
                       {h.model && (

@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import crypto from 'crypto'
+import sharp from 'sharp'
 
 let s3Client: S3Client | null = null
 
@@ -123,3 +124,61 @@ export async function uploadImageFromBase64(base64Data: string, folder: string =
         return base64Data // Fallback to original on failure
     }
 }
+
+
+export async function createThumbnail(input: Buffer | string, originalUrl?: string, customFileName?: string): Promise<string> {
+    const THUMB_BUCKET = process.env.R2_BUCKET_THUMBNAILS
+    const THUMB_PUBLIC_URL = process.env.R2_PUBLIC_URL_THUMBNAILS
+    const client = getS3Client()
+
+    if (!client || !THUMB_BUCKET || !THUMB_PUBLIC_URL) {
+        console.warn('R2 thumbnails configuration missing')
+        return ''
+    }
+
+    try {
+        let buffer: Buffer
+
+        if (typeof input === 'string') {
+            // URL
+            const response = await fetch(input)
+            if (!response.ok) throw new Error(`Failed to fetch image for thumbnail: ${response.statusText}`)
+            const arrayBuffer = await response.arrayBuffer()
+            buffer = Buffer.from(arrayBuffer)
+        } else {
+            buffer = input
+        }
+
+        // Resize and compress
+        const processedBuffer = await sharp(buffer)
+            .resize({ width: 600, withoutEnlargement: true })
+            .jpeg({ quality: 80, mozjpeg: true })
+            .toBuffer()
+
+        // Determine filename
+        let fileName = ''
+        if (customFileName) {
+            fileName = customFileName
+        } else {
+            // New random filename
+            const hash = crypto.randomBytes(16).toString('hex')
+            fileName = `${hash}_thumb.jpg`
+        }
+
+        // Upload to Thumbnail Bucket
+        await client.send(new PutObjectCommand({
+            Bucket: THUMB_BUCKET,
+            Key: fileName,
+            Body: processedBuffer,
+            ContentType: 'image/jpeg',
+        }))
+
+        const publicUrl = `${THUMB_PUBLIC_URL}/${fileName}`
+        console.log('Thumbnail created:', publicUrl)
+        return publicUrl
+    } catch (e) {
+        console.error('Thumbnail creation failed:', e)
+        return ''
+    }
+}
+
