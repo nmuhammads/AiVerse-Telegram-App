@@ -1,26 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw } from 'lucide-react'
 
-// Helper component for grid images with fallback
-const GridImage = ({ src, alt, originalUrl, className }: { src: string, alt: string, originalUrl: string, className?: string }) => {
+// Custom GridImage component for handling load states
+const GridImage = ({ src, originalUrl, alt, className }: { src: string, originalUrl: string, alt: string, className?: string }) => {
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
   const [imgSrc, setImgSrc] = useState(src)
-  const [hasError, setHasError] = useState(false)
+  const imgRef = React.useRef<HTMLImageElement>(null)
 
-  const handleError = () => {
-    if (imgSrc !== originalUrl) {
-      setImgSrc(originalUrl)
-    } else {
-      setHasError(true)
+  useEffect(() => {
+    setImgSrc(src)
+    setError(false)
+    setLoaded(false)
+  }, [src])
+
+  // Check for cached images
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete) {
+      setLoaded(true)
     }
-  }
+  }, [imgSrc])
 
   return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      className={`${className} ${hasError ? 'opacity-50' : ''}`}
-      onError={handleError}
-    />
+    <div className={`relative w-full h-full overflow-hidden bg-zinc-800 ${className}`}>
+      {!loaded && !error && <div className="absolute inset-0 animate-pulse bg-zinc-800" />}
+      {error && <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-zinc-600 text-[10px]">Error</div>}
+      <img
+        ref={imgRef}
+        src={imgSrc}
+        alt={alt}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (!error && imgSrc !== originalUrl) {
+            setImgSrc(originalUrl)
+          } else {
+            setError(true)
+          }
+        }}
+      />
+    </div>
   )
 }
 
