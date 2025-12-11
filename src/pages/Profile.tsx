@@ -377,10 +377,7 @@ export default function Profile() {
                       text: shareText,
                       url: deepLink
                     }).catch(() => {
-                      const wa = (window as any).Telegram?.WebApp
-                      if (wa) {
-                        wa.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(fullShareText)}`)
-                      }
+                      // Share cancelled or failed - do nothing to avoid double popup
                     })
                   } else {
                     const wa = (window as any).Telegram?.WebApp
