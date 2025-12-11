@@ -4,6 +4,7 @@ import path from 'path'
 
 // Типы для запросов к Kie.ai
 import { uploadImageFromBase64, uploadImageFromUrl, createThumbnail } from '../services/r2Service.js'
+import { tg } from './telegramController.js'
 
 interface KieAIRequest {
   model: string
@@ -404,6 +405,22 @@ async function completeGeneration(generationId: number, userId: number, imageUrl
           }
         }
       }
+    }
+
+    // 3.5 Send Telegram Notification
+    try {
+      if (userId) {
+        // Simple caption or based on prompt
+        const caption = `✨ Генерация завершена!`
+        await tg('sendPhoto', {
+          chat_id: userId,
+          photo: imageUrl,
+          caption: caption
+        })
+        console.log(`[Notification] Sent photo to user ${userId}`)
+      }
+    } catch (e) {
+      console.error('[Notification] Failed to send Telegram notification:', e)
     }
 
 
