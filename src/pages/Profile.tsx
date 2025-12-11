@@ -364,7 +364,32 @@ export default function Profile() {
               <button
                 className="w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl flex items-center justify-center border border-white/5 active:scale-[0.98] transition-all"
                 onClick={() => {
-                  // Share logic
+                  impact('light')
+                  if (!user?.id) return
+                  const deepLink = `https://t.me/AiVerseAppBot?startapp=profile-${user.id}`
+                  const shareText = `Посмотри мой профиль и работы в AiVerse 🎨`
+
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'AiVerse Profile',
+                      text: shareText,
+                      url: deepLink
+                    }).catch(() => {
+                      // Fallback if share cancelled/failed
+                      const wa = (window as any).Telegram?.WebApp
+                      if (wa) {
+                        wa.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(shareText)}`)
+                      }
+                    })
+                  } else {
+                    const wa = (window as any).Telegram?.WebApp
+                    if (wa) {
+                      wa.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(shareText)}`)
+                    } else {
+                      // Browser fallback
+                      window.open(`https://t.me/share/url?url=${encodeURIComponent(deepLink)}&text=${encodeURIComponent(shareText)}`, '_blank')
+                    }
+                  }
                 }}
               >
                 <Share2 size={18} />
@@ -619,114 +644,116 @@ export default function Profile() {
       </div>
 
       {/* Avatar Change Modal */}
-      {showAvatarModal && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowAvatarModal(false); setShowAvatarOptions(false) } }}>
-          <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-white/10 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            {/* Avatar Preview */}
-            <div className="flex justify-center">
-              <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 shadow-xl">
-                <div className="w-full h-full rounded-full bg-black overflow-hidden">
-                  <img
-                    src={avatarSrc || avatarUrl}
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }}
-                  />
+      {
+        showAvatarModal && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowAvatarModal(false); setShowAvatarOptions(false) } }}>
+            <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-white/10 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              {/* Avatar Preview */}
+              <div className="flex justify-center">
+                <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 shadow-xl">
+                  <div className="w-full h-full rounded-full bg-black overflow-hidden">
+                    <img
+                      src={avatarSrc || avatarUrl}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <h3 className="text-lg font-bold text-white text-center">{displayName}</h3>
+              <h3 className="text-lg font-bold text-white text-center">{displayName}</h3>
 
-            {!showAvatarOptions ? (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setShowAvatarModal(false); setShowAvatarOptions(false) }}
-                  className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
-                >
-                  Закрыть
-                </button>
-                <button
-                  onClick={() => setShowAvatarOptions(true)}
-                  className="flex-1 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit size={16} />
-                  Сменить
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="w-full py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <User size={16} />
-                  Выбрать из галереи
-                </button>
+              {!showAvatarOptions ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShowAvatarModal(false); setShowAvatarOptions(false) }}
+                    className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
+                  >
+                    Закрыть
+                  </button>
+                  <button
+                    onClick={() => setShowAvatarOptions(true)}
+                    className="flex-1 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Edit size={16} />
+                    Сменить
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <User size={16} />
+                    Выбрать из галереи
+                  </button>
 
-                {/* Paste zone */}
-                <div
-                  contentEditable
-                  suppressContentEditableWarning
-                  onPaste={async (e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    if (!user?.id) return
+                  {/* Paste zone */}
+                  <div
+                    contentEditable
+                    suppressContentEditableWarning
+                    onPaste={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      if (!user?.id) return
 
-                    const items = e.clipboardData?.items
-                    if (!items) return
+                      const items = e.clipboardData?.items
+                      if (!items) return
 
-                    for (const item of Array.from(items)) {
-                      if (item.type.startsWith('image/')) {
-                        const file = item.getAsFile()
-                        if (!file) continue
+                      for (const item of Array.from(items)) {
+                        if (item.type.startsWith('image/')) {
+                          const file = item.getAsFile()
+                          if (!file) continue
 
-                        const reader = new FileReader()
-                        reader.onload = (ev) => {
-                          const base64 = String(ev.target?.result || '')
-                          setAvatarSrc(base64)
-                          setShowAvatarModal(false)
-                          setShowAvatarOptions(false)
+                          const reader = new FileReader()
+                          reader.onload = (ev) => {
+                            const base64 = String(ev.target?.result || '')
+                            setAvatarSrc(base64)
+                            setShowAvatarModal(false)
+                            setShowAvatarOptions(false)
 
-                          fetch('/api/user/avatar/upload', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id, imageBase64: base64 })
-                          }).then(async (r) => {
-                            if (r.ok) {
-                              impact('medium')
-                              notify('success')
-                            } else {
-                              notify('error')
-                            }
-                          })
+                            fetch('/api/user/avatar/upload', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: user.id, imageBase64: base64 })
+                            }).then(async (r) => {
+                              if (r.ok) {
+                                impact('medium')
+                                notify('success')
+                              } else {
+                                notify('error')
+                              }
+                            })
+                          }
+                          reader.readAsDataURL(file)
+                          break
                         }
-                        reader.readAsDataURL(file)
-                        break
                       }
-                    }
-                    e.currentTarget.innerHTML = ''
-                  }}
-                  onInput={(e) => { e.currentTarget.innerHTML = '' }}
-                  className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-sm font-medium cursor-text focus:outline-none focus:border-violet-500/50 focus:bg-violet-500/10"
-                >
-                  <Clipboard size={16} />
-                  <span>Зажмите и вставьте фото</span>
-                </div>
+                      e.currentTarget.innerHTML = ''
+                    }}
+                    onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                    className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-sm font-medium cursor-text focus:outline-none focus:border-violet-500/50 focus:bg-violet-500/10"
+                  >
+                    <Clipboard size={16} />
+                    <span>Зажмите и вставьте фото</span>
+                  </div>
 
-                <button
-                  onClick={() => setShowAvatarOptions(false)}
-                  className="w-full py-2 text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
-                >
-                  Назад
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => setShowAvatarOptions(false)}
+                    className="w-full py-2 text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+                  >
+                    Назад
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
-    </div>
+    </div >
   )
 }
