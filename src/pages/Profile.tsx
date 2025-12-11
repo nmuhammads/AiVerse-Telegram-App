@@ -95,6 +95,8 @@ export default function Profile() {
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
+  const [showAvatarOptions, setShowAvatarOptions] = useState(false)
   const displayName = (user?.first_name && user?.last_name)
     ? `${user.first_name} ${user.last_name} `
     : (user?.first_name || user?.username || 'Гость')
@@ -315,8 +317,8 @@ export default function Profile() {
           <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-600/20 rounded-full blur-[80px] pointer-events-none" />
 
           <div className="relative z-10 flex flex-col items-center text-center">
-            {/* Avatar */}
-            <div className="relative mb-3 group">
+            {/* Avatar - clickable to open modal */}
+            <div className="relative mb-3 group cursor-pointer" onClick={() => setShowAvatarModal(true)}>
               <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 shadow-xl shadow-violet-500/20">
                 <div className="w-full h-full rounded-full bg-black overflow-hidden relative">
                   <img
@@ -325,8 +327,8 @@ export default function Profile() {
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }}
                   />
-                  <div className="absolute inset-0 bg-black/20 hidden group-hover:flex items-center justify-center transition-all cursor-pointer" onClick={() => fileRef.current?.click()}>
-                    <Edit className="text-white opacity-80" size={20} />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                    <Edit className="text-white" size={20} />
                   </div>
                 </div>
               </div>
@@ -371,13 +373,12 @@ export default function Profile() {
                 const f = e.target.files?.[0]
                 if (!f || !user?.id) return
 
-                // Optimistic update
                 const reader = new FileReader()
                 reader.onload = (ev) => {
                   const base64 = String(ev.target?.result || '')
-                  setAvatarSrc(base64) // Show immediately
+                  setAvatarSrc(base64)
+                  setShowAvatarModal(false)
 
-                  // Upload
                   fetch('/api/user/avatar/upload', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -388,60 +389,11 @@ export default function Profile() {
                       notify('success')
                     } else {
                       notify('error')
-                      // Revert if failed (optional, but good UX)
                     }
                   })
                 }
                 reader.readAsDataURL(f)
               }} />
-
-              {/* Paste zone for avatar - for Face ID users */}
-              <div
-                contentEditable
-                suppressContentEditableWarning
-                onPaste={async (e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  if (!user?.id) return
-
-                  const items = e.clipboardData?.items
-                  if (!items) return
-
-                  for (const item of Array.from(items)) {
-                    if (item.type.startsWith('image/')) {
-                      const file = item.getAsFile()
-                      if (!file) continue
-
-                      const reader = new FileReader()
-                      reader.onload = (ev) => {
-                        const base64 = String(ev.target?.result || '')
-                        setAvatarSrc(base64)
-
-                        fetch('/api/user/avatar/upload', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ userId: user.id, imageBase64: base64 })
-                        }).then(async (r) => {
-                          if (r.ok) {
-                            impact('medium')
-                            notify('success')
-                          } else {
-                            notify('error')
-                          }
-                        })
-                      }
-                      reader.readAsDataURL(file)
-                      break
-                    }
-                  }
-                  e.currentTarget.innerHTML = ''
-                }}
-                onInput={(e) => { e.currentTarget.innerHTML = '' }}
-                className="w-full mt-2 py-2 px-3 rounded-xl border border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-xs cursor-text focus:outline-none focus:border-violet-500/50"
-              >
-                <Clipboard size={14} />
-                <span>Вставить фото (зажмите)</span>
-              </div>
             </div>
           </div>
         </div>
@@ -665,6 +617,115 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Avatar Change Modal */}
+      {showAvatarModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowAvatarModal(false); setShowAvatarOptions(false) } }}>
+          <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-white/10 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            {/* Avatar Preview */}
+            <div className="flex justify-center">
+              <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 shadow-xl">
+                <div className="w-full h-full rounded-full bg-black overflow-hidden">
+                  <img
+                    src={avatarSrc || avatarUrl}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-lg font-bold text-white text-center">{displayName}</h3>
+
+            {!showAvatarOptions ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowAvatarModal(false); setShowAvatarOptions(false) }}
+                  className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
+                >
+                  Закрыть
+                </button>
+                <button
+                  onClick={() => setShowAvatarOptions(true)}
+                  className="flex-1 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Edit size={16} />
+                  Сменить
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <User size={16} />
+                  Выбрать из галереи
+                </button>
+
+                {/* Paste zone */}
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  onPaste={async (e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (!user?.id) return
+
+                    const items = e.clipboardData?.items
+                    if (!items) return
+
+                    for (const item of Array.from(items)) {
+                      if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile()
+                        if (!file) continue
+
+                        const reader = new FileReader()
+                        reader.onload = (ev) => {
+                          const base64 = String(ev.target?.result || '')
+                          setAvatarSrc(base64)
+                          setShowAvatarModal(false)
+                          setShowAvatarOptions(false)
+
+                          fetch('/api/user/avatar/upload', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: user.id, imageBase64: base64 })
+                          }).then(async (r) => {
+                            if (r.ok) {
+                              impact('medium')
+                              notify('success')
+                            } else {
+                              notify('error')
+                            }
+                          })
+                        }
+                        reader.readAsDataURL(file)
+                        break
+                      }
+                    }
+                    e.currentTarget.innerHTML = ''
+                  }}
+                  onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                  className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-sm font-medium cursor-text focus:outline-none focus:border-violet-500/50 focus:bg-violet-500/10"
+                >
+                  <Clipboard size={16} />
+                  <span>Зажмите и вставьте фото</span>
+                </div>
+
+                <button
+                  onClick={() => setShowAvatarOptions(false)}
+                  className="w-full py-2 text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+                >
+                  Назад
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
     </div>
   )
