@@ -626,27 +626,55 @@ export default function Studio() {
                     <div className="text-xs font-medium text-zinc-300">Добавить референсы (до {maxImages})</div>
                   </div>
 
-                  {/* Source selection buttons - 2 columns */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Source selection */}
+                  <div className="space-y-2">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
                     >
                       <ImageIcon size={16} />
                       <span className="text-xs font-medium">Выбрать фото</span>
                     </button>
-                    <button
-                      onClick={handlePasteClick}
-                      className="py-2.5 px-3 rounded-xl border border-violet-500/30 bg-violet-500/10 flex items-center justify-center gap-2 text-violet-300 hover:bg-violet-500/20 transition-colors active:scale-95"
+
+                    {/* Paste zone - contenteditable for iOS long-press paste */}
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      onPaste={async (e) => {
+                        e.preventDefault()
+                        const items = e.clipboardData?.items
+                        if (!items) return
+
+                        const files: File[] = []
+                        for (const item of Array.from(items)) {
+                          if (item.type.startsWith('image/')) {
+                            const file = item.getAsFile()
+                            if (file) files.push(file)
+                          }
+                        }
+
+                        if (files.length > 0) {
+                          await processPastedFiles(files)
+                        }
+
+                        // Clear the contenteditable
+                        e.currentTarget.innerHTML = ''
+                      }}
+                      onInput={(e) => {
+                        // Clear any text input
+                        e.currentTarget.innerHTML = ''
+                      }}
+                      className="w-full py-3 px-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-xs font-medium cursor-text select-none focus:outline-none focus:border-violet-500/50 focus:bg-violet-500/10"
+                      style={{ minHeight: '44px', WebkitUserSelect: 'none' }}
                     >
                       <Clipboard size={16} />
-                      <span className="text-xs font-medium">Вставить</span>
-                    </button>
+                      <span>Зажмите здесь → Вставить</span>
+                    </div>
                   </div>
 
-                  {/* Hint for Face ID users */}
-                  <div className="text-[10px] text-zinc-600 text-center">
-                    💡 Face ID закрывает галерею? Скопируйте фото → Вставить
+                  {/* Hint */}
+                  <div className="text-[10px] text-zinc-500 text-center">
+                    Скопируйте фото → зажмите фиолетовую зону → Вставить
                   </div>
                 </div>
               )}
