@@ -474,7 +474,7 @@ export default function Studio() {
         {generationMode === 'image' && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="border-2 border-dashed border-white/10 rounded-xl p-4 bg-zinc-900/20 relative overflow-hidden">
-              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+              {/* Input moved to bottom of component for stability */}
 
               {uploadedImages.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2">
@@ -632,6 +632,21 @@ export default function Studio() {
         )}
 
       <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
+
+      {/* Persistent File Input - Kept outside conditional rendering to prevent unmounting during OS context switches */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleImageUpload}
+        className="hidden"
+        onClick={(e) => {
+          e.stopPropagation();
+          // Reset value to allow selecting same file again if needed
+          (e.target as HTMLInputElement).value = '';
+        }}
+      />
     </div>
   )
 }
