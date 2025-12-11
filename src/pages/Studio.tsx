@@ -217,44 +217,89 @@ export default function Studio() {
     processFiles()
   }
 
-  // Handle paste from clipboard
-  const handlePaste = async () => {
+  // Process pasted files from clipboard event
+  const processPastedFiles = async (files: FileList | File[]) => {
+    const maxImages = 8
+    const fileArray = Array.from(files)
+
+    for (const file of fileArray) {
+      if (!file.type.startsWith('image/')) continue
+      if (uploadedImages.length >= maxImages) {
+        setError(`Максимум ${maxImages} фото`)
+        notify('error')
+        break
+      }
+
+      try {
+        const compressed = await compressImage(file)
+        addUploadedImage(compressed)
+        impact('light')
+        notify('success')
+      } catch (e) {
+        console.error('Compression failed', e)
+        const reader = new FileReader()
+        reader.readAsDataURL(file)
+        reader.onload = (ev) => {
+          if (ev.target?.result) addUploadedImage(ev.target.result as string)
+        }
+      }
+    }
+  }
+
+  // Global paste event handler
+  useEffect(() => {
+    if (generationMode !== 'image') return
+
+    const handlePasteEvent = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      const files: File[] = []
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) files.push(file)
+        }
+      }
+
+      if (files.length > 0) {
+        e.preventDefault()
+        await processPastedFiles(files)
+      }
+    }
+
+    document.addEventListener('paste', handlePasteEvent)
+    return () => document.removeEventListener('paste', handlePasteEvent)
+  }, [generationMode, uploadedImages.length, addUploadedImage])
+
+  // Handle paste button click - try clipboard API, show instructions otherwise
+  const handlePasteClick = async () => {
+    // First try modern Clipboard API
     try {
-      const items = await navigator.clipboard.read()
-      const maxImages = 8
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read()
+        const files: File[] = []
 
-      for (const item of items) {
-        const imageType = item.types.find(type => type.startsWith('image/'))
-        if (imageType) {
-          if (uploadedImages.length >= maxImages) {
-            setError(`Максимум ${maxImages} фото`)
-            notify('error')
-            break
+        for (const item of items) {
+          const imageType = item.types.find(type => type.startsWith('image/'))
+          if (imageType) {
+            const blob = await item.getType(imageType)
+            files.push(new File([blob], 'pasted-image.png', { type: imageType }))
           }
+        }
 
-          const blob = await item.getType(imageType)
-          const file = new File([blob], 'pasted-image.png', { type: imageType })
-
-          try {
-            const compressed = await compressImage(file)
-            addUploadedImage(compressed)
-            impact('light')
-            notify('success')
-          } catch (e) {
-            console.error('Compression failed', e)
-            const reader = new FileReader()
-            reader.readAsDataURL(file)
-            reader.onload = (ev) => {
-              if (ev.target?.result) addUploadedImage(ev.target.result as string)
-            }
-          }
+        if (files.length > 0) {
+          await processPastedFiles(files)
+          return
         }
       }
     } catch (e) {
-      console.error('Paste failed:', e)
-      setError('Не удалось вставить. Скопируйте изображение и попробуйте снова.')
-      notify('error')
+      console.log('Clipboard API not available:', e)
     }
+
+    // Show instruction for manual paste
+    setError('Скопируйте фото и нажмите долгим тапом здесь → Вставить')
+    notify('warning')
   }
 
   const handleGenerate = async () => {
@@ -553,24 +598,17 @@ export default function Studio() {
 
                   {/* Add more buttons */}
                   {uploadedImages.length < maxImages && (
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 min-w-[80px] py-2 px-3 rounded-lg border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors text-xs"
+                        className="flex-1 py-2 px-3 rounded-lg border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors text-xs"
                       >
-                        <FolderOpen size={14} />
-                        <span>Файлы</span>
+                        <ImageIcon size={14} />
+                        <span>Ещё</span>
                       </button>
                       <button
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="flex-1 min-w-[80px] py-2 px-3 rounded-lg border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors text-xs"
-                      >
-                        <Camera size={14} />
-                        <span>Камера</span>
-                      </button>
-                      <button
-                        onClick={handlePaste}
-                        className="flex-1 min-w-[80px] py-2 px-3 rounded-lg border border-violet-500/30 bg-violet-500/10 flex items-center justify-center gap-2 text-violet-300 hover:bg-violet-500/20 transition-colors text-xs"
+                        onClick={handlePasteClick}
+                        className="flex-1 py-2 px-3 rounded-lg border border-violet-500/30 bg-violet-500/10 flex items-center justify-center gap-2 text-violet-300 hover:bg-violet-500/20 transition-colors text-xs"
                       >
                         <Clipboard size={14} />
                         <span>Вставить</span>
@@ -579,44 +617,36 @@ export default function Studio() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Main upload area */}
-                  <div className="py-4 text-center">
-                    <div className="w-12 h-12 mx-auto bg-zinc-800 rounded-full flex items-center justify-center mb-3 text-zinc-400">
-                      <ImageIcon size={24} />
+                <div className="space-y-3">
+                  {/* Main upload area - compact */}
+                  <div className="py-2 text-center">
+                    <div className="w-10 h-10 mx-auto bg-zinc-800 rounded-full flex items-center justify-center mb-2 text-zinc-400">
+                      <ImageIcon size={20} />
                     </div>
-                    <div className="text-sm font-medium text-zinc-300 mb-1">Добавить референсы</div>
-                    <div className="text-xs text-zinc-500">До {maxImages} изображений</div>
+                    <div className="text-xs font-medium text-zinc-300">Добавить референсы (до {maxImages})</div>
                   </div>
 
-                  {/* Source selection buttons */}
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* Source selection buttons - 2 columns */}
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="py-3 px-2 rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                      className="py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
                     >
-                      <FolderOpen size={20} />
-                      <span className="text-[10px] font-medium">Файлы</span>
+                      <ImageIcon size={16} />
+                      <span className="text-xs font-medium">Выбрать фото</span>
                     </button>
                     <button
-                      onClick={() => cameraInputRef.current?.click()}
-                      className="py-3 px-2 rounded-xl border border-white/10 flex flex-col items-center justify-center gap-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                      onClick={handlePasteClick}
+                      className="py-2.5 px-3 rounded-xl border border-violet-500/30 bg-violet-500/10 flex items-center justify-center gap-2 text-violet-300 hover:bg-violet-500/20 transition-colors active:scale-95"
                     >
-                      <Camera size={20} />
-                      <span className="text-[10px] font-medium">Камера</span>
-                    </button>
-                    <button
-                      onClick={handlePaste}
-                      className="py-3 px-2 rounded-xl border border-violet-500/30 bg-violet-500/10 flex flex-col items-center justify-center gap-1.5 text-violet-300 hover:bg-violet-500/20 transition-colors active:scale-95"
-                    >
-                      <Clipboard size={20} />
-                      <span className="text-[10px] font-medium">Вставить</span>
+                      <Clipboard size={16} />
+                      <span className="text-xs font-medium">Вставить</span>
                     </button>
                   </div>
 
                   {/* Hint for Face ID users */}
-                  <div className="text-[10px] text-zinc-600 text-center px-2">
-                    💡 Если галерея закрывается из-за Face ID — скопируйте фото и нажмите «Вставить»
+                  <div className="text-[10px] text-zinc-600 text-center">
+                    💡 Face ID закрывает галерею? Скопируйте фото → Вставить
                   </div>
                 </div>
               )}
