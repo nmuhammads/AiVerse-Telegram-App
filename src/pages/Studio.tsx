@@ -246,32 +246,6 @@ export default function Studio() {
     }
   }
 
-  // Global paste event handler
-  useEffect(() => {
-    if (generationMode !== 'image') return
-
-    const handlePasteEvent = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
-      if (!items) return
-
-      const files: File[] = []
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile()
-          if (file) files.push(file)
-        }
-      }
-
-      if (files.length > 0) {
-        e.preventDefault()
-        await processPastedFiles(files)
-      }
-    }
-
-    document.addEventListener('paste', handlePasteEvent)
-    return () => document.removeEventListener('paste', handlePasteEvent)
-  }, [generationMode, uploadedImages.length, addUploadedImage])
-
   // Handle paste button click - try clipboard API, show instructions otherwise
   const handlePasteClick = async () => {
     // First try modern Clipboard API
@@ -606,13 +580,35 @@ export default function Studio() {
                         <ImageIcon size={14} />
                         <span>Ещё</span>
                       </button>
-                      <button
-                        onClick={handlePasteClick}
-                        className="flex-1 py-2 px-3 rounded-lg border border-violet-500/30 bg-violet-500/10 flex items-center justify-center gap-2 text-violet-300 hover:bg-violet-500/20 transition-colors text-xs"
+                      {/* Paste zone for adding more */}
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        onPaste={async (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const items = e.clipboardData?.items
+                          if (!items) return
+
+                          const files: File[] = []
+                          for (const item of Array.from(items)) {
+                            if (item.type.startsWith('image/')) {
+                              const file = item.getAsFile()
+                              if (file) files.push(file)
+                            }
+                          }
+
+                          if (files.length > 0) {
+                            await processPastedFiles(files)
+                          }
+                          e.currentTarget.innerHTML = ''
+                        }}
+                        onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                        className="flex-1 py-2 px-3 rounded-lg border border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-xs cursor-text focus:outline-none focus:border-violet-500/50"
                       >
                         <Clipboard size={14} />
                         <span>Вставить</span>
-                      </button>
+                      </div>
                     </div>
                   )}
                 </div>
