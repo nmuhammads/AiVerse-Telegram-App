@@ -129,7 +129,7 @@ export async function getUserInfo(req: Request, res: Response) {
 
     // Parallel fetch: User Info + Likes Count
     const [userQuery, likesQuery] = await Promise.all([
-      supaSelect('users', `?user_id=eq.${encodeURIComponent(userId)}&select=user_id,username,first_name,last_name,is_premium,balance,remix_count,updated_at,avatar_url`),
+      supaSelect('users', `?user_id=eq.${encodeURIComponent(userId)}&select=user_id,username,first_name,last_name,is_premium,balance,remix_count,updated_at,avatar_url,spins`),
       fetch(`${SUPABASE_URL}/rest/v1/rpc/get_user_likes_count`, {
         method: 'POST',
         headers: { ...supaHeaders(), 'Content-Type': 'application/json' },

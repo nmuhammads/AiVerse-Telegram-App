@@ -362,6 +362,13 @@ export default function Profile() {
                 <span className="opacity-70 font-normal text-[10px] ml-0.5">токены</span>
               </button>
               <button
+                onClick={() => { impact('light'); navigate('/events') }}
+                className="w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl flex items-center justify-center border border-white/5 active:scale-[0.98] transition-all relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Sparkles size={18} className="text-violet-400" />
+              </button>
+              <button
                 className="w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl flex items-center justify-center border border-white/5 active:scale-[0.98] transition-all"
                 onClick={() => {
                   impact('light')

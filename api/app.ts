@@ -18,6 +18,7 @@ import telegramRoutes from './routes/telegram.js'
 import paymentRoutes from './routes/payment.js'
 import feedRoutes from './routes/feed.js'
 import contestRoutes from './routes/contests.js'
+import spinRoutes from './routes/spin.js'
 
 
 // load env
@@ -42,6 +43,7 @@ app.use('/api/telegram', telegramRoutes)
 app.use('/api/payment', paymentRoutes)
 app.use('/api/feed', feedRoutes)
 app.use('/api/contests', contestRoutes)
+app.use('/api/spin', spinRoutes)
 
 /**
  * Serve frontend build
