@@ -25,7 +25,7 @@ const RAW_SEGMENTS = [
 export default function SpinPage() {
     const navigate = useNavigate()
     const { impact, notify } = useHaptics()
-    const { user, platform } = useTelegram()
+    const { user, platform, tg } = useTelegram()
 
     const [balance, setBalance] = useState<number | null>(null)
     const [spins, setSpins] = useState<number>(0)
@@ -97,25 +97,55 @@ export default function SpinPage() {
         }, 1000)
     }
 
+    useEffect(() => {
+        if (platform === 'ios' || platform === 'android') {
+            tg.BackButton.show()
+            tg.BackButton.onClick(() => navigate(-1))
+            return () => {
+                tg.BackButton.hide()
+                tg.BackButton.offClick(() => navigate(-1))
+            }
+        }
+    }, [platform, navigate, tg])
+
+    // Specific Margin to counteract App.tsx padding and fill background
+    const getMarginTop = () => {
+        if (platform === 'ios') return 'calc(-1 * env(safe-area-inset-top))'
+        if (platform === 'android') return 'calc(-1 * (env(safe-area-inset-top) + 24px))'
+        return '0px'
+    }
+
+    // Tighter padding to put elements close to the bar
     const getPaddingTop = () => {
-        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 60px)'
+        // Global header is roughly 50px-60px. We want to be just below it.
+        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 55px)'
         if (platform === 'android') return 'calc(env(safe-area-inset-top) + 85px)'
-        return '80px' // Desktop/Web
+        return '80px'
     }
 
     return (
-        <div className="min-h-dvh bg-gradient-to-b from-violet-950/50 via-black to-black flex flex-col overflow-hidden relative safe-bottom-tabbar" style={{ paddingTop: getPaddingTop() }}>
+        <div
+            className="min-h-dvh bg-gradient-to-b from-violet-950/50 via-black to-black flex flex-col overflow-hidden relative safe-bottom-tabbar"
+            style={{
+                marginTop: getMarginTop(),
+                paddingTop: getPaddingTop()
+            }}
+        >
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col px-4 pb-4">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-24 shrink-0 z-10 relative">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
+                <div className="flex items-center justify-between mb-8 shrink-0 z-10 relative">
+                    {(platform !== 'ios' && platform !== 'android') && (
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                    )}
+                    {(platform === 'ios' || platform === 'android') && <div className="w-4" />} {/* Spacer for native back button alignment if needed, or just standard flex */}
+
                     <h1 className="text-xl font-bold text-white/90 tracking-wide">Fortune</h1>
                     <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-3 py-1.5">
                         <Zap size={14} className="text-amber-400 fill-amber-400" />
@@ -137,6 +167,7 @@ export default function SpinPage() {
                             rotation={rotation}
                             isSpinning={spinning}
                             onSpinEnd={handleSpinEnd}
+                            pointerY={(platform === 'ios' || platform === 'android') ? -20 : 3}
                         />
                     </div>
 
