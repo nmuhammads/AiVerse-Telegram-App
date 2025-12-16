@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Trophy, Settings2, User, Star } from 'lucide-react'
+import { Home, Trophy, Settings2, User, Star, Clock } from 'lucide-react'
 import WebApp from '@twa-dev/sdk'
 import './TabBar.css'
 
@@ -7,6 +7,17 @@ const StarSVG = ({ className }: { className: string }) => (
   <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
   </svg>
+)
+
+// Combined icon for Events tab - Trophy + Clock with diagonal separator
+const EventsIcon = () => (
+  <div className="relative w-5 h-5">
+    <Trophy size={12} className="absolute top-0 left-0" />
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="w-[1px] h-4 bg-current rotate-45 opacity-40" />
+    </div>
+    <Clock size={12} className="absolute bottom-0 right-0" />
+  </div>
 )
 
 export function TabBar() {
@@ -18,7 +29,7 @@ export function TabBar() {
         <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
             { to: '/', label: 'Главная', icon: <Home size={20} /> },
-            { to: '/contests', label: 'Конкурсы', icon: <Trophy size={20} /> },
+            { to: '/events', label: 'События', icon: <EventsIcon /> },
             { to: '/studio', label: 'Студия', icon: <Settings2 size={20} /> },
             { to: '/top', label: 'Топ', icon: <Star size={20} /> },
             { to: '/profile', label: 'Профиль', icon: <User size={20} /> },

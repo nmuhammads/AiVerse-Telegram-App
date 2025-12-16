@@ -6,7 +6,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
 import PublicProfile from '@/pages/PublicProfile';
 import Settings from "@/pages/Settings";
-import Contests from "@/pages/Contests";
+// Contests page is now integrated into EventsPage
 import ContestDetail from "@/pages/ContestDetail";
 import Accumulations from "@/pages/Accumulations";
 import EventsPage from "@/pages/EventsPage";
@@ -58,6 +58,10 @@ function StartParamRouter() {
       }
       if (p === "accumulations") {
         navigate("/accumulations", { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
+      if (p === "contests" || p === "events") {
+        navigate("/events", { replace: true, state: { fromDeepLink: true } });
         return;
       }
 
@@ -125,7 +129,7 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:userId" element={<PublicProfile />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/contests" element={<Contests />} />
+              {/* Contests are now part of EventsPage */}
               <Route path="/contests/:id" element={<ContestDetail />} />
               <Route path="/accumulations" element={<Accumulations />} />
               <Route path="/events" element={<EventsPage />} />
