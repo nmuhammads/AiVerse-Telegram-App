@@ -4,16 +4,18 @@ import { supaSelect, supaPatch, supaPost } from '../services/supabaseService.js'
 // Segments configuration
 // Indices mapping to UI Wheel segments: [500, 25, 50, 100, 50, CHANNEL, 50, 200, 75, 120]
 const SEGMENTS = [
-    { index: 0, value: 500, type: 'token', weight: 0.005 }, // 500
-    { index: 1, value: 25, type: 'token', weight: 0.20 },   // 25
-    { index: 2, value: 50, type: 'token', weight: 0.15 },   // 50
-    { index: 3, value: 100, type: 'token', weight: 0.10 },  // 100
-    { index: 4, value: 50, type: 'token', weight: 0.15 },   // 50
-    { index: 5, value: 0, type: 'secret_channel', weight: 0.005 }, // CHANNEL
-    { index: 6, value: 50, type: 'token', weight: 0.15 },   // 50
-    { index: 7, value: 200, type: 'token', weight: 0.04 },  // 200
-    { index: 8, value: 75, type: 'token', weight: 0.10 },   // 75
-    { index: 9, value: 120, type: 'token', weight: 0.10 },  // 120
+    { index: 0, value: 500, type: 'token', weight: 0.005 }, // 500 (0.5%)
+    { index: 1, value: 25, type: 'token', weight: 0.15 },   // 25 (15%)
+    { index: 2, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
+    { index: 3, value: 100, type: 'token', weight: 0.07 },  // 100 (7%)
+    { index: 4, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
+    { index: 5, value: 25, type: 'token', weight: 0.15 },   // 25 (15%)
+    { index: 6, value: 250, type: 'token', weight: 0.03 },  // 250 (3%) - Replaces CHAN
+    { index: 7, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
+    { index: 8, value: 200, type: 'token', weight: 0.04 },  // 200 (4%)
+    { index: 9, value: 75, type: 'token', weight: 0.08 },   // 75 (8%)
+    { index: 10, value: 120, type: 'token', weight: 0.055 }, // 120 (5.5%)
+    { index: 11, value: 50, type: 'token', weight: 0.12 },   // 50 (12%)
 ]
 
 // Helper to select random segment based on weights

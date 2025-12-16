@@ -14,7 +14,7 @@ const RAW_SEGMENTS = [
     { value: 100, type: 'token', label: '100', color: 'url(#sliceZinc)' },
     { value: 50, type: 'token', label: '50', color: 'url(#sliceFuchsia)' },
     { value: 25, type: 'token', label: '25', color: 'url(#sliceZinc)' },
-    { value: 0, type: 'secret_channel', label: 'CHAN', color: 'url(#sliceViolet)' },
+    { value: 250, type: 'token', label: '250', color: 'url(#sliceViolet)' },
     { value: 50, type: 'token', label: '50', color: 'url(#sliceZinc)' },
     { value: 200, type: 'token', label: '200', color: 'url(#sliceViolet)' },
     { value: 75, type: 'token', label: '75', color: 'url(#sliceZinc)' },
@@ -201,7 +201,7 @@ export default function SpinPage() {
                             <h2 className="text-2xl font-bold text-white">Поздравляем!</h2>
                             <p className="text-zinc-400 font-medium">Вы выиграли:</p>
                             <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 py-2">
-                                {result.prizeType === 'secret_channel' ? 'Secret Channel' : `${result.prizeValue} Токенов`}
+                                {result.prizeValue} Токенов
                             </div>
                         </div>
 
