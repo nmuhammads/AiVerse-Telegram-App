@@ -755,7 +755,7 @@ export default function Profile() {
                                 generation_id: preview.id,
                                 owner_username: user.username || null,
                                 owner_user_id: user.id,
-                                caption: `✨ ${cleanPrompt(preview.prompt).slice(0, 200)}`
+                                model: preview.model || null
                               })
                             })
                             if (res.ok) {

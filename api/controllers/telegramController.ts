@@ -523,7 +523,21 @@ export async function sendRemixShare(req: Request, res: Response) {
     const generationId = Number(req.body?.generation_id || 0)
     const ownerUsername = req.body?.owner_username ? String(req.body.owner_username) : null
     const ownerUserId = req.body?.owner_user_id ? String(req.body.owner_user_id) : null
-    const caption = typeof req.body?.caption === 'string' ? String(req.body.caption).slice(0, 1024) : '✨ Сделай свой ремикс!'
+    const model = typeof req.body?.model === 'string' ? String(req.body.model) : null
+
+    // Build caption with model name
+    let caption = '✨ AI Verse\n\nХочешь сделать так же? Жми кнопку «Повторить» ниже! 👇'
+    if (model) {
+      const modelNames: Record<string, string> = {
+        'flux': 'Flux',
+        'seedream4': 'Seedream 4',
+        'seedream4-5': 'Seedream 4.5',
+        'nanobanana': 'NanoBanana',
+        'nanobanana-pro': 'NanoBanana Pro'
+      }
+      const displayName = modelNames[model] || model
+      caption = `✨ AI Verse\n\n🎨 Модель: ${displayName}\n\nХочешь сделать так же? Жми кнопку «Повторить» ниже! 👇`
+    }
 
     if (!API || !chat_id || !photo || !generationId) {
       return res.status(400).json({ ok: false, error: 'invalid payload' })
@@ -548,7 +562,7 @@ export async function sendRemixShare(req: Request, res: Response) {
 
     const kb = {
       inline_keyboard: [[
-        { text: 'Ремикс 🎨', url: remixUrl }
+        { text: 'Повторить ↻', url: remixUrl }
       ]]
     }
 
