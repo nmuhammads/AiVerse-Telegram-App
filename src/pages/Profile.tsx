@@ -23,13 +23,18 @@ const GridImage = ({ src, originalUrl, alt, className }: { src: string, original
 
   return (
     <div className={`relative w-full h-full overflow-hidden bg-zinc-800 ${className}`}>
-      {!loaded && !error && <div className="absolute inset-0 animate-pulse bg-zinc-800" />}
-      {error && <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-zinc-600 text-[10px]">Error</div>}
+      {!loaded && !error && (
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800 bg-[length:200%_100%]"
+          style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
+        />
+      )}
+      {error && <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-zinc-600 text-[10px]">Ошибка</div>}
       <img
         ref={imgRef}
         src={imgSrc}
         alt={alt}
-        className="w-full h-full object-cover"
+        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (!error && imgSrc !== originalUrl) {
@@ -50,6 +55,7 @@ import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useGenerationStore } from '@/store/generationStore'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { ProfileSkeletonGrid } from '@/components/ui/skeleton'
 
 function getModelDisplayName(model: string | null): string {
   if (!model) return ''
@@ -500,7 +506,9 @@ export default function Profile() {
           <div className="flex justify-between items-end mb-4 px-1">
             <div className="text-lg font-bold text-white">Мои генерации</div>
           </div>
-          {items.length === 0 ? (
+          {loading && items.length === 0 ? (
+            <ProfileSkeletonGrid />
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">История пуста</p></div>
           ) : (
             <>

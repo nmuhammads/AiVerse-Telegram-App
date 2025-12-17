@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Trophy, ChevronRight, ArrowLeft, Sparkles, Clock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useHaptics } from '@/hooks/useHaptics';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Contest {
     id: number;
@@ -86,8 +87,8 @@ export default function EventsPage() {
                     <button
                         onClick={() => handleTabChange('contests')}
                         className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'contests'
-                                ? 'bg-zinc-800 text-white shadow-sm'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
                             }`}
                     >
                         <Trophy size={16} />
@@ -96,8 +97,8 @@ export default function EventsPage() {
                     <button
                         onClick={() => handleTabChange('events')}
                         className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === 'events'
-                                ? 'bg-zinc-800 text-white shadow-sm'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
                             }`}
                     >
                         <Clock size={16} />
@@ -120,8 +121,8 @@ export default function EventsPage() {
                                 key={tab.id}
                                 onClick={() => setContestFilter(tab.id as ContestFilter)}
                                 className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${contestFilter === tab.id
-                                        ? 'bg-zinc-700/80 text-white shadow-sm'
-                                        : 'text-zinc-500 hover:text-zinc-300'
+                                    ? 'bg-zinc-700/80 text-white shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-300'
                                     }`}
                             >
                                 {tab.label}
@@ -131,8 +132,34 @@ export default function EventsPage() {
 
                     {/* Contests List */}
                     {contestsLoading ? (
-                        <div className="flex justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        <div className="space-y-4">
+                            {/* Contest Card Skeletons */}
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="relative bg-[#1c1c1e] rounded-2xl overflow-hidden border border-white/5">
+                                    {/* Image skeleton */}
+                                    <div className="h-40 w-full relative">
+                                        <div
+                                            className="absolute inset-0 bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800 bg-[length:200%_100%]"
+                                            style={{ animation: 'shimmer 1.5s ease-in-out infinite' }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1e] to-transparent" />
+                                        <div className="absolute bottom-3 left-3 right-3">
+                                            {/* Organizer skeleton */}
+                                            <div className="h-3 w-24 bg-zinc-700/50 rounded mb-2" />
+                                            {/* Title skeleton */}
+                                            <div className="h-5 w-3/4 bg-zinc-700/50 rounded" />
+                                        </div>
+                                    </div>
+                                    {/* Info skeleton */}
+                                    <div className="p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="h-4 w-4 bg-zinc-700/50 rounded" />
+                                            <div className="h-3 w-24 bg-zinc-700/50 rounded" />
+                                        </div>
+                                        <div className="h-4 w-4 bg-zinc-700/50 rounded" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : contests.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500">

@@ -6,6 +6,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { FeedImage, type FeedItem } from '@/components/FeedImage'
 import { FeedDetailModal } from '@/components/FeedDetailModal'
 import { useGenerationStore, type ModelType } from '@/store/generationStore'
+import { FeedSkeletonGrid } from '@/components/ui/skeleton'
 
 export default function PublicProfile() {
     const { userId } = useParams()
@@ -243,7 +244,9 @@ export default function PublicProfile() {
                     <div className="flex justify-between items-end mb-4 px-1">
                         <div className="text-lg font-bold text-white">Публичные генерации</div>
                     </div>
-                    {items.length === 0 ? (
+                    {loading && items.length === 0 ? (
+                        <FeedSkeletonGrid viewMode="standard" />
+                    ) : items.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">Нет публичных работ</p></div>
                     ) : (
                         <>

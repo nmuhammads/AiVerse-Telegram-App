@@ -149,7 +149,11 @@ export default function SpinPage() {
                     <h1 className="text-xl font-bold text-white/90 tracking-wide">Fortune</h1>
                     <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-3 py-1.5">
                         <Zap size={14} className="text-amber-400 fill-amber-400" />
-                        <span className="text-sm font-semibold text-white/90">{balance ?? '...'}</span>
+                        {loading ? (
+                            <div className="h-4 w-10 bg-white/10 rounded animate-pulse" />
+                        ) : (
+                            <span className="text-sm font-semibold text-white/90">{balance ?? '...'}</span>
+                        )}
                     </div>
                 </div>
 
@@ -177,9 +181,13 @@ export default function SpinPage() {
                         <div className="flex justify-center">
                             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/15">
                                 <span className="text-white/60 text-xs font-medium uppercase tracking-wider">Доступно:</span>
-                                <span className={`text-sm font-bold ${spins > 0 ? 'text-white' : 'text-rose-400'}`}>
-                                    {spins} спинов
-                                </span>
+                                {loading ? (
+                                    <div className="h-4 w-16 bg-white/10 rounded animate-pulse" />
+                                ) : (
+                                    <span className={`text-sm font-bold ${spins > 0 ? 'text-white' : 'text-rose-400'}`}>
+                                        {spins} спинов
+                                    </span>
+                                )}
                             </div>
                         </div>
 
