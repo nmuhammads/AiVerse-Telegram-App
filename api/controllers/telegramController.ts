@@ -48,21 +48,28 @@ export async function webhook(req: Request, res: Response) {
       const userId = msg.from?.id
       const payload = JSON.parse(payment.invoice_payload || '{}')
       const tokensToAdd = Number(payload.tokens || 0)
+      const spinsToAdd = Number(payload.spins || 0)
 
-      console.log(`[Payment] Successful payment from ${userId}, tokens: ${tokensToAdd}, payload:`, payload)
+      console.log(`[Payment] Successful payment from ${userId}, tokens: ${tokensToAdd}, spins: ${spinsToAdd}, payload:`, payload)
 
       if (userId && tokensToAdd > 0) {
-        // Fetch current balance
-        const userQ = await supaSelect('users', `?user_id=eq.${userId}&select=balance`)
+        // Fetch current balance and spins
+        const userQ = await supaSelect('users', `?user_id=eq.${userId}&select=balance,spins`)
         if (userQ.ok && userQ.data?.[0]) {
           const currentBalance = Number(userQ.data[0].balance || 0)
+          const currentSpins = Number(userQ.data[0].spins || 0)
           const newBalance = currentBalance + tokensToAdd
+          const newSpins = currentSpins + spinsToAdd
 
-          // Update balance
-          const updateRes = await supaPatch('users', `?user_id=eq.${userId}`, { balance: newBalance })
+          // Update balance and spins
+          const updateRes = await supaPatch('users', `?user_id=eq.${userId}`, {
+            balance: newBalance,
+            spins: newSpins
+          })
 
           if (updateRes.ok) {
-            await tg('sendMessage', { chat_id: userId, text: `✅ Оплата прошла успешно! Начислено ${tokensToAdd} токенов.` })
+            const spinText = spinsToAdd > 0 ? `\n🎰 Бонус: +${spinsToAdd} ${spinsToAdd === 1 ? 'спин' : 'спина'} для Колеса Фортуны!` : ''
+            await tg('sendMessage', { chat_id: userId, text: `✅ Оплата прошла успешно! Начислено ${tokensToAdd} токенов.${spinText}` })
           } else {
             console.error('[Payment] Failed to update balance', updateRes)
             await tg('sendMessage', { chat_id: userId, text: `⚠️ Оплата прошла, но возникла ошибка при начислении. Обратитесь в поддержку.` })

@@ -265,7 +265,7 @@ export default function SpinPage() {
 
                             {spins < 1 && !spinning && (
                                 <p className="text-xs text-white/40 text-center">
-                                    Пополните баланс токенов, чтобы получить спины
+                                    Пополните баланс от 300 токенов, чтобы получить спины
                                 </p>
                             )}
                         </div>
