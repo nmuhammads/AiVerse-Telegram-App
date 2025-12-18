@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Sparkles, Zap } from 'lucide-react'
+import { ArrowLeft, Sparkles, Zap, Info, X } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { Wheel } from '@/components/Wheel'
@@ -39,6 +39,7 @@ export default function SpinPage() {
     const resultRef = useRef<any>(null) // Ref для хранения актуального результата
     const [showResultModal, setShowResultModal] = useState(false)
     const [modalResult, setModalResult] = useState<any>(null) // Результат для показа в попапе
+    const [showInfoModal, setShowInfoModal] = useState(false)
     const [eventDisabled, setEventDisabled] = useState(false)
 
     // Fetch Info and check event status
@@ -226,13 +227,21 @@ export default function SpinPage() {
                         {(platform === 'ios' || platform === 'android') && <div className="w-4" />}
 
                         <h1 className="text-xl font-bold text-white/90 tracking-wide">Фортуна</h1>
-                        <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-3 py-1.5">
-                            <Zap size={14} className="text-amber-400 fill-amber-400" />
-                            {loading ? (
-                                <div className="h-4 w-10 bg-white/10 rounded animate-pulse" />
-                            ) : (
-                                <span className="text-sm font-semibold text-white/90">{balance ?? '...'}</span>
-                            )}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => { impact('light'); setShowInfoModal(true) }}
+                                className="w-8 h-8 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/60 hover:text-white/90 active:scale-95 transition-all"
+                            >
+                                <Info size={16} />
+                            </button>
+                            <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-3 py-1.5">
+                                <Zap size={14} className="text-amber-400 fill-amber-400" />
+                                {loading ? (
+                                    <div className="h-4 w-10 bg-white/10 rounded animate-pulse" />
+                                ) : (
+                                    <span className="text-sm font-semibold text-white/90">{balance ?? '...'}</span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -403,6 +412,72 @@ export default function SpinPage() {
                 )
             })()}
 
+            {/* Info Modal */}
+            {showInfoModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md px-4">
+                    <div
+                        className="bg-zinc-900/95 border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl"
+                        style={{ animation: 'modal-appear 0.3s ease-out' }}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-xl font-bold text-white">Колесо Фортуны</h2>
+                            <button
+                                onClick={() => setShowInfoModal(false)}
+                                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white active:scale-95 transition-all"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-zinc-400 text-sm mb-5">
+                            Крутите колесо и выигрывайте токены! Все сегменты имеют равные шансы выпадения.
+                        </p>
+
+                        {/* Odds Table */}
+                        <div className="space-y-2 mb-5">
+                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Шансы выпадения</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { prize: '50 токенов', chance: '32.5%', color: 'bg-sky-600/30' },
+                                    { prize: '25 токенов', chance: '24%', color: 'bg-zinc-700' },
+                                    { prize: '75 токенов', chance: '11%', color: 'bg-zinc-700' },
+                                    { prize: '100 токенов', chance: '10%', color: 'bg-zinc-700' },
+                                    { prize: '120 токенов', chance: '9.5%', color: 'bg-cyan-600/30' },
+                                    { prize: '200 токенов', chance: '4%', color: 'bg-violet-600/30' },
+                                    { prize: '250 токенов', chance: '3%', color: 'bg-violet-600/30' },
+                                    { prize: '500 токенов', chance: '1%', color: 'bg-amber-600/30' },
+                                ].map((item, i) => (
+                                    <div key={i} className={`${item.color} rounded-xl px-3 py-2 flex justify-between items-center`}>
+                                        <span className="text-white text-sm font-medium">{item.prize}</span>
+                                        <span className="text-white/60 text-xs">{item.chance}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* How to get spins */}
+                        <div className="bg-white/5 rounded-xl p-4 mb-5">
+                            <h4 className="text-white font-semibold text-sm mb-2">Как получить спины?</h4>
+                            <ul className="text-zinc-400 text-xs space-y-1.5">
+                                <li>• Пополните от 300 токенов → 1 спин</li>
+                                <li>• Пополните от 800 токенов → 2 спина</li>
+                                <li>• Пополните от 1500 токенов → 3 спина</li>
+                            </ul>
+                        </div>
+
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setShowInfoModal(false)}
+                            className="w-full py-3.5 bg-white/10 text-white rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                        >
+                            Понятно
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* CSS Animations */}
             <style>{`
                 @keyframes pulse-glow {
@@ -468,6 +543,6 @@ export default function SpinPage() {
                     animation: confetti-fall 4s linear forwards;
                 }
             `}</style>
-        </div>
+        </div >
     )
 }

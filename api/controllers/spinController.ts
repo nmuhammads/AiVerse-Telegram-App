@@ -2,20 +2,20 @@ import { Request, Response } from 'express'
 import { supaSelect, supaPatch, supaPost } from '../services/supabaseService.js'
 
 // Segments configuration
-// Indices mapping to UI Wheel segments: [500, 25, 50, 100, 50, CHANNEL, 50, 200, 75, 120]
+// Indices mapping to UI Wheel segments: [500, 25, 50, 100, 50, 25, 250, 50, 200, 75, 120, 50]
 const SEGMENTS = [
-    { index: 0, value: 500, type: 'token', weight: 0.005 }, // 500 (0.5%)
-    { index: 1, value: 25, type: 'token', weight: 0.15 },   // 25 (15%)
-    { index: 2, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
-    { index: 3, value: 100, type: 'token', weight: 0.07 },  // 100 (7%)
-    { index: 4, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
-    { index: 5, value: 25, type: 'token', weight: 0.15 },   // 25 (15%)
-    { index: 6, value: 250, type: 'token', weight: 0.03 },  // 250 (3%) - Replaces CHAN
-    { index: 7, value: 50, type: 'token', weight: 0.10 },   // 50 (10%)
-    { index: 8, value: 200, type: 'token', weight: 0.04 },  // 200 (4%)
-    { index: 9, value: 75, type: 'token', weight: 0.08 },   // 75 (8%)
-    { index: 10, value: 120, type: 'token', weight: 0.055 }, // 120 (5.5%)
-    { index: 11, value: 50, type: 'token', weight: 0.12 },   // 50 (12%)
+    { index: 0, value: 500, type: 'token', weight: 0.01 },   // 500 (1%)
+    { index: 1, value: 25, type: 'token', weight: 0.12 },    // 25 (12%)
+    { index: 2, value: 50, type: 'token', weight: 0.08 },    // 50 (8%)
+    { index: 3, value: 100, type: 'token', weight: 0.10 },   // 100 (10%)
+    { index: 4, value: 50, type: 'token', weight: 0.08 },    // 50 (8%)
+    { index: 5, value: 25, type: 'token', weight: 0.12 },    // 25 (12%)
+    { index: 6, value: 250, type: 'token', weight: 0.03 },   // 250 (3%)
+    { index: 7, value: 50, type: 'token', weight: 0.08 },    // 50 (8%)
+    { index: 8, value: 200, type: 'token', weight: 0.04 },   // 200 (4%)
+    { index: 9, value: 75, type: 'token', weight: 0.11 },    // 75 (11%)
+    { index: 10, value: 120, type: 'token', weight: 0.095 }, // 120 (9.5%)
+    { index: 11, value: 50, type: 'token', weight: 0.085 },  // 50 (8.5%)
 ]
 
 // Helper to select random segment based on weights
