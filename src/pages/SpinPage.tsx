@@ -184,13 +184,18 @@ export default function SpinPage() {
         return '80px'
     }
 
+    const getPaddingBottom = () => {
+        if (platform === 'android') return 'calc(6.5rem + env(safe-area-inset-bottom))'
+        return 'calc(5rem + env(safe-area-inset-bottom))'
+    }
+
     return (
         <div
             className="min-h-dvh bg-gradient-to-b from-violet-950/50 via-black to-black flex flex-col overflow-hidden relative"
             style={{
                 marginTop: getMarginTop(),
                 paddingTop: getPaddingTop(),
-                paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))'
+                paddingBottom: getPaddingBottom()
             }}
         >
             {/* Event Disabled State */}
