@@ -1,19 +1,48 @@
-import { useNavigate, useLocation } from 'react-router-dom'
-import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock } from 'lucide-react'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock, ChevronDown, ArrowLeft } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+
+interface NotificationSettings {
+    telegram_news: boolean
+    telegram_remix: boolean
+    telegram_generation: boolean
+    telegram_likes: boolean
+}
+
+const defaultSettings: NotificationSettings = {
+    telegram_news: false,
+    telegram_remix: true,
+    telegram_generation: true,
+    telegram_likes: true
+}
 
 export default function Settings() {
     const navigate = useNavigate()
     const { impact } = useHaptics()
     const { addToHomeScreen, checkHomeScreenStatus, platform, tg } = useTelegram()
     const [canAddToHome, setCanAddToHome] = useState(false)
+    const [notifExpanded, setNotifExpanded] = useState(false)
+    const [notifSettings, setNotifSettings] = useState<NotificationSettings>(defaultSettings)
+    const [showArrow, setShowArrow] = useState(false)
+    const [searchParams] = useSearchParams()
 
     const isMobile = platform === 'ios' || platform === 'android'
 
     const location = useLocation()
+
+    // Авто-открытие секции уведомлений при переходе из попапа
+    useEffect(() => {
+        if (searchParams.get('notif') === 'open') {
+            setNotifExpanded(true)
+            setShowArrow(true)
+            // Убираем стрелку через 3 секунды
+            const timer = setTimeout(() => setShowArrow(false), 3000)
+            return () => clearTimeout(timer)
+        }
+    }, [searchParams])
 
     useEffect(() => {
         if (isMobile) {
@@ -52,9 +81,30 @@ export default function Settings() {
                 if (r.ok && j && typeof j.remix_count === 'number') {
                     setRemixCount(j.remix_count)
                 }
+                // Load notification settings
+                if (r.ok && j && j.notification_settings) {
+                    setNotifSettings({ ...defaultSettings, ...j.notification_settings })
+                }
             })
         }
     }, [user?.id])
+
+    const updateNotifSetting = async (key: keyof NotificationSettings, value: boolean) => {
+        if (!user?.id) return
+        impact('light')
+        const newSettings = { ...notifSettings, [key]: value }
+        setNotifSettings(newSettings)
+
+        try {
+            await fetch('/api/user/notification-settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, settings: newSettings })
+            })
+        } catch (e) {
+            console.error('Failed to save notification settings', e)
+        }
+    }
 
     const sections = [
         {
@@ -88,8 +138,15 @@ export default function Settings() {
         return '50px' // Desktop/Web
     }
 
+    const notifOptions = [
+        { key: 'telegram_news' as const, label: 'Новости' },
+        { key: 'telegram_remix' as const, label: 'Ремиксы' },
+        { key: 'telegram_generation' as const, label: 'Генерации' },
+        { key: 'telegram_likes' as const, label: 'Лайки' },
+    ]
+
     return (
-        <div className="min-h-dvh bg-black text-white pb-10" style={{ paddingTop: getPaddingTop() }}>
+        <div className="min-h-dvh bg-black text-white pb-32" style={{ paddingTop: getPaddingTop() }}>
             {/* Header */}
             <div className="px-4 py-4 flex items-center gap-4 relative">
                 {!isMobile && (
@@ -128,6 +185,52 @@ export default function Settings() {
                         </div>
                     </div>
                 ))}
+
+                {/* Notification Settings - Collapsible */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">Уведомления</h2>
+                        {showArrow && (
+                            <div className="flex items-center gap-1 animate-pulse">
+                                <ArrowLeft size={14} className="text-violet-400" />
+                                <span className="text-xs text-violet-400">Настройте здесь</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className={`bg-zinc-900/50 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm ${showArrow ? 'ring-2 ring-violet-500/50' : ''}`}>
+                        <button
+                            onClick={() => { impact('light'); setNotifExpanded(!notifExpanded) }}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                <Bell size={16} />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <div className="text-sm font-medium text-white">Уведомления в Telegram</div>
+                            </div>
+                            <ChevronDown size={16} className={`text-zinc-600 transition-transform ${notifExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {notifExpanded && (
+                            <div className="border-t border-white/5">
+                                {notifOptions.map((opt, i) => (
+                                    <div
+                                        key={opt.key}
+                                        className={`flex items-center justify-between px-4 py-3 ${i !== notifOptions.length - 1 ? 'border-b border-white/5' : ''}`}
+                                    >
+                                        <span className="text-sm text-zinc-400 pl-12">{opt.label}</span>
+                                        <button
+                                            onClick={() => updateNotifSetting(opt.key, !notifSettings[opt.key])}
+                                            className={`w-11 h-6 rounded-full transition-colors ${notifSettings[opt.key] ? 'bg-violet-600' : 'bg-zinc-700'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${notifSettings[opt.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     )
