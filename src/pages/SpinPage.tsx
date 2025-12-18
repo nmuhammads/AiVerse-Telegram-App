@@ -222,17 +222,17 @@ export default function SpinPage() {
                 <div className="flex-1 flex flex-col px-4 pb-6">
                     {/* Header - fixed at top */}
                     <div className={`flex items-center justify-between shrink-0 z-10 relative mb-4`}>
-                        {(platform !== 'ios' && platform !== 'android') && (
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
-                            >
-                                <ArrowLeft size={20} />
-                            </button>
-                        )}
-                        {(platform === 'ios' || platform === 'android') && <div className="w-4" />}
-
-                        <h1 className="text-xl font-bold text-white/90 tracking-wide">Фортуна</h1>
+                        <div className="flex items-center gap-3">
+                            {(platform !== 'ios' && platform !== 'android') && (
+                                <button
+                                    onClick={() => navigate(-1)}
+                                    className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 active:scale-95 transition-transform"
+                                >
+                                    <ArrowLeft size={20} />
+                                </button>
+                            )}
+                            <h1 className="text-xl font-bold text-white/90 tracking-wide">Фортуна</h1>
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => { impact('light'); setShowInfoModal(true) }}
