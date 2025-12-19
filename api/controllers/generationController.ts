@@ -852,7 +852,19 @@ export async function handleGenerateImage(req: Request, res: Response) {
               { refunded: cost }
             )
           } catch (e) {
-            console.error('[Notification] Failed to notify about generation failure:', e)
+            console.error('[Notification] Failed to create in-app notification:', e)
+          }
+
+          // Telegram уведомление об ошибке
+          try {
+            await tg('sendMessage', {
+              chat_id: user_id,
+              text: `⚠️ <b>Ошибка генерации</b>\n\nГенерация не удалась. Токены возвращены: <b>+${cost}</b>\n\n<i>Попробуйте другой промпт или модель.</i>`,
+              parse_mode: 'HTML'
+            })
+            console.log(`[Notification] Sent error telegram to user ${user_id}`)
+          } catch (e) {
+            console.error('[Notification] Failed to send error telegram:', e)
           }
         }
       }
