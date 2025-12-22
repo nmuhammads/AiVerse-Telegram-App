@@ -45,6 +45,7 @@ export async function getFeed(req: Request, res: Response) {
         const offset = Number(req.query.offset || 0)
         const sort = String(req.query.sort || 'new') // 'new' | 'popular'
         const currentUserId = req.query.user_id ? Number(req.query.user_id) : null
+        const filter = String(req.query.filter || 'all') // 'all' | 'following'
 
         if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
 
@@ -69,6 +70,19 @@ export async function getFeed(req: Request, res: Response) {
         const model = req.query.model ? String(req.query.model) : null
         const includeUnpublished = req.query.include_unpublished === 'true'
 
+        // Get following user IDs if filter is 'following'
+        let followingIds: number[] = []
+        if (filter === 'following' && currentUserId) {
+            const followingQuery = await supaSelect('user_subscriptions', `?follower_id=eq.${currentUserId}&select=following_id`)
+            if (followingQuery.ok && Array.isArray(followingQuery.data)) {
+                followingIds = followingQuery.data.map((item: any) => item.following_id)
+            }
+            // If no following, return empty result
+            if (followingIds.length === 0) {
+                return res.json({ items: [] })
+            }
+        }
+
         let baseQuery = ''
         if (currentUserId && includeUnpublished) {
             // If fetching user history, filter by user_id and ignore date/published status
@@ -82,6 +96,12 @@ export async function getFeed(req: Request, res: Response) {
         if (baseQuery) {
             queryParts.push(baseQuery)
         }
+
+        // Add following filter if applicable
+        if (filter === 'following' && followingIds.length > 0) {
+            queryParts.push(`user_id=in.(${followingIds.join(',')})`)
+        }
+
         if (model && model !== 'all') {
             queryParts.push(`model=eq.${model}`)
         } else {
