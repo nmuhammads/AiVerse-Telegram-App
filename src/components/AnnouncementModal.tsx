@@ -4,16 +4,17 @@ import { useHaptics } from '@/hooks/useHaptics'
 import { useNavigate } from 'react-router-dom'
 
 // Configuration for the current announcement
+// Configuration for the current announcement
 const ANNOUNCEMENT = {
-    enabled: false, // Set to true to enable the announcement
-    id: 'announcement_fortune_release_v1', // Updated ID to force show again
-    title: 'Колесо Фортуны уже здесь! 🎰',
-    description: 'Встречайте большое обновление: испытывайте удачу в Колесе Фортуны, делитесь Ремиксами генераций и настройте свой профиль с новыми обложками!',
-    image: '/announcements/fortune_modal.png', // Updated image
-    buttonText: 'Крутить колесо',
-    link: '/spin', // Redirect to spin page
-    secondaryButtonText: 'В профиль',
-    secondaryLink: '/profile' // Internal link
+    enabled: true, // Set to true to enable the announcement
+    id: 'announcement_v2_8_3', // Updated ID to force show again
+    title: 'Обновление AiVerse 🚀',
+    description: 'Встречайте: система уведомлений 🔔, подписки на пользователей 👥 и фильтрация генераций в профиле 🔍. Теперь вы не пропустите ничего важного!',
+    image: '/announcements/v2_8_3.png', // Placeholder for the new image
+    buttonText: 'Узнать больше',
+    link: '/news', // Redirect to news page
+    secondaryButtonText: 'Закрыть',
+    secondaryLink: '' // Close modal
 }
 
 export function AnnouncementModal() {
