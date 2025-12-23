@@ -56,7 +56,7 @@ export function TabBar() {
   return (
     <div className={`fixed left-0 right-0 z-50 ${isAndroid ? 'safe-bottom-fixed' : 'bottom-2 pb-[env(safe-area-inset-bottom)]'}`}>
       <div className="mx-auto w-[92%] max-w-[400px]">
-        <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
+        <div className="rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
             { to: '/', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
             { to: '/events', label: t('nav.events'), icon: <Clock size={20} />, badge: eventCount },
@@ -99,7 +99,7 @@ export function TabBar() {
                     </div>
                   )}
                 </div>
-                <span className="text-[10px] font-bold tracking-wide z-10">{tab.label}</span>
+                <span className="text-[10px] font-bold tracking-wide z-10" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{tab.label}</span>
               </NavLink>
             )
           })}
