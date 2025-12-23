@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Sparkles, Zap, Info, X } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
@@ -23,6 +24,7 @@ const RAW_SEGMENTS = [
 ]
 
 export default function SpinPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
     const { impact, notify } = useHaptics()
@@ -100,12 +102,12 @@ export default function SpinPage() {
             if (j?.event_disabled) {
                 setEventDisabled(true)
                 setSpinning(false)
-                toast.error('Событие временно недоступно')
+                toast.error(t('spin.eventDisabled.toast'))
                 return
             }
 
             if (!r.ok || !j.success) {
-                toast.error(j?.error || 'Ошибка вращения')
+                toast.error(j?.error || t('spin.errors.spin'))
                 setSpinning(false)
                 return
             }
@@ -129,7 +131,7 @@ export default function SpinPage() {
 
         } catch (e) {
             setSpinning(false)
-            toast.error('Ошибка сети')
+            toast.error(t('spin.errors.network'))
         }
     }
 
@@ -204,15 +206,15 @@ export default function SpinPage() {
                     <div className="w-20 h-20 mb-6 rounded-full bg-zinc-800 flex items-center justify-center">
                         <Sparkles size={36} className="text-zinc-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-white mb-2">Событие недоступно</h2>
+                    <h2 className="text-xl font-bold text-white mb-2">{t('spin.eventDisabled.title')}</h2>
                     <p className="text-zinc-400 mb-6 max-w-xs">
-                        Колесо Фортуны временно недоступно. Следите за обновлениями!
+                        {t('spin.eventDisabled.description')}
                     </p>
                     <button
                         onClick={() => navigate('/events')}
                         className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white font-medium active:scale-95 transition-transform"
                     >
-                        Вернуться к событиям
+                        {t('spin.eventDisabled.back')}
                     </button>
                 </div>
             )}
@@ -231,7 +233,7 @@ export default function SpinPage() {
                                     <ArrowLeft size={20} />
                                 </button>
                             )}
-                            <h1 className="text-xl font-bold text-white/90 tracking-wide">Фортуна</h1>
+                            <h1 className="text-xl font-bold text-white/90 tracking-wide">{t('spin.title')}</h1>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -274,12 +276,12 @@ export default function SpinPage() {
                             {/* Spins Badge */}
                             <div className="flex justify-center">
                                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/15">
-                                    <span className="text-white/60 text-xs font-medium uppercase tracking-wider">Доступно:</span>
+                                    <span className="text-white/60 text-xs font-medium uppercase tracking-wider">{t('spin.available')}</span>
                                     {loading ? (
                                         <div className="h-4 w-16 bg-white/10 rounded animate-pulse" />
                                     ) : (
                                         <span className={`text-sm font-bold ${spins > 0 ? 'text-white' : 'text-rose-400'}`}>
-                                            {spins} спинов
+                                            {spins} {t('spin.spins')}
                                         </span>
                                     )}
                                 </div>
@@ -298,18 +300,18 @@ export default function SpinPage() {
                                 } : {}}
                             >
                                 {spinning ? (
-                                    <span className="animate-pulse">Крутим...</span>
+                                    <span className="animate-pulse">{t('spin.spinning')}</span>
                                 ) : (
                                     <>
                                         <Sparkles size={18} className="opacity-90" />
-                                        КРУТИТЬ
+                                        {t('spin.spinButton')}
                                     </>
                                 )}
                             </button>
 
                             {spins < 1 && !spinning && (
                                 <p className="text-xs text-white/40 text-center">
-                                    Пополните баланс от 300 токенов, чтобы получить спины
+                                    {t('spin.balanceHint')}
                                 </p>
                             )}
                         </div>
@@ -382,9 +384,9 @@ export default function SpinPage() {
                             {/* Content */}
                             <div className="space-y-3">
                                 <h2 className={`text-2xl font-bold ${isBigWin ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500' : 'text-white'}`}>
-                                    {isBigWin ? '🎉 Джекпот!' : 'Поздравляем!'}
+                                    {isBigWin ? t('spin.win.jackpot') : t('spin.win.congrats')}
                                 </h2>
-                                <p className="text-zinc-400 font-medium">Вы выиграли:</p>
+                                <p className="text-zinc-400 font-medium">{t('spin.win.youWon')}</p>
                                 <div className={`text-5xl font-black py-2 ${isBigWin
                                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-400'
                                     : 'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400'
@@ -393,7 +395,7 @@ export default function SpinPage() {
                                 >
                                     +{modalResult.prizeValue}
                                 </div>
-                                <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">токенов</p>
+                                <p className="text-zinc-500 text-sm font-medium uppercase tracking-wider">{t('spin.win.tokens')}</p>
                             </div>
 
                             {/* Button */}
@@ -411,7 +413,7 @@ export default function SpinPage() {
                                     : 'bg-white text-black shadow-lg'
                                     }`}
                             >
-                                Забрать! ✨
+                                {t('spin.win.claim')}
                             </button>
                         </div>
                     </div>
@@ -427,7 +429,7 @@ export default function SpinPage() {
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-xl font-bold text-white">Колесо Фортуны</h2>
+                            <h2 className="text-xl font-bold text-white">{t('spin.info.title')}</h2>
                             <button
                                 onClick={() => setShowInfoModal(false)}
                                 className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white active:scale-95 transition-all"
@@ -438,22 +440,22 @@ export default function SpinPage() {
 
                         {/* Description */}
                         <p className="text-zinc-400 text-sm mb-5">
-                            Крутите колесо и выигрывайте токены! Все сегменты имеют равные шансы выпадения.
+                            {t('spin.info.description')}
                         </p>
 
                         {/* Odds Table */}
                         <div className="space-y-2 mb-5">
-                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Шансы выпадения</h3>
+                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">{t('spin.info.oddsTitle')}</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 {[
-                                    { prize: '50 токенов', chance: '32.5%', color: 'bg-sky-600/30' },
-                                    { prize: '25 токенов', chance: '24%', color: 'bg-zinc-700' },
-                                    { prize: '75 токенов', chance: '11%', color: 'bg-zinc-700' },
-                                    { prize: '100 токенов', chance: '10%', color: 'bg-zinc-700' },
-                                    { prize: '120 токенов', chance: '9.5%', color: 'bg-cyan-600/30' },
-                                    { prize: '200 токенов', chance: '4%', color: 'bg-violet-600/30' },
-                                    { prize: '250 токенов', chance: '3%', color: 'bg-violet-600/30' },
-                                    { prize: '500 токенов', chance: '1%', color: 'bg-amber-600/30' },
+                                    { prize: `50 ${t('spin.win.tokens')}`, chance: '32.5%', color: 'bg-sky-600/30' },
+                                    { prize: `25 ${t('spin.win.tokens')}`, chance: '24%', color: 'bg-zinc-700' },
+                                    { prize: `75 ${t('spin.win.tokens')}`, chance: '11%', color: 'bg-zinc-700' },
+                                    { prize: `100 ${t('spin.win.tokens')}`, chance: '10%', color: 'bg-zinc-700' },
+                                    { prize: `120 ${t('spin.win.tokens')}`, chance: '9.5%', color: 'bg-cyan-600/30' },
+                                    { prize: `200 ${t('spin.win.tokens')}`, chance: '4%', color: 'bg-violet-600/30' },
+                                    { prize: `250 ${t('spin.win.tokens')}`, chance: '3%', color: 'bg-violet-600/30' },
+                                    { prize: `500 ${t('spin.win.tokens')}`, chance: '1%', color: 'bg-amber-600/30' },
                                 ].map((item, i) => (
                                     <div key={i} className={`${item.color} rounded-xl px-3 py-2 flex justify-between items-center`}>
                                         <span className="text-white text-sm font-medium">{item.prize}</span>
@@ -465,11 +467,11 @@ export default function SpinPage() {
 
                         {/* How to get spins */}
                         <div className="bg-white/5 rounded-xl p-4 mb-5">
-                            <h4 className="text-white font-semibold text-sm mb-2">Как получить спины?</h4>
+                            <h4 className="text-white font-semibold text-sm mb-2">{t('spin.info.howToGet')}</h4>
                             <ul className="text-zinc-400 text-xs space-y-1.5">
-                                <li>• Пополните от 300 токенов → 1 спин</li>
-                                <li>• Пополните от 800 токенов → 2 спина</li>
-                                <li>• Пополните от 1500 токенов → 3 спина</li>
+                                <li>{t('spin.info.conditions.1')}</li>
+                                <li>{t('spin.info.conditions.2')}</li>
+                                <li>{t('spin.info.conditions.3')}</li>
                             </ul>
                         </div>
 
@@ -478,7 +480,7 @@ export default function SpinPage() {
                             onClick={() => setShowInfoModal(false)}
                             className="w-full py-3.5 bg-white/10 text-white rounded-xl font-bold text-sm active:scale-95 transition-transform"
                         >
-                            Понятно
+                            {t('spin.info.close')}
                         </button>
                     </div>
                 </div>

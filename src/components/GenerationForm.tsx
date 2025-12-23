@@ -6,20 +6,23 @@ import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/ge
 import { useTelegram } from '@/hooks/useTelegram'
 import { Send, Upload, Download, Share2 } from 'lucide-react'
 
-const MODELS: { id: ModelType; name: string; description: string }[] = [
-  { id: 'nanobanana-pro', name: 'NanoBanana Pro', description: 'Default Text-to-Image' },
-  { id: 'seedream4', name: 'Seedream 4', description: 'High Quality' },
-  { id: 'nanobanana', name: 'Nanobanana', description: 'Fast Generation' },
-  { id: 'seedream4-5', name: 'Seedream 4.5', description: 'Edit & Create' }
+import { useTranslation } from 'react-i18next'
+
+const MODELS: { id: ModelType; name: string; descKey: string }[] = [
+  { id: 'nanobanana-pro', name: 'NanoBanana Pro', descKey: 'nanobanana-pro' },
+  { id: 'seedream4', name: 'Seedream 4', descKey: 'seedream4' },
+  { id: 'nanobanana', name: 'Nanobanana', descKey: 'nanobanana' },
+  { id: 'seedream4-5', name: 'Seedream 4.5', descKey: 'seedream4-5' }
 ]
 
-const ASPECT_RATIOS: { id: AspectRatio; name: string }[] = [
-  { id: '1:1', name: 'Square (1:1)' },
-  { id: '16:9', name: 'Landscape (16:9)' },
-  { id: '9:16', name: 'Portrait (9:16)' }
+const ASPECT_RATIOS: { id: AspectRatio; nameKey: string }[] = [
+  { id: '1:1', nameKey: 'square' },
+  { id: '16:9', nameKey: 'landscape' },
+  { id: '9:16', nameKey: 'portrait' }
 ]
 
 export function GenerationForm() {
+  const { t } = useTranslation()
   const {
     selectedModel,
     prompt,
@@ -45,7 +48,7 @@ export function GenerationForm() {
   // Управление Telegram MainButton
   useEffect(() => {
     if (currentScreen === 'form') {
-      const buttonText = selectedModel === 'seedream4-5' ? (uploadedImages.length > 0 ? 'Edit Image' : 'Generate Image') : 'Generate Image'
+      const buttonText = selectedModel === 'seedream4-5' ? (uploadedImages.length > 0 ? t('generationForm.buttons.edit') : t('generationForm.buttons.generate')) : t('generationForm.buttons.generate')
       showMainButton(buttonText, handleGenerate)
     } else {
       hideMainButton()
@@ -73,7 +76,7 @@ export function GenerationForm() {
   // Генерация изображения
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setError('Please enter a prompt')
+      setError(t('generationForm.errors.emptyPrompt'))
       return
     }
 
@@ -83,7 +86,7 @@ export function GenerationForm() {
 
     setIsGenerating(true)
     setError(null)
-    showProgress(selectedModel === 'seedream4-5' && uploadedImages.length > 0 ? 'Editing...' : 'Generating...')
+    showProgress(selectedModel === 'seedream4-5' && uploadedImages.length > 0 ? t('generationForm.status.editing') : t('generationForm.status.generating'))
 
     try {
       const response = await fetch('/api/generation/generate', {
@@ -102,18 +105,18 @@ export function GenerationForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Generation failed')
+        throw new Error(data.error || t('generationForm.errors.failed'))
       }
 
       setGeneratedImage(data.image)
       setCurrentScreen('result')
     } catch (err) {
-      let errorMessage = err instanceof Error ? err.message : 'Generation failed'
-      
+      let errorMessage = err instanceof Error ? err.message : t('generationForm.errors.failed')
+
       // Localization
       const lowerError = errorMessage.toLowerCase()
       if (lowerError.includes('text length') && lowerError.includes('maximum limit')) {
-        errorMessage = 'Длина текста превышает максимально допустимый лимит'
+        errorMessage = t('generationForm.errors.textLength')
       }
 
       setError(errorMessage)
@@ -156,7 +159,7 @@ export function GenerationForm() {
         <div className="max-w-2xl mx-auto">
           <Card className="bg-white/10 backdrop-blur-lg border-white/20">
             <CardHeader>
-              <CardTitle className="text-white text-2xl">Generation Result</CardTitle>
+              <CardTitle className="text-white text-2xl">{t('generationForm.resultTitle')}</CardTitle>
               <CardDescription className="text-gray-300">
                 Model: {MODELS.find(m => m.id === selectedModel)?.name}
               </CardDescription>
@@ -176,14 +179,14 @@ export function GenerationForm() {
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download
+                  {t('generationForm.buttons.download')}
                 </Button>
                 <Button
                   onClick={handleShare}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  {t('generationForm.buttons.share')}
                 </Button>
               </div>
 
@@ -192,7 +195,7 @@ export function GenerationForm() {
                 variant="outline"
                 className="w-full border-white/20 text-white hover:bg-white/10"
               >
-                Generate Another
+                {t('generationForm.buttons.another')}
               </Button>
             </CardContent>
           </Card>
@@ -206,16 +209,16 @@ export function GenerationForm() {
       <div className="max-w-2xl mx-auto">
         <Card className="bg-white/10 backdrop-blur-lg border-white/20">
           <CardHeader>
-            <CardTitle className="text-white text-2xl">AI Image Generator</CardTitle>
+            <CardTitle className="text-white text-2xl">{t('generationForm.title')}</CardTitle>
             <CardDescription className="text-gray-300">
-              Create amazing images with AI
+              {t('generationForm.subtitle')}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             {/* Выбор модели */}
             <div className="space-y-2">
-              <label className="text-white text-sm font-medium">Select Model</label>
+              <label className="text-white text-sm font-medium">{t('generationForm.labels.model')}</label>
               <Tabs value={selectedModel} onValueChange={(value) => setSelectedModel(value as ModelType)}>
                 <TabsList className="grid grid-cols-2 lg:grid-cols-4">
                   {MODELS.map((model) => (
@@ -230,7 +233,7 @@ export function GenerationForm() {
             {/* Загрузка изображения для Seedream 4.5 (Optional) */}
             {selectedModel === 'seedream4-5' && (
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">Upload Image (Optional for Edit)</label>
+                <label className="text-white text-sm font-medium">{t('generationForm.labels.upload')}</label>
                 <div className="border-2 border-dashed border-white/30 rounded-lg p-4 text-center">
                   <input
                     ref={fileInputRef}
@@ -253,7 +256,7 @@ export function GenerationForm() {
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10"
                       >
-                        Remove Image
+                        {t('generationForm.buttons.remove')}
                       </Button>
                     </div>
                   ) : (
@@ -262,7 +265,7 @@ export function GenerationForm() {
                       className="cursor-pointer space-y-2"
                     >
                       <Upload className="w-8 h-8 mx-auto text-white/60" />
-                      <p className="text-white/60 text-sm">Click to upload image</p>
+                      <p className="text-white/60 text-sm">{t('generationForm.placeholders.upload')}</p>
                     </div>
                   )}
                 </div>
@@ -272,7 +275,7 @@ export function GenerationForm() {
             {/* Выбор соотношения сторон */}
             {true && (
               <div className="space-y-2">
-                <label className="text-white text-sm font-medium">Aspect Ratio</label>
+                <label className="text-white text-sm font-medium">{t('generationForm.labels.aspectRatio')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {ASPECT_RATIOS.map((ratio) => (
                     <Button
@@ -284,7 +287,7 @@ export function GenerationForm() {
                         : 'border-white/20 text-white hover:bg-white/10'
                       }
                     >
-                      {ratio.name}
+                      {t(`generationForm.ratios.${ratio.nameKey}`)}
                     </Button>
                   ))}
                 </div>
@@ -293,13 +296,13 @@ export function GenerationForm() {
 
             {/* Поле для промпта */}
             <div className="space-y-2">
-              <label className="text-white text-sm font-medium">Prompt</label>
+              <label className="text-white text-sm font-medium">{t('generationForm.labels.prompt')}</label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={selectedModel === 'seedream4-5' && uploadedImages.length > 0
-                  ? "Describe what you want to change in the image..."
-                  : "Describe the image you want to create..."
+                  ? t('generationForm.placeholders.promptEdit')
+                  : t('generationForm.placeholders.promptCreate')
                 }
                 className="w-full h-24 p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               />
@@ -321,12 +324,12 @@ export function GenerationForm() {
               {isGenerating ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Generating...
+                  {t('generationForm.status.generating')}
                 </div>
               ) : (
                 <>
                   <Send className="w-4 h-4 mr-2" />
-                  {selectedModel === 'seedream4-5' && uploadedImages.length > 0 ? 'Edit Image' : 'Generate Image'}
+                  {selectedModel === 'seedream4-5' && uploadedImages.length > 0 ? t('generationForm.buttons.edit') : t('generationForm.buttons.generate')}
                 </>
               )}
             </Button>

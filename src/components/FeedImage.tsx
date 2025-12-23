@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Heart, Repeat, Trophy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useNavigate } from 'react-router-dom'
@@ -43,6 +44,7 @@ function getModelDisplayName(model: string | null): string {
 }
 
 export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike, showRemix = true, isCompact = false }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void; onLike?: (id: number, isLiked: boolean) => void; showRemix?: boolean; isCompact?: boolean }) => {
+    const { t } = useTranslation()
     const [loaded, setLoaded] = useState(false)
     const { impact } = useHaptics()
     const { user } = useTelegram()
@@ -142,7 +144,7 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                     )}
                     {hasError ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-white/40 text-xs" style={{ minHeight: '200px' }}>
-                            Изображение недоступно
+                            {t('feed.imageUnavailable')}
                         </div>
                     ) : (
                         <img

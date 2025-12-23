@@ -3,6 +3,7 @@ import { Home, Trophy, Settings2, User, Star, Clock } from 'lucide-react'
 import WebApp from '@twa-dev/sdk'
 import './TabBar.css'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const StarSVG = ({ className }: { className: string }) => (
   <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -22,6 +23,7 @@ const EventsIcon = () => (
 )
 
 export function TabBar() {
+  const { t } = useTranslation()
   const isAndroid = WebApp.platform === 'android'
   const [eventCount, setEventCount] = useState(0)
 
@@ -56,11 +58,11 @@ export function TabBar() {
       <div className="mx-auto w-[92%] max-w-[400px]">
         <div className="rounded-full border border-white/10 bg-white/5 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
-            { to: '/', label: 'Главная', icon: <Home size={20} />, badge: 0 },
-            { to: '/events', label: 'События', icon: <Clock size={20} />, badge: eventCount },
-            { to: '/studio', label: 'Студия', icon: <Settings2 size={20} />, badge: 0 },
-            { to: '/top', label: 'Топ', icon: <Star size={20} />, badge: 0 },
-            { to: '/profile', label: 'Профиль', icon: <User size={20} />, badge: 0 },
+            { to: '/', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
+            { to: '/events', label: t('nav.events'), icon: <Clock size={20} />, badge: eventCount },
+            { to: '/studio', label: t('nav.studio'), icon: <Settings2 size={20} />, badge: 0 },
+            { to: '/top', label: t('nav.top'), icon: <Star size={20} />, badge: 0 },
+            { to: '/profile', label: t('nav.profile'), icon: <User size={20} />, badge: 0 },
           ].map((tab) => {
             const isStudio = tab.to === '/studio'
             return (

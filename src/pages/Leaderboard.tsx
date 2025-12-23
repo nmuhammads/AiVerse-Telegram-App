@@ -1,5 +1,6 @@
 import { Crown, Heart, Repeat } from 'lucide-react'
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useNavigate } from 'react-router-dom'
@@ -19,6 +20,7 @@ type TabType = 'likes' | 'remixes'
 type PeriodType = 'month' | 'all_time'
 
 export default function Leaderboard() {
+  const { t, i18n } = useTranslation()
   const [activeTab, setActiveTab] = useState<TabType>('likes')
   const [period, setPeriod] = useState<PeriodType>('month')
   const [users, setUsers] = useState<LeaderboardUser[]>([])
@@ -27,7 +29,9 @@ export default function Leaderboard() {
   const [page, setPage] = useState(0)
   const observer = useRef<IntersectionObserver | null>(null)
 
-  const monthName = new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(new Date())
+
+
+  const monthName = new Intl.DateTimeFormat(i18n.language, { month: 'long' }).format(new Date())
   const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1)
 
   // Reset state when tab or period changes
@@ -92,14 +96,14 @@ export default function Leaderboard() {
   }, [loading, hasMore, fetchUsers, activeTab, period])
 
   const getBadge = (rank: number) => {
-    if (rank === 1) return 'Legend'
-    if (rank <= 3) return 'Pro'
-    return 'Expert'
+    if (rank === 1) return t('leaderboard.badges.legend')
+    if (rank <= 3) return t('leaderboard.badges.pro')
+    return t('leaderboard.badges.expert')
   }
 
   const getBadgeColor = (badge: string) => {
-    if (badge === 'Legend') return 'text-amber-400'
-    if (badge === 'Pro') return 'text-emerald-400'
+    if (badge === t('leaderboard.badges.legend')) return 'text-amber-400'
+    if (badge === t('leaderboard.badges.pro')) return 'text-emerald-400'
     return 'text-indigo-400'
   }
 
@@ -113,13 +117,13 @@ export default function Leaderboard() {
       <div className="mx-auto max-w-3xl px-4 py-4 space-y-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white">
-            Топ {period === 'month' ? `за ${capitalizedMonth}` : 'за все время'}
+            {period === 'month' ? t('leaderboard.title.month', { month: capitalizedMonth }) : t('leaderboard.title.allTime')}
           </h1>
           <button
             onClick={() => setPeriod(prev => prev === 'month' ? 'all_time' : 'month')}
             className="px-3 py-1.5 rounded-lg bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
           >
-            {period === 'month' ? 'За все время' : `За ${monthName}`}
+            {period === 'month' ? t('leaderboard.period.allTime') : t('leaderboard.period.month', { month: monthName })}
           </button>
         </div>
 
@@ -130,14 +134,14 @@ export default function Leaderboard() {
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'likes' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             <Heart size={14} className={activeTab === 'likes' ? 'fill-rose-500 text-rose-500' : ''} />
-            <span>Лайки</span>
+            <span>{t('leaderboard.tabs.likes')}</span>
           </button>
           <button
             onClick={() => setActiveTab('remixes')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'remixes' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             <Repeat size={14} className={activeTab === 'remixes' ? 'text-violet-500' : ''} />
-            <span>Ремиксы</span>
+            <span>{t('leaderboard.tabs.remixes')}</span>
           </button>
         </div>
 
@@ -211,7 +215,7 @@ export default function Leaderboard() {
 
         {!loading && users.length === 0 && (
           <div className="py-10 text-center text-zinc-500 text-sm">
-            Пока пусто...
+            {t('leaderboard.empty')}
           </div>
         )}
       </div>

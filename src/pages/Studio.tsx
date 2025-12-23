@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,7 @@ const RATIO_DISPLAY_NAMES: Record<string, string> = {
 }
 
 export default function Studio() {
+  const { t } = useTranslation()
   const {
     selectedModel,
 
@@ -198,7 +200,7 @@ export default function Studio() {
     // Limit check
     const maxImages = 8
     if (uploadedImages.length + files.length > maxImages) {
-      setError(`Максимум ${maxImages} фото для этой модели`)
+      setError(t('studio.upload.modelLimitError', { limit: maxImages }))
       notify('error')
       return
     }
@@ -239,7 +241,7 @@ export default function Studio() {
     for (const file of fileArray) {
       if (!file.type.startsWith('image/')) continue
       if (uploadedImages.length >= maxImages) {
-        setError(`Максимум ${maxImages} фото`)
+        setError(t('studio.upload.limitError', { limit: maxImages }))
         notify('error')
         break
       }
@@ -286,18 +288,18 @@ export default function Studio() {
     }
 
     // Show instruction for manual paste
-    setError('Скопируйте фото и нажмите долгим тапом здесь → Вставить')
+    setError(t('studio.errors.pasteInstruction'))
     notify('warning')
   }
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setError('Введите промпт')
+      setError(t('studio.errors.promptRequired'))
       notify('error')
       return
     }
     if (generationMode === 'image' && uploadedImages.length === 0) {
-      setError('Загрузите изображение')
+      setError(t('studio.errors.imageRequired'))
       notify('error')
       return
     }
@@ -338,7 +340,6 @@ export default function Studio() {
 
       const data = await res.json()
 
-      // Обработка таймаута — генерация продолжается на сервере
       if (data.status === 'pending') {
         setShowTimeoutModal(true)
         notify('warning')
@@ -346,7 +347,7 @@ export default function Studio() {
         return
       }
 
-      if (!res.ok) throw new Error(data.error || 'Ошибка генерации')
+      if (!res.ok) throw new Error(data.error || t('studio.errors.generationError'))
       setGeneratedImage(data.image)
       setParentGeneration(null, null) // Reset parent after success
       // Баланс уже был списан на сервере при создании генерации
@@ -361,12 +362,12 @@ export default function Studio() {
       setCurrentScreen('result')
       notify('success')
     } catch (e) {
-      let msg = 'Ошибка генерации'
+      let msg = t('studio.errors.generationError')
       if (e instanceof Error) {
         if (e.name === 'AbortError') {
-          msg = 'Время ожидания истекло. Генерация может завершиться в фоне, проверьте историю позже.'
+          msg = t('studio.errors.timeout')
         } else if (e.message === 'Failed to fetch' || e.message.includes('Load failed')) {
-          msg = 'Ошибка сети. Проверьте интернет или попробуйте позже.'
+          msg = t('studio.errors.network')
         } else {
           msg = e.message
         }
@@ -391,7 +392,7 @@ export default function Studio() {
               <X size={20} />
             </button>
             <CardHeader>
-              <CardTitle className="text-white">Результат</CardTitle>
+              <CardTitle className="text-white">{t('studio.result.title')}</CardTitle>
               <CardDescription className="text-white/60">{MODELS.find(m => m.id === selectedModel)?.name}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -411,7 +412,7 @@ export default function Studio() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button onClick={() => { saveToGallery(generatedImage, `ai-${Date.now()}.jpg`) }} className="flex-1 bg-white text-black hover:bg-zinc-200 font-bold">
                     <DownloadIcon size={16} className="mr-2" />
-                    Сохранить
+                    {t('studio.result.save')}
                   </Button>
                   <Button
                     onClick={async () => {
@@ -432,10 +433,10 @@ export default function Studio() {
                     className="flex-1 bg-violet-600 text-white hover:bg-violet-700 font-bold"
                   >
                     <Send size={16} className="mr-2" />
-                    Отправить в чат
+                    {t('studio.result.sendToChat')}
                   </Button>
                 </div>
-                <Button onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setError(null) }} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 font-bold border border-white/10">Закрыть окно</Button>
+                <Button onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setError(null) }} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 font-bold border border-white/10">{t('studio.result.close')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -485,7 +486,7 @@ export default function Studio() {
 
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">Studio</h1>
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">{t('studio.title')}</h1>
           <button
             onClick={() => { impact('light'); setIsPaymentModalOpen(true) }}
             className="px-3 py-1.5 rounded-full bg-zinc-900 border border-white/10 flex items-center gap-1.5 active:scale-95 transition-transform"
@@ -530,14 +531,14 @@ export default function Studio() {
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${generationMode === 'text' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             <Type size={14} />
-            <span>Text to Image</span>
+            <span>{t('studio.mode.textToImage')}</span>
           </button>
           <button
             onClick={() => { setGenerationMode('image'); impact('light') }}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${generationMode === 'image' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             <ImageIcon size={14} />
-            <span>Image to Image</span>
+            <span>{t('studio.mode.imageToImage')}</span>
           </button>
         </div>
 
@@ -546,7 +547,7 @@ export default function Studio() {
           {parentAuthorUsername && (
             <div className="flex items-center gap-1.5 text-xs font-medium text-violet-400 animate-in fade-in slide-in-from-bottom-2 mb-1 px-1">
               <Sparkles size={12} />
-              <span>Промпт от {parentAuthorUsername}</span>
+              <span>{t('studio.prompt.from', { username: parentAuthorUsername })}</span>
               <button
                 onClick={() => {
                   setParentGeneration(null, null)
@@ -563,7 +564,7 @@ export default function Studio() {
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Опишите вашу идею..."
+              placeholder={t('studio.prompt.placeholder')}
               className={`prompt-input min-h-[120px] bg-zinc-900/30 backdrop-blur-sm no-scrollbar ${parentAuthorUsername ? 'border-violet-500/30 focus:border-violet-500/50' : ''}`}
             />
             {prompt && (
@@ -609,7 +610,7 @@ export default function Studio() {
                         className="flex-1 py-2 px-3 rounded-lg border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors text-xs"
                       >
                         <ImageIcon size={14} />
-                        <span>Ещё</span>
+                        <span>{t('studio.upload.more')}</span>
                       </button>
                       {/* Paste zone for adding more */}
                       <div
@@ -638,7 +639,7 @@ export default function Studio() {
                         className="flex-1 py-2 px-3 rounded-lg border border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-xs cursor-text focus:outline-none focus:border-violet-500/50"
                       >
                         <Clipboard size={14} />
-                        <span>Вставить</span>
+                        <span>{t('studio.upload.paste')}</span>
                       </div>
                     </div>
                   )}
@@ -650,7 +651,7 @@ export default function Studio() {
                     <div className="w-10 h-10 mx-auto bg-zinc-800 rounded-full flex items-center justify-center mb-2 text-zinc-400">
                       <ImageIcon size={20} />
                     </div>
-                    <div className="text-xs font-medium text-zinc-300">Добавить референсы (до {maxImages})</div>
+                    <div className="text-xs font-medium text-zinc-300">{t('studio.upload.addReferences', { limit: maxImages })}</div>
                   </div>
 
                   {/* Source selection */}
@@ -660,7 +661,7 @@ export default function Studio() {
                       className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
                     >
                       <ImageIcon size={16} />
-                      <span className="text-xs font-medium">Выбрать фото</span>
+                      <span className="text-xs font-medium">{t('studio.upload.selectPhoto')}</span>
                     </button>
 
                     {/* Paste zone - contenteditable for iOS long-press paste */}
@@ -695,13 +696,13 @@ export default function Studio() {
                       style={{ minHeight: '44px', WebkitUserSelect: 'none' }}
                     >
                       <Clipboard size={16} />
-                      <span>Зажмите здесь → Вставить</span>
+                      <span>{t('studio.upload.pasteHint')}</span>
                     </div>
                   </div>
 
                   {/* Hint */}
                   <div className="text-[10px] text-zinc-500 text-center">
-                    Скопируйте фото → зажмите фиолетовую зону → Вставить
+                    {t('studio.upload.copyHint')}
                   </div>
                 </div>
               )}
@@ -709,7 +710,7 @@ export default function Studio() {
             {parentGenerationId && (
               <div className="mt-2 flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-200 text-xs animate-in fade-in slide-in-from-top-2">
                 <Info size={14} className="mt-0.5 shrink-0" />
-                <span>При повторе генерации замените фото референсы на свои личные (один или несколько) при необходимости</span>
+                <span>{t('studio.upload.remixHint')}</span>
               </div>
             )}
           </div>
@@ -718,7 +719,7 @@ export default function Studio() {
         {/* 5. Aspect Ratio Selector (Emojis) */}
         {(true || generationMode === 'text') && (
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Соотношение сторон</label>
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.aspectRatio')}</label>
             <div className="flex gap-2 overflow-x-auto p-2 no-scrollbar -mx-2 px-2">
               {ratios.map(r => (
                 <button
@@ -737,19 +738,19 @@ export default function Studio() {
         {/* 5.1 Resolution Selector (NanoBanana Pro only) */}
         {selectedModel === 'nanobanana-pro' && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-4">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">Качество</label>
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.quality.label')}</label>
             <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-white/5">
               <button
                 onClick={() => { setResolution('2K'); impact('light') }}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${resolution === '2K' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
-                2K (10 токенов)
+                {t('studio.quality.2k')}
               </button>
               <button
                 onClick={() => { setResolution('4K'); impact('light') }}
                 className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${resolution === '4K' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
-                4K (15 токенов)
+                {t('studio.quality.4k')}
               </button>
             </div>
           </div>
@@ -767,9 +768,7 @@ export default function Studio() {
         <div className="">
           {isGenerating && (
             <p className="text-xs text-zinc-500 text-center mb-3 animate-in fade-in slide-in-from-bottom-1 px-4 leading-relaxed">
-              Если процесс идет долго, можете свернуть приложение. <br />
-              Результат появится в разделе <span className="text-zinc-400 font-medium">Мои генерации</span> в профиле<br />
-              и придет в <span className="text-zinc-400 font-medium">чат Telegram</span>.
+              <Trans i18nKey="studio.generate.waitMessage" components={[<br />, <span className="text-zinc-400 font-medium" />, <br />, <span className="text-zinc-400 font-medium" />]} />
             </p>
           )}
           <Button
@@ -784,9 +783,9 @@ export default function Studio() {
             )}
             <div className="relative flex items-center gap-2">
               {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-              <span>{isGenerating ? 'Создание шедевра...' : generationMode === 'image' ? 'Сгенерировать' : 'Сгенерировать'}</span>
+              <span>{isGenerating ? t('studio.generate.generating') : t('studio.generate.button')}</span>
               {!isGenerating && <span className="bg-black/20 px-2 py-0.5 rounded text-xs font-normal ml-1">
-                {selectedModel === 'nanobanana-pro' && resolution === '2K' ? 10 : MODEL_PRICES[selectedModel]} токена
+                {t('studio.tokens', { count: selectedModel === 'nanobanana-pro' && resolution === '2K' ? 10 : MODEL_PRICES[selectedModel] })}
               </span>}
             </div>
           </Button>

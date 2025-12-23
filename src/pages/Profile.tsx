@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter } from 'lucide-react'
 
 // Custom GridImage component for handling load states
@@ -87,6 +88,7 @@ function cleanPrompt(prompt: string): string {
 }
 
 export default function Profile() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   // ... (rest of the component)
 
@@ -125,7 +127,7 @@ export default function Profile() {
   const [showAvatarOptions, setShowAvatarOptions] = useState(false)
   const displayName = (user?.first_name && user?.last_name)
     ? `${user.first_name} ${user.last_name} `
-    : (user?.first_name || user?.username || 'Гость')
+    : (user?.first_name || user?.username || t('profile.guest'))
   const username = user?.username ? `@${user.username} ` : '—'
   const avatarSeed = user?.username || String(user?.id || 'guest')
   const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(avatarSeed)}`
@@ -146,9 +148,9 @@ export default function Profile() {
             // Use Telegram's showAlert if available for native feel, fallback to alert
             const wa = (window as any).Telegram?.WebApp
             if (wa && wa.showAlert) {
-              wa.showAlert('Успешное пополнение баланса. Спасибо за покупку!')
+              wa.showAlert(t('profile.balance.success'))
             } else {
-              alert('Успешное пополнение баланса. Спасибо за покупку!')
+              alert(t('profile.balance.success'))
             }
           }
 
@@ -321,10 +323,10 @@ export default function Profile() {
   }
 
   const stats = [
-    { label: 'Генерации', value: typeof total === 'number' ? total : items.length },
-    { label: 'Подписчики', value: followersCount },
-    { label: 'Лайки', value: likes },
-    { label: 'Ремиксы', value: remixCount },
+    { label: t('profile.stats.generations'), value: typeof total === 'number' ? total : items.length },
+    { label: t('profile.stats.followers'), value: followersCount },
+    { label: t('profile.stats.likes'), value: likes },
+    { label: t('profile.stats.remixes'), value: remixCount },
   ]
   const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
@@ -459,7 +461,7 @@ export default function Profile() {
                 </div>
               </div>
               <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-300 to-yellow-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg tracking-wide uppercase">
-                PRO
+                {t('profile.pro')}
               </div>
             </div>
 
@@ -494,7 +496,7 @@ export default function Profile() {
               >
                 <Wallet size={16} />
                 <span>{balance ?? 0}</span>
-                <span className="opacity-70 font-normal text-[10px] ml-0.5">токены</span>
+                <span className="opacity-70 font-normal text-[10px] ml-0.5">{t('profile.balance.tokens')}</span>
               </button>
               <button
                 onClick={() => { impact('light'); navigate('/spin') }}
@@ -527,13 +529,13 @@ export default function Profile() {
                   impact('light')
                   if (!user?.id) return
                   const deepLink = `https://t.me/AiVerseAppBot?startapp=profile-${user.id}`
-                  const shareText = `Посмотри мой профиль и работы в AiVerse 🎨`
+                  const shareText = t('profile.actions.share.text')
                   // Force link in text for better compat
                   const fullShareText = `${shareText}\n${deepLink}`
 
                   if (navigator.share) {
                     navigator.share({
-                      title: 'AiVerse Profile',
+                      title: t('profile.actions.share.title'),
                       text: fullShareText
                     }).catch(() => {
                       // Share cancelled or failed - do nothing to avoid double popup
@@ -580,14 +582,14 @@ export default function Profile() {
         </div>
         <div>
           <div className="flex justify-between items-end mb-2 px-1">
-            <div className="text-lg font-bold text-white">Мои генерации</div>
+            <div className="text-lg font-bold text-white">{t('profile.history.title')}</div>
           </div>
           {/* Storage Info Banner */}
           <div className="mb-4 px-1">
             <div className="flex items-start gap-2 p-3 bg-zinc-900/50 rounded-xl border border-white/5 text-zinc-400">
               <Clock size={14} className="mt-0.5 flex-shrink-0 text-zinc-500" />
               <p className="text-[11px] leading-relaxed">
-                Изображения хранятся в приложении <span className="text-zinc-300 font-medium">60 дней</span>. Оригиналы отправляются в чат с ботом и хранятся там <span className="text-emerald-400 font-medium">бессрочно</span> 💾
+                <Trans i18nKey="profile.storage.text" components={[<span className="text-zinc-300 font-medium" />, <span className="text-emerald-400 font-medium" />]} />
               </p>
             </div>
           </div>
@@ -597,7 +599,7 @@ export default function Profile() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <Filter size={14} className="flex-shrink-0 text-zinc-500" />
               {[
-                { value: '', label: 'Все' },
+                { value: '', label: t('profile.filters.all') },
                 { value: 'nanobanana', label: 'NanoBanana' },
                 { value: 'nanobanana-pro', label: 'NanoBanana Pro' },
                 { value: 'seedream4', label: 'Seedream 4' },
@@ -636,9 +638,9 @@ export default function Profile() {
               <Globe size={14} className="flex-shrink-0 text-zinc-500" />
               <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
                 {[
-                  { value: 'all', label: 'Все' },
-                  { value: 'published', label: 'Публичные' },
-                  { value: 'private', label: 'Личные' },
+                  { value: 'all', label: t('profile.filters.all') },
+                  { value: 'published', label: t('profile.filters.published') },
+                  { value: 'private', label: t('profile.filters.private') },
                 ].map(v => (
                   <button
                     key={v.value}
@@ -662,7 +664,7 @@ export default function Profile() {
           {loading && items.length === 0 ? (
             <ProfileSkeletonGrid />
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">История пуста</p></div>
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">{t('profile.history.empty')}</p></div>
           ) : (
             <>
               <div>
@@ -685,14 +687,14 @@ export default function Profile() {
                       )}
                       <div className="absolute bottom-0 left-0 right-0 p-3">
                         <p className="text-[10px] text-zinc-300 truncate font-medium">{cleanPrompt(h.prompt)}</p>
-                        {h.is_published && <div className="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-sm border border-emerald-500/20">Public</div>}
+                        {h.is_published && <div className="absolute top-2 right-2 bg-emerald-500/20 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded-md backdrop-blur-sm border border-emerald-500/20">{t('profile.preview.publicLabel')}</div>}
                       </div>
                     </div>
                   ))}
                 </div>
                 {items.length > 0 && (
                   <div className="mt-4 flex justify-center">
-                    <button onClick={async () => { if (loading || !user?.id) return; setLoading(true); const modelParam = selectedModels.length > 0 ? `&model=${selectedModels.join(',')}` : ''; const visibilityParam = visibility !== 'all' ? `&visibility=${visibility}` : ''; try { const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=6&offset=${offset + 6}${modelParam}${visibilityParam}`); const j = await r.json().catch(() => null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset + 6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-4 py-2 rounded-lg">Загрузить ещё</button>
+                    <button onClick={async () => { if (loading || !user?.id) return; setLoading(true); const modelParam = selectedModels.length > 0 ? `&model=${selectedModels.join(',')}` : ''; const visibilityParam = visibility !== 'all' ? `&visibility=${visibility}` : ''; try { const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=6&offset=${offset + 6}${modelParam}${visibilityParam}`); const j = await r.json().catch(() => null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset + 6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-4 py-2 rounded-lg">{t('profile.history.loadMore')}</button>
                   </div>
                 )}
               </div>
@@ -739,7 +741,7 @@ export default function Profile() {
                           className="flex-1 min-h-[48px] h-auto py-3 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                         >
                           <DownloadIcon size={16} />
-                          Сохранить в галерею
+                          {t('profile.preview.saveToGallery')}
                         </button>
                         <button
                           onClick={async () => {
@@ -760,7 +762,7 @@ export default function Profile() {
                           className="flex-1 min-h-[48px] h-auto py-3 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                         >
                           <Send size={16} />
-                          Отправить в чат с промптом
+                          {t('profile.preview.sendToChat')}
                         </button>
                       </div>
 
@@ -771,7 +773,7 @@ export default function Profile() {
                         className="w-full min-h-[48px] h-auto py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-50"
                       >
                         {remixShareLoading ? <Loader2 size={16} className="animate-spin" /> : <Repeat size={16} />}
-                        Поделиться с ремиксом
+                        {t('profile.preview.shareRemix')}
                       </button>
 
                       <button
@@ -785,7 +787,7 @@ export default function Profile() {
                         className={`w-full min-h-[48px] h-auto py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-colors ${preview.is_published ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                       >
                         {preview.is_published ? <EyeOff size={16} /> : <Globe size={16} />}
-                        {preview.is_published ? 'Убрать из ленты' : 'Опубликовать в ленту'}
+                        {preview.is_published ? t('profile.preview.unpublish') : t('profile.preview.publish')}
                       </button>
 
                       {/* Prompt Actions */}
@@ -798,7 +800,7 @@ export default function Profile() {
                           className="flex-1 py-2 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 flex items-center justify-center gap-2 text-zinc-300 hover:text-white transition-colors text-xs font-bold"
                         >
                           {showPrompt ? <EyeOff size={14} /> : <Sparkles size={14} />}
-                          {showPrompt ? 'Скрыть промпт' : 'Показать промпт'}
+                          {showPrompt ? t('profile.preview.hidePrompt') : t('profile.preview.showPrompt')}
                         </button>
                         <button
                           onClick={() => {
@@ -811,7 +813,7 @@ export default function Profile() {
                           className={`flex-1 py-2 rounded-xl border border-white/5 flex items-center justify-center gap-2 transition-all text-xs font-bold ${isCopied ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 hover:text-white'}`}
                         >
                           {isCopied ? <Check size={14} /> : <Copy size={14} />}
-                          {isCopied ? 'Скопировано!' : 'Копировать промпт'}
+                          {isCopied ? t('profile.preview.copied') : t('profile.preview.copyPrompt')}
                         </button>
                         <button
                           onClick={() => {
@@ -839,9 +841,9 @@ export default function Profile() {
                 <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setShowPublishConfirm(false) }}>
                   <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-white/10 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-center space-y-2">
-                      <h3 className="text-lg font-bold text-white">Публикация в ленту</h3>
+                      <h3 className="text-lg font-bold text-white">{t('profile.publishConfirm.title')}</h3>
                       <p className="text-sm text-zinc-400">
-                        Ваши фото-референсы станут публичными при использовании ремиксов другими пользователями. Вы уверены?
+                        {t('profile.publishConfirm.description')}
                       </p>
                     </div>
                     <div className="flex gap-3">
@@ -849,13 +851,13 @@ export default function Profile() {
                         onClick={() => setShowPublishConfirm(false)}
                         className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
                       >
-                        Отмена
+                        {t('profile.publishConfirm.cancel')}
                       </button>
                       <button
                         onClick={handlePublish}
                         className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
                       >
-                        Опубликовать
+                        {t('profile.publishConfirm.confirm')}
                       </button>
                     </div>
                   </div>
@@ -877,7 +879,7 @@ export default function Profile() {
                         onClick={() => setShowRemixShareConfirm(false)}
                         className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
                       >
-                        Отмена
+                        {t('profile.publishConfirm.cancel')}
                       </button>
                       <button
                         onClick={async () => {
@@ -928,9 +930,9 @@ export default function Profile() {
                 <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) setShowDeleteConfirm(false) }}>
                   <div className="w-full max-w-sm bg-zinc-900 rounded-2xl border border-white/10 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-center space-y-2">
-                      <h3 className="text-lg font-bold text-white">Удалить генерацию?</h3>
+                      <h3 className="text-lg font-bold text-white">{t('profile.deleteConfirm.title')}</h3>
                       <p className="text-sm text-zinc-400">
-                        Изображение будет удалено из вашего профиля и ленты. Это действие нельзя отменить.
+                        {t('profile.deleteConfirm.description')}
                       </p>
                     </div>
                     <div className="flex gap-3">
@@ -938,7 +940,7 @@ export default function Profile() {
                         onClick={() => setShowDeleteConfirm(false)}
                         className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
                       >
-                        Отмена
+                        {t('profile.deleteConfirm.cancel')}
                       </button>
                       <button
                         onClick={handleDelete}
@@ -946,7 +948,7 @@ export default function Profile() {
                         className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {deleteLoading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                        {deleteLoading ? 'Удаление...' : 'Удалить'}
+                        {deleteLoading ? t('profile.preview.delete') : t('profile.preview.delete')}
                       </button>
                     </div>
                   </div>
@@ -1015,14 +1017,14 @@ export default function Profile() {
                     onClick={() => { setShowAvatarModal(false); setShowAvatarOptions(false) }}
                     className="flex-1 py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors"
                   >
-                    Закрыть
+                    {t('profile.actions.close')}
                   </button>
                   <button
                     onClick={() => setShowAvatarOptions(true)}
                     className="flex-1 py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Edit size={16} />
-                    Сменить
+                    {t('profile.actions.change')}
                   </button>
                 </div>
               ) : (
@@ -1032,7 +1034,7 @@ export default function Profile() {
                     className="w-full py-3 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <User size={16} />
-                    Выбрать из галереи
+                    {t('profile.actions.selectFromGallery')}
                   </button>
 
                   {/* Paste zone */}
@@ -1082,14 +1084,14 @@ export default function Profile() {
                     className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-sm font-medium cursor-text focus:outline-none focus:border-violet-500/50 focus:bg-violet-500/10"
                   >
                     <Clipboard size={16} />
-                    <span>Зажмите и вставьте фото</span>
+                    <span>{t('profile.actions.pastePrompt')}</span>
                   </div>
 
                   <button
                     onClick={() => setShowAvatarOptions(false)}
                     className="w-full py-2 text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
                   >
-                    Назад
+                    {t('profile.actions.back')}
                   </button>
                 </div>
               )}

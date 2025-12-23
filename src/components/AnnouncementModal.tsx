@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Zap } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useNavigate } from 'react-router-dom'
@@ -18,6 +19,7 @@ const ANNOUNCEMENT = {
 }
 
 export function AnnouncementModal() {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const { impact } = useHaptics()
     const navigate = useNavigate()
@@ -118,11 +120,11 @@ export function AnnouncementModal() {
                     </div>
 
                     <h2 className="text-xl font-bold text-white mb-2">
-                        {ANNOUNCEMENT.title}
+                        {t('announcement.title')}
                     </h2>
 
                     <p className="text-sm text-zinc-400 leading-relaxed mb-6">
-                        {ANNOUNCEMENT.description}
+                        {t('announcement.description')}
                     </p>
 
                     <div className="w-full space-y-3">
@@ -130,7 +132,7 @@ export function AnnouncementModal() {
                             onClick={handleAction}
                             className="w-full py-3.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5 active:scale-[0.98] transition-transform"
                         >
-                            {ANNOUNCEMENT.buttonText}
+                            {t('announcement.button')}
                         </button>
 
                         {ANNOUNCEMENT.secondaryButtonText && (
@@ -138,7 +140,7 @@ export function AnnouncementModal() {
                                 onClick={handleSecondaryAction}
                                 className="w-full py-3.5 rounded-xl bg-zinc-800 text-white font-bold text-sm hover:bg-zinc-700 transition-colors border border-white/5 active:scale-[0.98] transition-transform"
                             >
-                                {ANNOUNCEMENT.secondaryButtonText}
+                                {t('announcement.close')}
                             </button>
                         )}
                     </div>

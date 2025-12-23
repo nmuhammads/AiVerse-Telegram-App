@@ -1,0 +1,445 @@
+{
+    "settings": {
+        "title": "Settings",
+        "sections": {
+            "general": "General",
+            "remix": "Remixes",
+            "social": "Social",
+            "about": "About",
+            "notifications": "Notifications"
+        },
+        "items": {
+            "language": "Language",
+            "languageValue": "English",
+            "theme": "Theme",
+            "themeValue": "Dark",
+            "addToHome": "Add to Home Screen",
+            "accumulations": "Accumulations",
+            "subscriptions": "Subscriptions & Followers",
+            "support": "Support",
+            "storage": "Data Storage",
+            "storageValue": "60 days",
+            "version": "Version"
+        },
+        "messages": {
+            "themeToast": "Oops, only dark mode is available for now",
+            "storageToast": "Images are stored for 60 days. Originals in maximum quality are sent to the bot chat and stored there indefinitely 💾"
+        },
+        "notifications": {
+            "telegram": "Telegram Notifications",
+            "hint": "Configure here",
+            "options": {
+                "news": "News",
+                "remix": "Remixes",
+                "generation": "Generations",
+                "likes": "Likes"
+            }
+        }
+    },
+    "home": {
+        "tabs": {
+            "new": "New",
+            "popular": "Popular",
+            "following": "Following"
+        },
+        "searchPlaceholder": "Find prompt...",
+        "feedTitle": "Feed for {{date}}",
+        "models": {
+            "all": "All Models"
+        },
+        "empty": "No posts",
+        "loadingMore": "Loading more..."
+    },
+    "studio": {
+        "title": "Studio",
+        "tokens": "{{count}} tokens",
+        "tokens_1": "{{count}} token",
+        "tokens_2": "{{count}} tokens",
+        "tokens_5": "{{count}} tokens",
+        "mode": {
+            "textToImage": "Text to Image",
+            "imageToImage": "Image to Image"
+        },
+        "prompt": {
+            "from": "Prompt from {{username}}",
+            "placeholder": "Describe your idea..."
+        },
+        "upload": {
+            "limitError": "Maximum {{limit}} photos",
+            "modelLimitError": "Maximum {{limit}} photos for this model",
+            "more": "More",
+            "paste": "Paste",
+            "addReferences": "Add references (up to {{limit}})",
+            "selectPhoto": "Select photo",
+            "pasteHint": "Press and hold here → Paste",
+            "copyHint": "Copy photo → press and hold purple area → Paste",
+            "remixHint": "When remixing, replace reference photos with your own (one or more) if necessary"
+        },
+        "aspectRatio": "Aspect Ratio",
+        "quality": {
+            "label": "Quality",
+            "2k": "2K (10 tokens)",
+            "4k": "4K (15 tokens)"
+        },
+        "generate": {
+            "button": "Generate",
+            "generating": "Creating masterpiece...",
+            "waitMessage": "If the process takes too long, you can minimize the app. \nThe result will appear in <1>My Generations</1> in profile\nand will be sent to <3>Telegram chat</3>."
+        },
+        "errors": {
+            "promptRequired": "Enter a prompt",
+            "imageRequired": "Upload an image",
+            "pasteInstruction": "Copy photo and long press here → Paste",
+            "generationError": "Generation error",
+            "timeout": "Timeout. Generation may finish in background, check history later.",
+            "network": "Network error. Check internet or try again later."
+        },
+        "result": {
+            "title": "Result",
+            "save": "Save",
+            "sendToChat": "Send to Chat",
+            "close": "Close Window"
+        }
+    },
+    "profile": {
+        "guest": "Guest",
+        "pro": "PRO",
+        "stats": {
+            "generations": "Generations",
+            "followers": "Followers",
+            "likes": "Likes",
+            "remixes": "Remixes"
+        },
+        "balance": {
+            "tokens": "tokens",
+            "success": "Balance topped up successfully. Thank you for your purchase!"
+        },
+        "actions": {
+            "share": {
+                "title": "AiVerse Profile",
+                "text": "Check out my profile and works in AiVerse 🎨"
+            },
+            "close": "Close",
+            "change": "Change",
+            "selectFromGallery": "Select from Gallery",
+            "pastePrompt": "Press and hold to paste photo",
+            "back": "Back"
+        },
+        "history": {
+            "title": "My Generations",
+            "empty": "History is empty",
+            "loadMore": "Load more"
+        },
+        "storage": {
+            "text": "Images are stored in the app for <0>60 days</0>. Originals are sent to the bot chat and stored there <1>indefinitely</1> 💾"
+        },
+        "filters": {
+            "all": "All",
+            "published": "Public",
+            "private": "Private"
+        },
+        "preview": {
+            "saveToGallery": "Save to Gallery",
+            "sendToChat": "Send to Chat with Prompt",
+            "shareRemix": "Share Remix",
+            "publish": "Publish to Feed",
+            "unpublish": "Remove from Feed",
+            "delete": "Delete",
+            "publicLabel": "Public",
+            "showPrompt": "Show Prompt",
+            "hidePrompt": "Hide Prompt",
+            "copyPrompt": "Copy Prompt",
+            "copied": "Copied!"
+        },
+        "deleteConfirm": {
+            "title": "Delete generation?",
+            "description": "This action cannot be undone",
+            "cancel": "Cancel",
+            "confirm": "Delete"
+        },
+        "publishConfirm": {
+            "title": "Publish to public feed?",
+            "description": "Other users will see your work",
+            "cancel": "Cancel",
+            "confirm": "Publish"
+        }
+    },
+    "spin": {
+        "title": "Fortune",
+        "available": "Available:",
+        "spins": "spins",
+        "spinButton": "SPIN",
+        "spinning": "Spinning...",
+        "balanceHint": "Top up balance from 300 tokens to get spins",
+        "eventDisabled": {
+            "title": "Event Unavailable",
+            "description": "Wheel of Fortune is temporarily unavailable. Stay tuned!",
+            "back": "Back to Events",
+            "toast": "Event is temporarily unavailable"
+        },
+        "errors": {
+            "spin": "Spin error",
+            "network": "Network error"
+        },
+        "win": {
+            "jackpot": "🎉 Jackpot!",
+            "congrats": "Congratulations!",
+            "youWon": "You won:",
+            "tokens": "tokens",
+            "claim": "Claim! ✨"
+        },
+        "info": {
+            "title": "Wheel of Fortune",
+            "description": "Spin the wheel and win tokens! All segments have equal chances.",
+            "oddsTitle": "Odds",
+            "howToGet": "How to get spins?",
+            "conditions": {
+                "1": "• Top up from 300 tokens → 1 spin",
+                "2": "• Top up from 800 tokens → 2 spins",
+                "3": "• Top up from 1500 tokens → 3 spins"
+            },
+            "close": "Got it"
+        }
+    },
+    "subscriptions": {
+        "title": "Subscriptions",
+        "tabs": {
+            "followers": "Followers",
+            "following": "Following"
+        },
+        "empty": {
+            "followers": "No followers yet",
+            "following": "You are not following anyone yet"
+        }
+    },
+    "payment": {
+        "title": "Top up balance",
+        "subtitle": "Select a token package",
+        "methods": {
+            "stars": "Stars",
+            "card": "Card",
+            "sbp": "SBP"
+        },
+        "packages": {
+            "tokens": "{{count}} tokens",
+            "bonus": "Bonus",
+            "spins": "+{{count}} 🎰 spin",
+            "spins_other": "+{{count}} 🎰 spins",
+            "popular": "POPULAR"
+        },
+        "button": {
+            "pay": "Pay {{amount}} {{symbol}} via {{method}}",
+            "processing": "Processing..."
+        },
+        "messages": {
+            "description": "Purchase {{count}} AiVerse tokens",
+            "success": "Payment successful! Tokens credited.",
+            "status": "Payment status: {{status}}",
+            "errorInvoice": "Error creating invoice: {{error}}",
+            "errorNetwork": "Network error",
+            "sbpCommission": "Service commission charged for SBP payments"
+        }
+    },
+    "generationSelector": {
+        "title": "Select creation",
+        "empty": "You have no generations yet.",
+        "select": "Select"
+    },
+    "events": {
+        "pageTitle": "Events",
+        "tabs": {
+            "contests": "Contests",
+            "events": "Events"
+        },
+        "filters": {
+            "active": "Active",
+            "upcoming": "Upcoming",
+            "completed": "Completed"
+        },
+        "empty": {
+            "active": "No active contests",
+            "upcoming": "No upcoming contests",
+            "completed": "No completed contests",
+            "events": "No events right now"
+        },
+        "contestStatus": {
+            "until": "Until ",
+            "starts": "Starts ",
+            "ended": "Ended "
+        },
+        "spin": {
+            "title": "Wheel of Fortune",
+            "description": "Try your luck and win prizes!",
+            "unavailable": "Event temporarily unavailable"
+        },
+        "comingSoon": "New events coming soon!"
+    },
+    "leaderboard": {
+        "title": {
+            "month": "Top for {{month}}",
+            "allTime": "Top all time"
+        },
+        "period": {
+            "month": "For {{month}}",
+            "allTime": "All time"
+        },
+        "tabs": {
+            "likes": "Likes",
+            "remixes": "Remixes"
+        },
+        "empty": "Empty for now...",
+        "badges": {
+            "legend": "Legend",
+            "pro": "Pro",
+            "expert": "Expert"
+        }
+    },
+    "accumulations": {
+        "title": "Accumulations",
+        "forRemix": "For remix",
+        "loading": "Loading...",
+        "empty": {
+            "title": "History is empty",
+            "description": "Tokens received for remixes of your works by other users will be displayed here."
+        }
+    },
+    "publicProfile": {
+        "stats": {
+            "generations": "Generations",
+            "followers": "Followers",
+            "likes": "Likes",
+            "remixes": "Remixes"
+        },
+        "follow": "Follow",
+        "unfollow": "Unfollow",
+        "publicGenerations": "Public generations",
+        "empty": "No public works",
+        "loadMore": "Load more"
+    },
+    "contestDetail": {
+        "status": {
+            "active": "Active",
+            "completed": "Completed",
+            "upcoming": "Upcoming",
+            "until": "Until {{date}}"
+        },
+        "organizer": "Organizer: {{name}}",
+        "tabs": {
+            "info": "Info",
+            "gallery": "Gallery",
+            "leaderboard": "Leaderboard"
+        },
+        "sections": {
+            "description": "Description",
+            "rules": "Rules",
+            "prizes": "Prizes"
+        },
+        "prizePlace": "#{{place}} Place",
+        "emptyGallery": "No entries yet. Be the first!",
+        "sorting": {
+            "new": "New",
+            "top": "Top"
+        },
+        "filter": {
+            "allModels": "All models"
+        },
+        "loadingMore": "Loading more...",
+        "join": "Join",
+        "messages": {
+            "successJoin": "Work added to contest!",
+            "errorJoin": "Error adding work",
+            "errorNetwork": "Network error",
+            "errorLike": "Error liking",
+            "notFound": "Contest not found"
+        },
+        "likes": "{{count}} likes"
+    },
+    "nav": {
+        "home": "Home",
+        "events": "Events",
+        "studio": "Studio",
+        "top": "Top",
+        "profile": "Profile"
+    },
+    "common": {
+        "guest": "Guest",
+        "empty": "Empty"
+    },
+    "generationForm": {
+        "title": "AI Image Generator",
+        "subtitle": "Create amazing images with AI",
+        "resultTitle": "Generation Result",
+        "labels": {
+            "model": "Select Model",
+            "upload": "Upload Image (Optional for Edit)",
+            "aspectRatio": "Aspect Ratio",
+            "prompt": "Prompt"
+        },
+        "buttons": {
+            "generate": "Generate Image",
+            "edit": "Edit Image",
+            "remove": "Remove Image",
+            "another": "Generate Another",
+            "download": "Download",
+            "share": "Share"
+        },
+        "placeholders": {
+            "upload": "Click to upload image",
+            "promptEdit": "Describe what you want to change in the image...",
+            "promptCreate": "Describe the image you want to create..."
+        },
+        "status": {
+            "generating": "Generating...",
+            "editing": "Editing..."
+        },
+        "errors": {
+            "emptyPrompt": "Please enter a prompt",
+            "failed": "Generation failed",
+            "textLength": "Text length exceeds maximum limit"
+        },
+        "models": {
+            "nanobanana-pro": {
+                "desc": "Default Text-to-Image"
+            },
+            "seedream4": {
+                "desc": "High Quality"
+            },
+            "nanobanana": {
+                "desc": "Fast Generation"
+            },
+            "seedream4-5": {
+                "desc": "Edit & Create"
+            }
+        },
+        "ratios": {
+            "square": "Square (1:1)",
+            "landscape": "Landscape (16:9)",
+            "portrait": "Portrait (9:16)"
+        }
+    },
+    "feed": {
+        "participatingInContest": "Participating in contest",
+        "remix": "Remix",
+        "imageUnavailable": "Image unavailable"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "personal": "Personal",
+        "news": "News",
+        "settings": "Telegram Notification Settings",
+        "emptyPersonal": "No notifications",
+        "emptyNews": "No news",
+        "readAll": "Read all",
+        "time": {
+            "m": "m",
+            "h": "h",
+            "d": "d"
+        }
+    },
+    "announcement": {
+        "title": "AiVerse Update 🚀",
+        "description": "Meet: notification system 🔔, user subscriptions 👥 and generation filtering in profile 🔍. Now you won't miss anything important!",
+        "button": "Learn more",
+        "close": "Close"
+    }
+}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Trophy, ChevronRight, ArrowLeft, Clock } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -26,6 +27,7 @@ type TabType = 'contests' | 'events';
 type ContestFilter = 'active' | 'completed' | 'upcoming';
 
 export default function EventsPage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { impact } = useHaptics();
     const { platform, tg } = useTelegram();
@@ -119,7 +121,7 @@ export default function EventsPage() {
         <div className="min-h-screen bg-black pb-24 px-4" style={{ paddingTop: getPaddingTop() }}>
             {/* Header */}
             <div className="flex flex-col gap-4 mb-6">
-                <h1 className="text-2xl font-bold text-white">События</h1>
+                <h1 className="text-2xl font-bold text-white">{t('events.pageTitle')}</h1>
 
                 {/* Main Tab Switcher */}
                 <div className="flex p-1 bg-zinc-900/80 backdrop-blur-sm rounded-xl border border-white/10">
@@ -131,7 +133,7 @@ export default function EventsPage() {
                             }`}
                     >
                         <Trophy size={16} />
-                        Конкурсы
+                        {t('events.tabs.contests')}
                         {activeContestsCount > 0 && (
                             <span className="absolute -top-2 right-0 bg-violet-500 text-white text-xs font-bold min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center shadow-lg">
                                 {activeContestsCount}
@@ -146,7 +148,7 @@ export default function EventsPage() {
                             }`}
                     >
                         <Clock size={16} />
-                        События
+                        {t('events.tabs.events')}
                         {activeEventsCount > 0 && (
                             <span className="absolute -top-2 right-0 bg-fuchsia-500 text-white text-xs font-bold min-w-[22px] h-[22px] px-1.5 rounded-full flex items-center justify-center shadow-lg">
                                 {activeEventsCount}
@@ -162,9 +164,9 @@ export default function EventsPage() {
                     {/* Contest Filter */}
                     <div className="flex p-1 bg-zinc-900/60 backdrop-blur-sm rounded-xl border border-white/5 mb-4">
                         {[
-                            { id: 'active', label: 'Активные' },
-                            { id: 'upcoming', label: 'Скоро' },
-                            { id: 'completed', label: 'Прошедшие' }
+                            { id: 'active', label: t('events.filters.active') },
+                            { id: 'upcoming', label: t('events.filters.upcoming') },
+                            { id: 'completed', label: t('events.filters.completed') }
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -212,9 +214,9 @@ export default function EventsPage() {
                         </div>
                     ) : contests.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500">
-                            {contestFilter === 'active' ? 'Нет активных конкурсов' :
-                                contestFilter === 'upcoming' ? 'Нет предстоящих конкурсов' :
-                                    'Нет завершенных конкурсов'}
+                            {contestFilter === 'active' ? t('events.empty.active') :
+                                contestFilter === 'upcoming' ? t('events.empty.upcoming') :
+                                    t('events.empty.completed')}
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -249,9 +251,9 @@ export default function EventsPage() {
                                             <div className="flex items-center gap-1.5">
                                                 <Calendar size={14} />
                                                 <span>
-                                                    {contestFilter === 'active' ? 'До ' :
-                                                        contestFilter === 'upcoming' ? 'Начало ' :
-                                                            'Завершен '}
+                                                    {contestFilter === 'active' ? t('events.contestStatus.until') :
+                                                        contestFilter === 'upcoming' ? t('events.contestStatus.starts') :
+                                                            t('events.contestStatus.ended')}
                                                     {new Date(contest.end_date).toLocaleDateString()}
                                                 </span>
                                             </div>
@@ -333,10 +335,10 @@ export default function EventsPage() {
                                             </div>
                                             <div>
                                                 <h3 className={`text-lg font-bold mb-1 ${isSpinActive ? 'text-white' : 'text-zinc-400'}`}>
-                                                    Колесо Фортуны
+                                                    {t('events.spin.title')}
                                                 </h3>
                                                 <p className={`text-xs font-medium ${isSpinActive ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                                                    {isSpinActive ? 'Испытай удачу и выиграй призы!' : 'Событие временно недоступно'}
+                                                    {isSpinActive ? t('events.spin.description') : t('events.spin.unavailable')}
                                                 </p>
                                             </div>
                                         </div>
@@ -353,14 +355,14 @@ export default function EventsPage() {
                             {/* No events at all */}
                             {allEvents.length === 0 && (
                                 <div className="text-center py-12 text-zinc-500">
-                                    Сейчас нет событий
+                                    {t('events.empty.events')}
                                 </div>
                             )}
 
                             {/* Placeholder for more events */}
                             {allEvents.length > 0 && (
                                 <div className="text-center py-8 text-zinc-500 text-sm">
-                                    Скоро появятся новые события!
+                                    {t('events.comingSoon')}
                                 </div>
                             )}
                         </>

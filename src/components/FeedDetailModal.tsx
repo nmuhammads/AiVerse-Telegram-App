@@ -4,6 +4,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useState, useEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 interface FeedItem {
     id: number
@@ -49,6 +50,7 @@ function getModelDisplayName(model: string | null): string {
 }
 
 export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
+    const { t, i18n } = useTranslation()
     const { impact } = useHaptics()
     const { user, platform } = useTelegram()
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
@@ -88,7 +90,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
     }
 
     const modelName = getModelDisplayName(item.model || null)
-    const date = new Date(item.created_at).toLocaleDateString('ru-RU', {
+    const date = new Date(item.created_at).toLocaleDateString(i18n.language, {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
@@ -179,7 +181,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                                         className="flex flex-col gap-0.5 cursor-pointer group"
                                         onClick={handleContestClick}
                                     >
-                                        <span className="text-[10px] text-zinc-500 font-medium ml-1">Участвует в конкурсе</span>
+                                        <span className="text-[10px] text-zinc-500 font-medium ml-1">{t('feed.participatingInContest')}</span>
                                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 group-hover:bg-yellow-500/20 transition-colors">
                                             <Trophy size={14} />
                                             <span className="text-xs font-medium max-w-[120px] truncate">{item.contest.title}</span>
@@ -211,7 +213,7 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                             className="flex-1 h-12 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-violet-700 border border-violet-500"
                         >
                             <Repeat size={20} />
-                            <span>Повторить</span>
+                            <span>{t('feed.remix')}</span>
                         </button>
                     </div>
                 </div>

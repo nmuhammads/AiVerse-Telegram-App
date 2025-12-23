@@ -6,11 +6,13 @@ import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useGenerationStore, type ModelType } from '@/store/generationStore'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { FeedImage, type FeedItem } from '@/components/FeedImage'
 import { FeedSkeletonGrid } from '@/components/ui/skeleton'
 
 export default function Home() {
+  const { t, i18n } = useTranslation() // i18n needed for date locale
   const { impact } = useHaptics()
   const { user } = useTelegram()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -241,21 +243,21 @@ export default function Home() {
                   onClick={() => { setSort('new'); setFeedFilter('all'); impact('light') }}
                   className={`text-lg font-bold tracking-tight transition-colors ${sort === 'new' && feedFilter === 'all' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  Новое
+                  {t('home.tabs.new')}
                 </button>
                 <div className="w-[1px] h-4 bg-zinc-800"></div>
                 <button
                   onClick={() => { setSort('popular'); setFeedFilter('all'); impact('light') }}
                   className={`text-lg font-bold tracking-tight transition-colors ${sort === 'popular' && feedFilter === 'all' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  Популярное
+                  {t('home.tabs.popular')}
                 </button>
                 <div className="w-[1px] h-4 bg-zinc-800"></div>
                 <button
                   onClick={() => { setFeedFilter('following'); impact('light') }}
                   className={`text-lg font-bold tracking-tight transition-colors ${feedFilter === 'following' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                  Подписки
+                  {t('home.tabs.following')}
                 </button>
               </div>
               <button onClick={() => { setIsSearchOpen(true); impact('light') }} className="flex items-center justify-center w-10 h-10 bg-zinc-900 rounded-full text-zinc-400 hover:text-white border border-white/10 transition-all active:scale-95">
@@ -266,7 +268,7 @@ export default function Home() {
             <div className="flex-1 flex items-center gap-2 w-full">
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Найти промпт..." className="w-full bg-zinc-900 border border-violet-500/50 rounded-full py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all placeholder:text-zinc-600" />
+                <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('home.searchPlaceholder')} className="w-full bg-zinc-900 border border-violet-500/50 rounded-full py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all placeholder:text-zinc-600" />
               </div>
               <button onClick={() => { setIsSearchOpen(false); setQ(''); impact('light') }} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white rounded-full hover:bg-white/5">
                 <X size={20} />
@@ -281,7 +283,7 @@ export default function Home() {
         <div className="px-1 mb-2 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider truncate">
-              Лента за {new Date().toLocaleString('ru', { month: 'long' })}
+              {t('home.feedTitle', { date: new Date().toLocaleString(i18n.language, { month: 'long' }) })}
             </h2>
           </div>
 
@@ -308,7 +310,7 @@ export default function Home() {
                 onChange={(e) => { setSelectedModelFilter(e.target.value); impact('light') }}
                 className="appearance-none bg-zinc-900 border border-zinc-800 text-xs font-medium text-zinc-300 rounded-lg py-1.5 pl-3 pr-8 focus:outline-none focus:border-violet-500/50 transition-colors"
               >
-                <option value="all">Все модели</option>
+                <option value="all">{t('home.models.all')}</option>
                 <option value="nanobanana">NanoBanana</option>
                 <option value="nanobanana-pro">NanoBanana Pro</option>
                 <option value="seedream4">SeeDream 4</option>
@@ -335,10 +337,10 @@ export default function Home() {
               ))}
             </div>
             {!loading && filteredItems.length === 0 && (
-              <div className="text-center text-zinc-500 py-10 w-full">Нет публикаций</div>
+              <div className="text-center text-zinc-500 py-10 w-full">{t('home.empty')}</div>
             )}
             {isFetchingMore && (
-              <div className="text-center text-zinc-500 py-4 w-full">Загрузка еще...</div>
+              <div className="text-center text-zinc-500 py-4 w-full">{t('home.loadingMore')}</div>
             )}
           </div>
         )}

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTelegram } from '@/hooks/useTelegram'
 import { ArrowRight, Coins, ChevronLeft, ImageOff } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -27,6 +28,7 @@ const getThumbnailUrl = (gen: Generation | null): string | null => {
 }
 
 export default function Accumulations() {
+    const { t, i18n } = useTranslation()
     const [items, setItems] = useState<RewardItem[]>([])
     const [loading, setLoading] = useState(false)
     const [hasMore, setHasMore] = useState(true)
@@ -129,13 +131,13 @@ export default function Accumulations() {
                         <ChevronLeft size={24} />
                     </button>
                 )}
-                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>Накопления</h1>
+                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>{t('accumulations.title')}</h1>
             </div>
 
             <div className="px-4 space-y-3">
                 {items.map((item, index) => {
                     const isLast = index === items.length - 1
-                    const date = new Date(item.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+                    const date = new Date(item.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
 
                     return (
                         <div
@@ -193,14 +195,14 @@ export default function Accumulations() {
                                     <span>+{item.amount}</span>
                                     <Coins size={16} />
                                 </div>
-                                <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">За ремикс</div>
+                                <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">{t('accumulations.forRemix')}</div>
                             </div>
                         </div>
                     )
                 })}
 
                 {loading && (
-                    <div className="text-center text-white/50 py-4">Загрузка...</div>
+                    <div className="text-center text-white/50 py-4">{t('accumulations.loading')}</div>
                 )}
 
                 {!loading && items.length === 0 && (
@@ -209,9 +211,9 @@ export default function Accumulations() {
                             <Coins size={32} className="text-zinc-600" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="text-lg font-medium text-white">История пуста</h3>
+                            <h3 className="text-lg font-medium text-white">{t('accumulations.empty.title')}</h3>
                             <p className="text-sm text-zinc-500 max-w-[200px] mx-auto">
-                                Здесь будут отображаться токены, полученные за ремиксы ваших работ другими пользователями.
+                                {t('accumulations.empty.description')}
                             </p>
                         </div>
                     </div>
