@@ -1,5 +1,6 @@
 import { X, CreditCard, Star, Zap } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -55,6 +56,7 @@ const PACKAGES_FIAT = [
 ]
 
 export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
+    const { t } = useTranslation()
     const { impact } = useHaptics()
     const { user } = useTelegram()
     const [activeMethod, setActiveMethod] = useState<PaymentMethod>('stars')
@@ -83,8 +85,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        title: `${selectedPackage.tokens} токенов`,
-                        description: `Покупка ${selectedPackage.tokens} токенов AiVerse`,
+                        title: t('payment.packages.tokens', { count: selectedPackage.tokens }),
+                        description: t('payment.messages.description', { count: selectedPackage.tokens }),
                         payload: JSON.stringify({ packageId: selectedPackage.id, tokens: selectedPackage.tokens, spins: selectedPackage.spins || 0 }),
                         currency: 'XTR',
                         amount: selectedPackage.price
@@ -98,24 +100,24 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                         wa.openInvoice(data.invoiceLink, (status: string) => {
                             if (status === 'paid') {
                                 impact('heavy')
-                                alert('Оплата прошла успешно! Токены начислены.')
+                                alert(t('payment.messages.success'))
                                 onClose()
                                 // TODO: Refresh balance
                             } else if (status === 'cancelled') {
                                 impact('light')
                             } else {
-                                alert('Статус оплаты: ' + status)
+                                alert(t('payment.messages.status', { status }))
                             }
                         })
                     } else {
                         window.open(data.invoiceLink, '_blank')
                     }
                 } else {
-                    alert('Ошибка создания счета: ' + (data.error || 'Unknown error'))
+                    alert(t('payment.messages.errorInvoice', { error: data.error || 'Unknown error' }))
                 }
             } catch (e) {
                 console.error(e)
-                alert('Ошибка соединения с сервером')
+                alert(t('payment.messages.errorNetwork'))
             } finally {
                 setLoading(false)
             }
@@ -147,8 +149,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 {/* Header */}
                 <div className="p-5 pb-3 flex justify-between items-start shrink-0">
                     <div>
-                        <h2 className="text-lg font-bold text-white">Пополнение баланса</h2>
-                        <p className="text-xs text-zinc-400 mt-0.5">Выберите пакет токенов</p>
+                        <h2 className="text-lg font-bold text-white">{t('payment.title')}</h2>
+                        <p className="text-xs text-zinc-400 mt-0.5">{t('payment.subtitle')}</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -171,13 +173,13 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             onClick={() => { impact('light'); setActiveMethod('card') }}
                             className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'card' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
                         >
-                            <CreditCard size={12} /> Карта
+                            <CreditCard size={12} /> {t('payment.methods.card')}
                         </button>
                         <button
                             onClick={() => { impact('light'); setActiveMethod('sbp') }}
                             className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'sbp' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
                         >
-                            <div className="w-2.5 h-2.5 bg-gradient-to-tr from-blue-500 via-green-500 to-yellow-500 rounded-sm" /> СБП
+                            <div className="w-2.5 h-2.5 bg-gradient-to-tr from-blue-500 via-green-500 to-yellow-500 rounded-sm" /> {t('payment.methods.sbp')}
                         </button>
                     </div>
                 </div>
@@ -204,9 +206,9 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
                                     <div className={`flex-1 text-left ${isLast ? 'flex justify-between items-center w-full pl-2' : ''}`}>
                                         <div>
-                                            <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>{pkg.tokens} токенов</div>
-                                            {pkg.bonus && <div className="text-[10px] text-emerald-400 font-bold">Бонус {pkg.bonus}</div>}
-                                            {pkg.spins > 0 && <div className="text-[10px] text-violet-400 font-bold">+{pkg.spins} 🎰 спин{pkg.spins > 1 ? 'а' : ''}</div>}
+                                            <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>{t('payment.packages.tokens', { count: pkg.tokens })}</div>
+                                            {pkg.bonus && <div className="text-[10px] text-emerald-400 font-bold">{t('payment.packages.bonus')} {pkg.bonus}</div>}
+                                            {pkg.spins > 0 && <div className="text-[10px] text-violet-400 font-bold">{t('payment.packages.spins', { count: pkg.spins })}</div>}
                                         </div>
                                         <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
                                             {pkg.price} {currencySymbol}
@@ -215,7 +217,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
                                     {activeMethod === 'stars' && pkg.popular && !isLast && (
                                         <div className="absolute -top-1.5 right-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg z-10">
-                                            POPULAR
+                                            {t('payment.packages.popular')}
                                         </div>
                                     )}
                                     {activeMethod === 'stars' && pkg.bonus && !isLast && (
@@ -233,7 +235,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 <div className="p-5 pt-0 mt-auto shrink-0 space-y-3">
                     {activeMethod === 'sbp' && (
                         <div className="text-[10px] text-zinc-500 text-center">
-                            При оплате через СБП взимается комиссия сервиса
+                            {t('payment.messages.sbpCommission')}
                         </div>
                     )}
                     <button
@@ -244,7 +246,11 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             : 'bg-white text-black hover:bg-zinc-200 shadow-white/10'
                             }`}
                     >
-                        {loading ? 'Обработка...' : `Оплатить ${selectedPackage.price} ${currencySymbol} через ${activeMethod === 'stars' ? 'Stars' : activeMethod === 'card' ? 'Карту' : 'СБП'}`}
+                        {loading ? t('payment.button.processing') : t('payment.button.pay', {
+                            amount: selectedPackage.price,
+                            symbol: currencySymbol,
+                            method: activeMethod === 'stars' ? t('payment.methods.stars') : activeMethod === 'card' ? t('payment.methods.card') : t('payment.methods.sbp')
+                        })}
                     </button>
                 </div>
             </div>

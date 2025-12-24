@@ -1,5 +1,6 @@
 import { Share2, History as HistoryIcon, X, UserPlus, UserMinus } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -9,6 +10,7 @@ import { useGenerationStore, type ModelType } from '@/store/generationStore'
 import { FeedSkeletonGrid } from '@/components/ui/skeleton'
 
 export default function PublicProfile() {
+    const { t } = useTranslation()
     const { userId } = useParams()
     const navigate = useNavigate()
     const { impact, notify } = useHaptics()
@@ -199,10 +201,10 @@ export default function PublicProfile() {
     const avatarSrc = profileUser?.avatar_url || avatarUrl
 
     const stats = [
-        { label: 'Генерации', value: typeof total === 'number' ? total : items.length },
-        { label: 'Подписчики', value: profileUser?.followers_count || 0 },
-        { label: 'Лайки', value: profileUser?.likes_count || 0 },
-        { label: 'Ремиксы', value: profileUser?.remix_count || 0 },
+        { label: t('publicProfile.stats.generations'), value: typeof total === 'number' ? total : items.length },
+        { label: t('publicProfile.stats.followers'), value: profileUser?.followers_count || 0 },
+        { label: t('publicProfile.stats.likes'), value: profileUser?.likes_count || 0 },
+        { label: t('publicProfile.stats.remixes'), value: profileUser?.remix_count || 0 },
     ]
 
     const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
@@ -276,9 +278,9 @@ export default function PublicProfile() {
                                     } ${isFollowLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {isFollowing ? (
-                                    <><UserMinus size={16} /> Отписаться</>
+                                    <><UserMinus size={16} /> {t('publicProfile.unfollow')}</>
                                 ) : (
-                                    <><UserPlus size={16} /> Подписаться</>
+                                    <><UserPlus size={16} /> {t('publicProfile.follow')}</>
                                 )}
                             </button>
                         )}
@@ -287,12 +289,12 @@ export default function PublicProfile() {
 
                 <div>
                     <div className="flex justify-between items-end mb-4 px-1">
-                        <div className="text-lg font-bold text-white">Публичные генерации</div>
+                        <div className="text-lg font-bold text-white">{t('publicProfile.publicGenerations')}</div>
                     </div>
                     {loading && items.length === 0 ? (
                         <FeedSkeletonGrid viewMode="standard" />
                     ) : items.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">Нет публичных работ</p></div>
+                        <div className="flex flex-col items-center justify-center py-16 text-zinc-600 bg-zinc-900/30 rounded-3xl border border-dashed border-zinc-800"><HistoryIcon size={32} className="mb-3 opacity-20" /><p className="text-sm font-medium">{t('publicProfile.empty')}</p></div>
                     ) : (
                         <>
                             <div className="flex gap-4 items-start">
@@ -310,7 +312,7 @@ export default function PublicProfile() {
 
                             {items.length > 0 && (
                                 <div className="mt-4 flex justify-center pb-20">
-                                    <button onClick={async () => { if (loading || !userId) return; setLoading(true); const viewerParam = currentUser?.id ? `&viewer_id=${currentUser.id}` : ''; try { const r = await fetch(`/api/user/generations?user_id=${userId}&limit=6&offset=${offset + 6}&published_only=true${viewerParam}`); const j = await r.json().catch(() => null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset + 6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-4 py-2 rounded-lg">Загрузить ещё</button>
+                                    <button onClick={async () => { if (loading || !userId) return; setLoading(true); const viewerParam = currentUser?.id ? `&viewer_id=${currentUser.id}` : ''; try { const r = await fetch(`/api/user/generations?user_id=${userId}&limit=6&offset=${offset + 6}&published_only=true${viewerParam}`); const j = await r.json().catch(() => null); if (r.ok && j) { setItems([...items, ...j.items]); setOffset(offset + 6); setTotal(j.total) } } finally { setLoading(false); impact('light') } }} className="text-xs text-violet-400 bg-violet-500/5 border border-violet-500/10 hover:bg-violet-500/10 px-4 py-2 rounded-lg">{t('publicProfile.loadMore')}</button>
                                 </div>
                             )}
                         </>

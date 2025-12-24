@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Check, Loader2 } from 'lucide-react';
 import { useTelegram } from '@/hooks/useTelegram';
 
@@ -17,6 +18,7 @@ interface GenerationSelectorProps {
 }
 
 export function GenerationSelector({ isOpen, onClose, onSelect }: GenerationSelectorProps) {
+    const { t } = useTranslation();
     const { user } = useTelegram();
     const [generations, setGenerations] = useState<Generation[]>([]);
     const [loading, setLoading] = useState(false);
@@ -61,7 +63,7 @@ export function GenerationSelector({ isOpen, onClose, onSelect }: GenerationSele
             <div className="relative w-full max-w-lg bg-[#1c1c1e] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-10 fade-in duration-300">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-white/10">
-                    <h3 className="text-lg font-bold text-white">Выберите работу</h3>
+                    <h3 className="text-lg font-bold text-white">{t('generationSelector.title')}</h3>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                         <X size={20} className="text-zinc-400" />
                     </button>
@@ -75,7 +77,7 @@ export function GenerationSelector({ isOpen, onClose, onSelect }: GenerationSele
                         </div>
                     ) : generations.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500">
-                            У вас пока нет генераций.
+                            {t('generationSelector.empty')}
                         </div>
                     ) : (
                         <div className="grid grid-cols-3 gap-2">
@@ -111,7 +113,7 @@ export function GenerationSelector({ isOpen, onClose, onSelect }: GenerationSele
                         disabled={!selectedId}
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all active:scale-[0.98]"
                     >
-                        Выбрать
+                        {t('generationSelector.select')}
                     </button>
                 </div>
             </div>

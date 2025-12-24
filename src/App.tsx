@@ -17,6 +17,7 @@ import { TabBar } from "@/components/layout/TabBar";
 import { useEffect, useRef } from "react";
 import WebApp from "@twa-dev/sdk";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
+import { CloudflareProxyProvider } from "@/contexts/CloudflareProxyContext";
 
 function StartParamRouter() {
   const navigate = useNavigate();
@@ -145,7 +146,7 @@ export default function App() {
     }
   }, []);
   return (
-    <>
+    <CloudflareProxyProvider>
       <Router>
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute -top-20 -left-10 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[120px]"></div>
@@ -176,6 +177,6 @@ export default function App() {
         </div>
       </Router>
       <Toaster />
-    </>
+    </CloudflareProxyProvider>
   );
 }

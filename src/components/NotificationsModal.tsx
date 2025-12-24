@@ -4,6 +4,7 @@ import { X, Bell, Newspaper, CheckCheck, Settings } from 'lucide-react'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 interface Notification {
     id: number
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function NotificationsModal({ isOpen, onClose }: Props) {
+    const { t } = useTranslation()
     const { user, platform } = useTelegram()
     const { impact } = useHaptics()
     const navigate = useNavigate()
@@ -121,11 +123,11 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
         const now = new Date()
         const diff = now.getTime() - d.getTime()
         const mins = Math.floor(diff / 60000)
-        if (mins < 60) return `${mins} мин`
+        if (mins < 60) return `${mins} ${t('notifications.time.m')}`
         const hours = Math.floor(mins / 60)
-        if (hours < 24) return `${hours} ч`
+        if (hours < 24) return `${hours} ${t('notifications.time.h')}`
         const days = Math.floor(hours / 24)
-        return `${days} д`
+        return `${days} ${t('notifications.time.d')}`
     }
 
     if (!isOpen) return null
@@ -144,13 +146,13 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
             <div className="relative w-full max-w-md bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col max-h-[75vh]">
                 {/* Header */}
                 <div className="p-5 pb-3 flex justify-between items-center shrink-0 border-b border-white/10">
-                    <h2 className="text-lg font-bold text-white">Уведомления</h2>
+                    <h2 className="text-lg font-bold text-white">{t('notifications.title')}</h2>
                     <div className="flex items-center gap-2">
                         {tab === 'personal' && notifications.some(n => !n.read) && (
                             <button
                                 onClick={handleReadAll}
                                 className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-                                title="Прочитать всё"
+                                title={t('notifications.readAll')}
                             >
                                 <CheckCheck size={16} />
                             </button>
@@ -159,7 +161,7 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
                             <button
                                 onClick={handleReadAllNews}
                                 className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-                                title="Прочитать всё"
+                                title={t('notifications.readAll')}
                             >
                                 <CheckCheck size={16} />
                             </button>
@@ -183,7 +185,7 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
                     className="flex items-center gap-2 px-5 py-2 text-xs text-zinc-400 hover:text-violet-400 transition-colors border-b border-white/5"
                 >
                     <Settings size={14} />
-                    <span>Настройка уведомлений в Telegram</span>
+                    <span>{t('notifications.settings')}</span>
                 </button>
 
                 {/* Tabs */}
@@ -193,14 +195,14 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
                         className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${tab === 'personal' ? 'text-white border-b-2 border-violet-500' : 'text-zinc-500'}`}
                     >
                         <Bell size={16} />
-                        Личные
+                        {t('notifications.personal')}
                     </button>
                     <button
                         onClick={() => { setTab('news'); impact('light') }}
                         className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-2 ${tab === 'news' ? 'text-white border-b-2 border-violet-500' : 'text-zinc-500'}`}
                     >
                         <Newspaper size={16} />
-                        Общие
+                        {t('notifications.news')}
                     </button>
                 </div>
 
@@ -213,7 +215,7 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
                     ) : tab === 'personal' ? (
                         notifications.length === 0 ? (
                             <div className="text-center py-12 text-zinc-500 text-sm">
-                                Нет уведомлений
+                                {t('notifications.emptyPersonal')}
                             </div>
                         ) : (
                             <div className="divide-y divide-white/5">
@@ -240,7 +242,7 @@ export function NotificationsModal({ isOpen, onClose }: Props) {
                     ) : (
                         news.length === 0 ? (
                             <div className="text-center py-12 text-zinc-500 text-sm">
-                                Нет новостей
+                                {t('notifications.emptyNews')}
                             </div>
                         ) : (
                             <div className="divide-y divide-white/5">

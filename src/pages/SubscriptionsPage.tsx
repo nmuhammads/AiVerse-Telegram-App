@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, Users, UserPlus } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
@@ -16,6 +17,7 @@ interface UserItem {
 type TabType = 'followers' | 'following'
 
 export default function SubscriptionsPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const location = useLocation()
     const [searchParams] = useSearchParams()
@@ -114,7 +116,7 @@ export default function SubscriptionsPage() {
                         <ChevronLeft size={24} />
                     </button>
                 )}
-                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>Подписки</h1>
+                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>{t('subscriptions.title')}</h1>
             </div>
 
             {/* Tabs */}
@@ -123,12 +125,12 @@ export default function SubscriptionsPage() {
                     <button
                         onClick={() => { setActiveTab('followers'); impact('light') }}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'followers'
-                                ? 'bg-violet-600 text-white shadow-lg'
-                                : 'text-zinc-400 hover:text-white'
+                            ? 'bg-violet-600 text-white shadow-lg'
+                            : 'text-zinc-400 hover:text-white'
                             }`}
                     >
                         <Users size={16} />
-                        Подписчики
+                        {t('subscriptions.tabs.followers')}
                         {followers.length > 0 && (
                             <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">{followers.length}</span>
                         )}
@@ -136,12 +138,12 @@ export default function SubscriptionsPage() {
                     <button
                         onClick={() => { setActiveTab('following'); impact('light') }}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'following'
-                                ? 'bg-violet-600 text-white shadow-lg'
-                                : 'text-zinc-400 hover:text-white'
+                            ? 'bg-violet-600 text-white shadow-lg'
+                            : 'text-zinc-400 hover:text-white'
                             }`}
                     >
                         <UserPlus size={16} />
-                        Подписки
+                        {t('subscriptions.tabs.following')}
                         {following.length > 0 && (
                             <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">{following.length}</span>
                         )}
@@ -167,7 +169,7 @@ export default function SubscriptionsPage() {
                     <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
                         <Users size={48} className="mb-4 opacity-30" />
                         <p className="text-sm font-medium">
-                            {activeTab === 'followers' ? 'Пока нет подписчиков' : 'Вы пока ни на кого не подписаны'}
+                            {activeTab === 'followers' ? t('subscriptions.empty.followers') : t('subscriptions.empty.following')}
                         </p>
                     </div>
                 ) : (

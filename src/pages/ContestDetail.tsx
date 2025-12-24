@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trophy, Calendar, Info, Grid, Medal, Loader2, Clock, LayoutGrid, Grid3x3, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { useHaptics } from '@/hooks/useHaptics';
@@ -80,6 +81,7 @@ const LeaderboardThumbnail = ({ entry }: { entry: ContestEntry }) => {
 };
 
 export default function ContestDetail() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { impact } = useHaptics();
@@ -257,17 +259,17 @@ export default function ContestDetail() {
             const data = await res.json();
 
             if (data.success) {
-                toast.success('Работа добавлена в конкурс!');
+                toast.success(t('contestDetail.messages.successJoin'));
                 impact('medium');
                 impact('medium');
                 fetchEntries(true); // Refresh entries
                 setActiveTab('gallery');
             } else {
-                toast.error(data.error || 'Ошибка при добавлении');
+                toast.error(data.error || t('contestDetail.messages.errorJoin'));
                 impact('medium');
             }
         } catch (error) {
-            toast.error('Ошибка сети');
+            toast.error(t('contestDetail.messages.errorNetwork'));
         } finally {
             setJoining(false);
         }
@@ -323,7 +325,7 @@ export default function ContestDetail() {
                 // Revert if failed
                 setEntries(prev => updateList(prev));
                 setLeaderboardEntries(prev => updateList(prev));
-                toast.error('Ошибка при лайке');
+                toast.error(t('contestDetail.messages.errorLike'));
             }
         } catch (e) {
             // Revert
@@ -346,7 +348,7 @@ export default function ContestDetail() {
         return '6rem';
     };
 
-    if (!contest) return <div className="text-white text-center pt-20">Конкурс не найден</div>;
+    if (!contest) return <div className="text-white text-center pt-20">{t('contestDetail.messages.notFound')}</div>;
 
     return (
         <div className="min-h-dvh bg-black pb-40">
@@ -369,19 +371,19 @@ export default function ContestDetail() {
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${contest.status === 'active' ? 'bg-green-500/20 text-green-400' :
                             contest.status === 'completed' ? 'bg-zinc-500/20 text-zinc-400' : 'bg-blue-500/20 text-blue-400'
                             }`}>
-                            {contest.status === 'active' ? 'Активен' : contest.status === 'completed' ? 'Завершен' : 'Скоро'}
+                            {contest.status === 'active' ? t('contestDetail.status.active') : contest.status === 'completed' ? t('contestDetail.status.completed') : t('contestDetail.status.upcoming')}
                         </span>
                         {contest.status === 'active' && (
                             <div className="flex items-center gap-1 text-xs text-zinc-300 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded">
                                 <Clock size={12} />
-                                <span>До {new Date(contest.end_date).toLocaleDateString()}</span>
+                                <span>{t('contestDetail.status.until', { date: new Date(contest.end_date).toLocaleDateString() })}</span>
                             </div>
                         )}
                     </div>
                     <h1 className="text-2xl font-bold text-white mb-1">{contest.title}</h1>
                     <div className="text-sm text-zinc-300 flex items-center gap-1">
                         <Trophy size={14} className="text-yellow-500" />
-                        <span>Организатор: {contest.organizer_name}</span>
+                        <span>{t('contestDetail.organizer', { name: contest.organizer_name })}</span>
                     </div>
                 </div>
             </div>
@@ -390,9 +392,9 @@ export default function ContestDetail() {
             <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-white/10">
                 <div className="flex">
                     {[
-                        { id: 'info', label: 'Инфо', icon: Info },
-                        { id: 'gallery', label: 'Галерея', icon: Grid },
-                        { id: 'leaderboard', label: 'Рейтинг', icon: Medal },
+                        { id: 'info', label: t('contestDetail.tabs.info'), icon: Info },
+                        { id: 'gallery', label: t('contestDetail.tabs.gallery'), icon: Grid },
+                        { id: 'leaderboard', label: t('contestDetail.tabs.leaderboard'), icon: Medal },
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -415,21 +417,21 @@ export default function ContestDetail() {
                 {activeTab === 'info' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="bg-[#1c1c1e] rounded-xl p-4 border border-white/5">
-                            <h3 className="text-lg font-bold text-white mb-2">Описание</h3>
+                            <h3 className="text-lg font-bold text-white mb-2">{t('contestDetail.sections.description')}</h3>
                             <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">{contest.description.replace(/\\n/g, '\n')}</p>
                         </div>
 
                         <div className="bg-[#1c1c1e] rounded-xl p-4 border border-white/5">
-                            <h3 className="text-lg font-bold text-white mb-2">Правила</h3>
+                            <h3 className="text-lg font-bold text-white mb-2">{t('contestDetail.sections.rules')}</h3>
                             <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">{contest.rules.replace(/\\n/g, '\n')}</p>
                         </div>
 
                         <div className="bg-[#1c1c1e] rounded-xl p-4 border border-white/5">
-                            <h3 className="text-lg font-bold text-white mb-2">Призы</h3>
+                            <h3 className="text-lg font-bold text-white mb-2">{t('contestDetail.sections.prizes')}</h3>
                             <div className="space-y-2">
                                 {contest.prizes && typeof contest.prizes === 'object' && Object.entries(contest.prizes).map(([place, prize]: [string, any]) => (
                                     <div key={place} className="flex items-start justify-between bg-white/5 p-3 rounded-lg">
-                                        <span className="font-bold text-yellow-500 shrink-0 mr-4">#{place} Место</span>
+                                        <span className="font-bold text-yellow-500 shrink-0 mr-4">{t('contestDetail.prizePlace', { place })}</span>
                                         <span className="text-white font-medium text-right whitespace-pre-wrap">{String(prize)}</span>
                                     </div>
                                 ))}
@@ -441,7 +443,7 @@ export default function ContestDetail() {
                 {activeTab === 'gallery' && (
                     entries.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            Пока нет работ. Будьте первым!
+                            {t('contestDetail.emptyGallery')}
                         </div>
                     ) : (
                         <>
@@ -451,14 +453,14 @@ export default function ContestDetail() {
                                         onClick={() => { setSort('new'); impact('light'); }}
                                         className={`text-sm font-bold tracking-tight transition-colors ${sort === 'new' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     >
-                                        Новые
+                                        {t('contestDetail.sorting.new')}
                                     </button>
                                     <div className="w-[1px] h-3 bg-zinc-800"></div>
                                     <button
                                         onClick={() => { setSort('popular'); impact('light'); }}
                                         className={`text-sm font-bold tracking-tight transition-colors ${sort === 'popular' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     >
-                                        Топ
+                                        {t('contestDetail.sorting.top')}
                                     </button>
                                 </div>
 
@@ -469,7 +471,7 @@ export default function ContestDetail() {
                                             onChange={(e) => { setSelectedModelFilter(e.target.value); impact('light'); }}
                                             className="appearance-none bg-[#1c1c1e] border border-white/5 text-xs font-medium text-zinc-300 rounded-lg py-0 pl-3 pr-8 focus:outline-none focus:border-violet-500/50 transition-colors h-[30px]"
                                         >
-                                            <option value="all">Все модели</option>
+                                            <option value="all">{t('contestDetail.filter.allModels')}</option>
                                             <option value="nanobanana">NanoBanana</option>
                                             <option value="nanobanana-pro">NanoBanana Pro</option>
                                             <option value="seedream4">SeeDream 4</option>
@@ -528,7 +530,7 @@ export default function ContestDetail() {
                             </div>
                             {
                                 isFetchingMore && (
-                                    <div className="text-center text-zinc-500 py-4 w-full">Loading more...</div>
+                                    <div className="text-center text-zinc-500 py-4 w-full">{t('contestDetail.loadingMore')}</div>
                                 )
                             }
                         </>
@@ -581,7 +583,7 @@ export default function ContestDetail() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-white font-medium truncate">{entry.author.username}</div>
                                                 <div className="text-xs text-zinc-500 flex items-center gap-2">
-                                                    <span className="flex items-center gap-1"><Trophy size={10} /> {entry.generation.likes_count} лайков</span>
+                                                    <span className="flex items-center gap-1"><Trophy size={10} /> {t('contestDetail.likes', { count: entry.generation.likes_count })}</span>
                                                 </div>
                                             </div>
 
@@ -610,7 +612,7 @@ export default function ContestDetail() {
                             className="pointer-events-auto bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-transform active:scale-95"
                         >
                             <Trophy size={18} />
-                            Участвовать
+                            {t('contestDetail.join')}
                         </button>
                     </div>
                 )

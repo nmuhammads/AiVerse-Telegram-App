@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Heart, Repeat, Trophy } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useNavigate } from 'react-router-dom'
+import { useCloudflareProxy } from '@/contexts/CloudflareProxyContext'
 
 export interface FeedItem {
     id: number
@@ -43,15 +45,18 @@ function getModelDisplayName(model: string | null): string {
 }
 
 export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike, showRemix = true, isCompact = false }: { item: FeedItem; priority?: boolean; handleRemix: (item: FeedItem) => void; onClick: (item: FeedItem) => void; onLike?: (id: number, isLiked: boolean) => void; showRemix?: boolean; isCompact?: boolean }) => {
+    const { t } = useTranslation()
     const [loaded, setLoaded] = useState(false)
     const { impact } = useHaptics()
     const { user } = useTelegram()
     const navigate = useNavigate()
+    const { getImageUrl, needsProxy } = useCloudflareProxy()
     const [isLiked, setIsLiked] = useState(item.is_liked)
     const [likesCount, setLikesCount] = useState(item.likes_count)
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
-    const [imgSrc, setImgSrc] = useState(item.compressed_url || item.image_url)
+    const [imgSrc, setImgSrc] = useState(getImageUrl(item.compressed_url || item.image_url))
     const [hasError, setHasError] = useState(false)
+    const [triedProxy, setTriedProxy] = useState(false)
 
     const imgRef = React.useRef<HTMLImageElement>(null)
 
@@ -61,10 +66,11 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
     }, [item.is_liked, item.likes_count])
 
     useEffect(() => {
-        setImgSrc(item.compressed_url || item.image_url)
+        setImgSrc(getImageUrl(item.compressed_url || item.image_url))
         setHasError(false)
         setLoaded(false)
-    }, [item.compressed_url, item.image_url])
+        setTriedProxy(false)
+    }, [item.compressed_url, item.image_url, getImageUrl])
 
     // Check for cached images
     useEffect(() => {
@@ -75,12 +81,18 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
 
     const handleImageError = () => {
         console.warn('Image load error for:', imgSrc)
-        if (!hasError && item.compressed_url && imgSrc !== item.image_url) {
+        if (!hasError && item.compressed_url && imgSrc !== getImageUrl(item.image_url)) {
             // First failure (thumbnail): try original
             console.log('Falling back to original:', item.image_url)
-            setImgSrc(item.image_url)
+            setImgSrc(getImageUrl(item.image_url))
+        } else if (!triedProxy && !needsProxy) {
+            // If direct access failed and we haven't tried proxy yet, try proxy
+            console.log('Trying proxy fallback for:', item.image_url)
+            setTriedProxy(true)
+            const proxyUrl = `/api/proxy/image?url=${encodeURIComponent(item.compressed_url || item.image_url)}`
+            setImgSrc(proxyUrl)
         } else {
-            console.error('Both thumbnail and original failed')
+            console.error('All image load attempts failed')
             setHasError(true)
         }
     }
@@ -142,7 +154,7 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                     )}
                     {hasError ? (
                         <div className="absolute inset-0 flex items-center justify-center bg-zinc-800 text-white/40 text-xs" style={{ minHeight: '200px' }}>
-                            Изображение недоступно
+                            {t('feed.imageUnavailable')}
                         </div>
                     ) : (
                         <img

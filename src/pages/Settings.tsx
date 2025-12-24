@@ -1,9 +1,10 @@
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock, ChevronDown, ArrowLeft } from 'lucide-react'
+import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock, ChevronDown, ArrowLeft, Check } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 interface NotificationSettings {
     telegram_news: boolean
@@ -20,11 +21,13 @@ const defaultSettings: NotificationSettings = {
 }
 
 export default function Settings() {
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const { impact } = useHaptics()
     const { addToHomeScreen, checkHomeScreenStatus, platform, tg } = useTelegram()
     const [canAddToHome, setCanAddToHome] = useState(false)
     const [notifExpanded, setNotifExpanded] = useState(false)
+    const [langExpanded, setLangExpanded] = useState(false)
     const [notifSettings, setNotifSettings] = useState<NotificationSettings>(defaultSettings)
     const [showArrow, setShowArrow] = useState(false)
     const [searchParams] = useSearchParams()
@@ -106,36 +109,55 @@ export default function Settings() {
         }
     }
 
+    const changeLanguage = (lang: string) => {
+        i18n.changeLanguage(lang)
+        impact('light')
+        setLangExpanded(false)
+    }
+
     const sections = [
         {
-            title: 'Основные',
+            title: t('settings.sections.general'),
             items: [
-                { icon: Globe, label: 'Язык', value: 'Русский', onClick: () => { } },
-                { icon: Moon, label: 'Тема', value: 'Темная', onClick: () => toast.error('Упс пока доступна только темная тема') },
-                ...(canAddToHome ? [{ icon: Zap, label: 'Добавить на главный экран', onClick: addToHomeScreen }] : [])
+                {
+                    id: 'language',
+                    icon: Globe,
+                    label: t('settings.items.language'),
+                    value: i18n.language.startsWith('ru') ? 'Русский' : 'English',
+                    onClick: () => setLangExpanded(!langExpanded),
+                    isCollapsible: true,
+                    expanded: langExpanded,
+                    options: [
+                        { label: 'Русский', onClick: () => changeLanguage('ru'), active: i18n.language.startsWith('ru') },
+                        { label: 'English', onClick: () => changeLanguage('en'), active: i18n.language.startsWith('en') }
+                    ]
+                },
+                { icon: Moon, label: t('settings.items.theme'), value: t('settings.items.themeValue'), onClick: () => toast.error(t('settings.messages.themeToast')) },
+                ...(canAddToHome ? [{ icon: Zap, label: t('settings.items.addToHome'), onClick: addToHomeScreen }] : [])
             ]
         },
         {
-            title: 'Ремиксы',
+            title: t('settings.sections.remix'),
             items: [
-                { icon: Users, label: 'Накопления', value: String(remixCount), onClick: () => navigate('/accumulations') },
+                { icon: Users, label: t('settings.items.accumulations'), value: String(remixCount), onClick: () => navigate('/accumulations') },
             ]
         },
         {
-            title: 'Социальные',
+            title: t('settings.sections.social'),
             items: [
-                { icon: Users, label: 'Подписки и подписчики', onClick: () => navigate('/subscriptions') },
-            ]
-        },
-        {
-            title: 'О приложении',
-            items: [
-                { icon: MessageCircle, label: 'Поддержка', onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots', '_blank') : tg.openTelegramLink('https://t.me/aiversebots') },
-                { icon: Clock, label: 'Хранение данных', value: '60 дней', onClick: () => toast.info('Изображения хранятся 60 дней. Оригиналы в максимальном качестве отправляются в чат с ботом и хранятся там бессрочно 💾', { duration: 5000 }) },
-                { icon: Info, label: 'Версия', value: 'v2.8.3', onClick: () => { } },
+                { icon: Users, label: t('settings.items.subscriptions'), onClick: () => navigate('/subscriptions') },
             ]
         }
     ]
+
+    const aboutSection = {
+        title: t('settings.sections.about'),
+        items: [
+            { icon: MessageCircle, label: t('settings.items.support'), onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots', '_blank') : tg.openTelegramLink('https://t.me/aiversebots') },
+            { icon: Clock, label: t('settings.items.storage'), value: t('settings.items.storageValue'), onClick: () => toast.info(t('settings.messages.storageToast'), { duration: 5000 }) },
+            { icon: Info, label: t('settings.items.version'), value: 'v2.9.0', onClick: () => { } },
+        ]
+    }
 
     // Custom padding for different platforms
     const getPaddingTop = () => {
@@ -145,10 +167,10 @@ export default function Settings() {
     }
 
     const notifOptions = [
-        { key: 'telegram_news' as const, label: 'Новости' },
-        { key: 'telegram_remix' as const, label: 'Ремиксы' },
-        { key: 'telegram_generation' as const, label: 'Генерации' },
-        { key: 'telegram_likes' as const, label: 'Лайки' },
+        { key: 'telegram_news' as const, label: t('settings.notifications.options.news') },
+        { key: 'telegram_remix' as const, label: t('settings.notifications.options.remix') },
+        { key: 'telegram_generation' as const, label: t('settings.notifications.options.generation') },
+        { key: 'telegram_likes' as const, label: t('settings.notifications.options.likes') },
     ]
 
     return (
@@ -163,7 +185,7 @@ export default function Settings() {
                         <ChevronLeft size={24} />
                     </button>
                 )}
-                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>Настройки</h1>
+                <h1 className={`text-xl font-bold ${isMobile ? 'ml-1' : ''}`}>{t('settings.title')}</h1>
             </div>
 
             {/* Content */}
@@ -173,20 +195,44 @@ export default function Settings() {
                         <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">{section.title}</h2>
                         <div className="bg-zinc-900/50 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm">
                             {section.items.map((item, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => { impact('light'); item.onClick() }}
-                                    className={`w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors ${i !== section.items.length - 1 ? 'border-b border-white/5' : ''}`}
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
-                                        <item.icon size={16} />
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <div className="text-sm font-medium text-white">{item.label}</div>
-                                    </div>
-                                    {item.value && <div className="text-xs font-medium text-zinc-500">{item.value}</div>}
-                                    <ChevronRight size={16} className="text-zinc-600" />
-                                </button>
+                                <div key={i} className={i !== section.items.length - 1 ? 'border-b border-white/5' : ''}>
+                                    <button
+                                        onClick={() => { impact('light'); item.onClick() }}
+                                        className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                            <item.icon size={16} />
+                                        </div>
+                                        <div className="flex-1 text-left">
+                                            <div className="text-sm font-medium text-white">{item.label}</div>
+                                        </div>
+                                        {item.value && <div className="text-xs font-medium text-zinc-500">{item.value}</div>}
+                                        {/* @ts-ignore */}
+                                        {item.isCollapsible ? (
+                                            /* @ts-ignore */
+                                            <ChevronDown size={16} className={`text-zinc-600 transition-transform ${item.expanded ? 'rotate-180' : ''}`} />
+                                        ) : (
+                                            <ChevronRight size={16} className="text-zinc-600" />
+                                        )}
+                                    </button>
+
+                                    {/* @ts-ignore */}
+                                    {item.isCollapsible && item.expanded && (
+                                        <div className="border-t border-white/5 bg-black/20">
+                                            {/* @ts-ignore */}
+                                            {item.options?.map((opt, optIdx) => (
+                                                <button
+                                                    key={optIdx}
+                                                    onClick={opt.onClick}
+                                                    className="w-full flex items-center justify-between px-4 py-3 pl-16 hover:bg-white/5 transition-colors"
+                                                >
+                                                    <span className={`text-sm ${opt.active ? 'text-white' : 'text-zinc-400'}`}>{opt.label}</span>
+                                                    {opt.active && <Check size={16} className="text-violet-500" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -195,11 +241,11 @@ export default function Settings() {
                 {/* Notification Settings - Collapsible */}
                 <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">Уведомления</h2>
+                        <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">{t('settings.sections.notifications')}</h2>
                         {showArrow && (
                             <div className="flex items-center gap-1 animate-pulse">
                                 <ArrowLeft size={14} className="text-violet-400" />
-                                <span className="text-xs text-violet-400">Настройте здесь</span>
+                                <span className="text-xs text-violet-400">{t('settings.notifications.hint')}</span>
                             </div>
                         )}
                     </div>
@@ -212,7 +258,7 @@ export default function Settings() {
                                 <Bell size={16} />
                             </div>
                             <div className="flex-1 text-left">
-                                <div className="text-sm font-medium text-white">Уведомления в Telegram</div>
+                                <div className="text-sm font-medium text-white">{t('settings.notifications.telegram')}</div>
                             </div>
                             <ChevronDown size={16} className={`text-zinc-600 transition-transform ${notifExpanded ? 'rotate-180' : ''}`} />
                         </button>
@@ -235,6 +281,30 @@ export default function Settings() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* About Section - At the bottom */}
+                <div className="space-y-3">
+                    <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">{aboutSection.title}</h2>
+                    <div className="bg-zinc-900/50 border border-white/10 rounded-2xl overflow-hidden backdrop-blur-sm">
+                        {aboutSection.items.map((item, i) => (
+                            <div key={i} className={i !== aboutSection.items.length - 1 ? 'border-b border-white/5' : ''}>
+                                <button
+                                    onClick={() => { impact('light'); item.onClick() }}
+                                    className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                        <item.icon size={16} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <div className="text-sm font-medium text-white">{item.label}</div>
+                                    </div>
+                                    {item.value && <div className="text-xs font-medium text-zinc-500">{item.value}</div>}
+                                    <ChevronRight size={16} className="text-zinc-600" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>

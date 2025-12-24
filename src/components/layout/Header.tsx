@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTelegram } from '@/hooks/useTelegram'
 import { NotificationBell } from '@/components/NotificationBell'
 
 export function Header() {
+  const { t } = useTranslation()
   const { user, platform } = useTelegram()
   const [avatarSrc, setAvatarSrc] = useState<string>('')
   useEffect(() => { }, [])
-  const displayName = user?.first_name || user?.username || 'Гость'
+  const displayName = user?.first_name || user?.username || t('common.guest')
   const avatarSeed = user?.username || String(user?.id || 'guest')
   const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(avatarSeed)}`
   useEffect(() => {
