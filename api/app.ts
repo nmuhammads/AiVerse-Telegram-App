@@ -22,6 +22,7 @@ import spinRoutes from './routes/spin.js'
 import eventsRoutes from './routes/events.js'
 import notificationsRoutes from './routes/notifications.js'
 import appNewsRoutes from './routes/app-news.js'
+import proxyRoutes from './routes/proxy.js'
 
 
 // load env
@@ -50,6 +51,7 @@ app.use('/api/spin', spinRoutes)
 app.use('/api/events', eventsRoutes)
 app.use('/api/notifications', notificationsRoutes)
 app.use('/api/app-news', appNewsRoutes)
+app.use('/api/proxy', proxyRoutes)
 
 /**
  * Serve frontend build
