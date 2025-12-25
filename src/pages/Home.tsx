@@ -127,7 +127,8 @@ export default function Home() {
     setCurrentScreen,
     setAspectRatio,
     setGenerationMode,
-    setUploadedImages
+    setUploadedImages,
+    setMediaType
   } = useGenerationStore()
   const navigate = useNavigate()
 
@@ -161,7 +162,8 @@ export default function Home() {
         'seedream4': 'seedream4',
         'seedream4-5': 'seedream4-5',
         'seedream4.5': 'seedream4-5', // Fallback for potential legacy/dot notation
-        'qwen-edit': 'seedream4-5' // Legacy handling (just in case)
+        'qwen-edit': 'seedream4-5', // Legacy handling (just in case)
+        'seedance-1.5-pro': 'seedance-1.5-pro'
       }
       if (modelMap[item.model]) {
         setSelectedModel(modelMap[item.model])
@@ -191,6 +193,17 @@ export default function Home() {
       setGenerationMode('image') // Ensure we are in image mode
     } else {
       setUploadedImages([])
+    }
+
+    // Set media type based on item
+    if (item.media_type === 'video') {
+      setMediaType('video')
+      // Ensure we use the video model
+      if (!item.model || item.model === 'seedance-1.5-pro') {
+        setSelectedModel('seedance-1.5-pro')
+      }
+    } else {
+      setMediaType('image')
     }
 
     setParentGeneration(item.id, item.author.username)
@@ -315,6 +328,7 @@ export default function Home() {
                 <option value="nanobanana-pro">NanoBanana Pro</option>
                 <option value="seedream4">SeeDream 4</option>
                 <option value="seedream4-5">SeeDream 4.5</option>
+                <option value="seedance-1.5-pro">Seedance Pro</option>
               </select>
               <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
             </div>

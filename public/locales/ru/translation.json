@@ -52,13 +52,39 @@
     },
     "studio": {
         "title": "Studio",
-        "tokens": "{{count}} токена",
+        "tokens": "токенов",
         "tokens_1": "{{count}} токен",
         "tokens_2": "{{count}} токена",
         "tokens_5": "{{count}} токенов",
+        "mediaType": {
+            "image": "Фото",
+            "video": "Видео"
+        },
         "mode": {
             "textToImage": "Text to Image",
-            "imageToImage": "Image to Image"
+            "imageToImage": "Image to Image",
+            "textToVideo": "Text to Video",
+            "imageToVideo": "Image to Video"
+        },
+        "video": {
+            "modelDesc": "Генерация видео из текста или изображения",
+            "duration": "Длительность",
+            "seconds": "сек",
+            "resolution": "Разрешение",
+            "camera": "Камера",
+            "cameraStatic": "Статичная",
+            "cameraDynamic": "Динамичная",
+            "cameraStaticHint": "Камера зафиксирована — объекты движутся в кадре",
+            "cameraDynamicHint": "Камера свободно перемещается — кинематографичный эффект",
+            "audio": "Звук",
+            "audioOff": "Без звука",
+            "audioOn": "Со звуком",
+            "audioWarning": "⚠️ Включение звука удваивает стоимость генерации",
+            "startFrame": "Начальный кадр",
+            "endFrame": "Финальный кадр",
+            "addStartFrame": "Добавить",
+            "addEndFrame": "Опционально",
+            "framesHint": "Начальный кадр обязателен. Финальный — опционально для контроля финального вида видео."
         },
         "prompt": {
             "from": "Промпт от {{username}}",
@@ -92,10 +118,12 @@
             "pasteInstruction": "Скопируйте фото и нажмите долгим тапом здесь → Вставить",
             "generationError": "Ошибка генерации",
             "timeout": "Время ожидания истекло. Генерация может завершиться в фоне, проверьте историю позже.",
+            "videoTimeout": "Генерация видео занимает 1-3 минуты. Проверьте историю генераций позже.",
             "network": "Ошибка сети. Проверьте интернет или попробуйте позже."
         },
         "result": {
             "title": "Результат",
+            "videoTitle": "Видео готово",
             "save": "Сохранить",
             "sendToChat": "Отправить в чат",
             "close": "Закрыть окно"
@@ -136,7 +164,9 @@
         "filters": {
             "all": "Все",
             "published": "Публичные",
-            "private": "Личные"
+            "private": "Личные",
+            "photo": "Фото",
+            "video": "Видео"
         },
         "preview": {
             "saveToGallery": "Сохранить в галерею",

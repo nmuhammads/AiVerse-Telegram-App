@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next'
 
 interface FeedItem {
     id: number
-    image_url: string
+    image_url: string | null
+    video_url?: string | null
     prompt: string
     created_at: string
     author: {
@@ -23,6 +24,7 @@ interface FeedItem {
     is_liked: boolean
     model?: string | null
     edit_variants?: string[] | null
+    media_type?: 'image' | 'video' | null
     contest?: {
         id: number
         title: string
@@ -47,6 +49,7 @@ function getModelDisplayName(model: string | null): string {
         case 'qwen-edit': return 'Qwen Edit'
         case 'flux': return 'Flux'
         case 'p-image-edit': return 'Editor'
+        case 'seedance-1.5-pro': return 'Seedance Pro'
         default: return model
     }
 }
@@ -140,13 +143,23 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                     </button>
                 </div>
 
-                {/* Main Image */}
+                {/* Main Media - Video or Image */}
                 <div className="relative flex items-center justify-center rounded-2xl overflow-hidden bg-zinc-900 shadow-2xl border border-white/5 group">
-                    <img
-                        src={currentImage}
-                        alt={item.prompt}
-                        className="max-w-full max-h-[65dvh] object-contain"
-                    />
+                    {item.media_type === 'video' && item.video_url ? (
+                        <video
+                            src={item.video_url}
+                            controls
+                            loop
+                            playsInline
+                            className="max-w-full max-h-[65dvh] object-contain"
+                        />
+                    ) : (
+                        <img
+                            src={currentImage}
+                            alt={item.prompt}
+                            className="max-w-full max-h-[65dvh] object-contain"
+                        />
+                    )}
                     {/* Carousel navigation */}
                     {hasVariants && (
                         <>
@@ -186,19 +199,21 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
                             </div>
                         </>
                     )}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            impact('light')
-                            setIsFullScreen(true)
-                        }}
-                        className={`absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-opacity ${platform === 'ios' || platform === 'android'
-                            ? 'opacity-100'
-                            : 'opacity-0 group-hover:opacity-100'
-                            }`}
-                    >
-                        <Maximize2 size={20} />
-                    </button>
+                    {item.media_type !== 'video' && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                impact('light')
+                                setIsFullScreen(true)
+                            }}
+                            className={`absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md border border-white/10 transition-opacity ${platform === 'ios' || platform === 'android'
+                                ? 'opacity-100'
+                                : 'opacity-0 group-hover:opacity-100'
+                                }`}
+                        >
+                            <Maximize2 size={20} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Footer */}

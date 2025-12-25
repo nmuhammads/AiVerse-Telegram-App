@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2 } from 'lucide-react'
 
 // Custom GridImage component for handling load states
 const GridImage = ({ src, originalUrl, alt, className, onImageError }: { src: string, originalUrl: string, alt: string, className?: string, onImageError?: () => void }) => {
@@ -80,6 +80,7 @@ function getModelDisplayName(model: string | null): string {
     case 'qwen-edit': return 'Qwen Edit'
     case 'flux': return 'Flux'
     case 'p-image-edit': return 'Editor'
+    case 'seedance-1.5-pro': return 'Seedance Pro'
     default: return model
   }
 }
@@ -112,9 +113,10 @@ export default function Profile() {
   const [remixCount, setRemixCount] = useState<number>(0)
   const [followingCount, setFollowingCount] = useState<number>(0)
   const [followersCount, setFollowersCount] = useState<number>(0)
-  const [items, setItems] = useState<{ id: number; image_url: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null }[]>([])
-  const [preview, setPreview] = useState<{ id: number; image_url: string; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null } | null>(null)
+  const [items, setItems] = useState<{ id: number; image_url: string | null; video_url?: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null }[]>([])
+  const [preview, setPreview] = useState<{ id: number; image_url: string; video_url?: string | null; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null } | null>(null)
   const [previewIndex, setPreviewIndex] = useState(0) // 0 = original, 1+ = edit variants
+  const [isVideoMuted, setIsVideoMuted] = useState(true)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [total, setTotal] = useState<number | undefined>(undefined)
@@ -123,6 +125,7 @@ export default function Profile() {
   // Filters
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [visibility, setVisibility] = useState<'all' | 'published' | 'private'>('all')
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all')
   const [showEditedOnly, setShowEditedOnly] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
@@ -254,13 +257,20 @@ export default function Profile() {
           if (showEditedOnly) {
             filteredItems = filteredItems.filter((item: any) => item.edit_variants && item.edit_variants.length > 0)
           }
+          // Filter by media type
+          if (mediaTypeFilter !== 'all') {
+            filteredItems = filteredItems.filter((item: any) => {
+              const itemMediaType = item.media_type || 'image' // default to image if not set
+              return itemMediaType === mediaTypeFilter
+            })
+          }
           setItems(filteredItems)
           setTotal(j.total)
           setOffset(0)
         }
       })
       .finally(() => setLoading(false))
-  }, [user?.id, selectedModels, visibility, showEditedOnly])
+  }, [user?.id, selectedModels, visibility, showEditedOnly, mediaTypeFilter])
 
   const {
     setPrompt,
@@ -269,7 +279,8 @@ export default function Profile() {
     setCurrentScreen,
     setAspectRatio,
     setGenerationMode,
-    setUploadedImages
+    setUploadedImages,
+    setMediaType
   } = useGenerationStore()
 
   const handleRemix = (item: any) => {
@@ -321,11 +332,23 @@ export default function Profile() {
       }
     }
 
+    // Load input images if present
     if (item.input_images && item.input_images.length > 0) {
       setUploadedImages(item.input_images)
       setGenerationMode('image')
     } else {
       setUploadedImages([])
+    }
+
+    // Set media type based on item
+    if (item.media_type === 'video') {
+      setMediaType('video')
+      // Ensure we use the video model
+      if (!item.model || item.model === 'seedance-1.5-pro') {
+        setSelectedModel('seedance-1.5-pro')
+      }
+    } else {
+      setMediaType('image')
     }
 
     setParentGeneration(item.id, item.author?.username || user?.username)
@@ -683,9 +706,9 @@ export default function Profile() {
               })}
             </div>
             {/* Visibility Filter */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <Globe size={14} className="flex-shrink-0 text-zinc-500" />
-              <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
+              <div className="flex flex-shrink-0 bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
                 {[
                   { value: 'all', label: t('profile.filters.all') },
                   { value: 'published', label: t('profile.filters.published') },
@@ -708,6 +731,31 @@ export default function Profile() {
                   </button>
                 ))}
               </div>
+              {/* Media Type Filter */}
+              <div className="flex flex-shrink-0 bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
+                {[
+                  { value: 'all', label: t('profile.filters.all'), icon: null },
+                  { value: 'image', label: t('profile.filters.photo'), icon: ImageIcon },
+                  { value: 'video', label: t('profile.filters.video'), icon: Video },
+                ].map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => {
+                      impact('light')
+                      setMediaTypeFilter(m.value as typeof mediaTypeFilter)
+                      setItems([])
+                      setOffset(0)
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 ${mediaTypeFilter === m.value
+                      ? 'bg-violet-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                      }`}
+                  >
+                    {m.icon && <m.icon size={12} />}
+                    {m.label}
+                  </button>
+                ))}
+              </div>
               {/* Edited filter toggle */}
               <button
                 onClick={() => {
@@ -716,7 +764,7 @@ export default function Profile() {
                   setItems([])
                   setOffset(0)
                 }}
-                className={`w-8 h-8 rounded-full text-[11px] font-medium transition-all flex items-center justify-center border ${showEditedOnly
+                className={`flex-shrink-0 w-8 h-8 rounded-full text-[11px] font-medium transition-all flex items-center justify-center border ${showEditedOnly
                   ? 'bg-violet-600 text-white border-violet-500'
                   : 'bg-zinc-800/50 text-zinc-400 hover:text-white border-white/5'
                   }`}
@@ -733,9 +781,9 @@ export default function Profile() {
             <>
               <div>
                 <div className="grid grid-cols-2 gap-3">
-                  {items.filter(h => !!h.image_url).map((h) => (
+                  {items.filter(h => !!(h.image_url || h.video_url)).map((h) => (
                     <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
-                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants }) }} className="block w-full">
+                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', video_url: h.video_url, prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants, media_type: h.media_type }) }} className="block w-full">
                         <GridImage
                           src={h.compressed_url || h.image_url || ''}
                           originalUrl={h.image_url || ''}
@@ -753,6 +801,12 @@ export default function Profile() {
                       {h.edit_variants && h.edit_variants.length > 0 && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500/80 backdrop-blur-md flex items-center justify-center z-10 pointer-events-none border border-violet-400/30">
                           <Pencil size={12} className="text-white" />
+                        </div>
+                      )}
+                      {/* Video indicator */}
+                      {h.media_type === 'video' && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500/80 backdrop-blur-md flex items-center justify-center z-10 pointer-events-none border border-red-400/30">
+                          <Video size={12} className="text-white" />
                         </div>
                       )}
                       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -777,10 +831,11 @@ export default function Profile() {
                         <button
                           onClick={() => {
                             impact('light')
+                            const shareUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
                             if (navigator.share) {
-                              navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: preview.image_url }).catch(() => { })
+                              navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: shareUrl }).catch(() => { })
                             } else {
-                              shareImage(preview.image_url, cleanPrompt(preview.prompt))
+                              shareImage(shareUrl, cleanPrompt(preview.prompt))
                             }
                           }}
                           className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
@@ -817,20 +872,23 @@ export default function Profile() {
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <button
-                          onClick={() => {
-                            impact('light')
-                            const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                              ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                              : preview.image_url
-                            setPreview(null)
-                            navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
-                          }}
-                          className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
-                        >
-                          <Pencil size={14} />
-                          {t('editor.edit')}
-                        </button>
+                        {/* Edit button - hide for videos */}
+                        {preview.media_type !== 'video' && (
+                          <button
+                            onClick={() => {
+                              impact('light')
+                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                : preview.image_url
+                              setPreview(null)
+                              navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
+                            }}
+                            className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
+                          >
+                            <Pencil size={14} />
+                            {t('editor.edit')}
+                          </button>
+                        )}
                       </div>
                       {/* Carousel navigation */}
                       {preview.edit_variants && preview.edit_variants.length > 0 && (
@@ -869,24 +927,56 @@ export default function Profile() {
                           </div>
                         </>
                       )}
-                      <img
-                        src={preview.edit_variants && preview.edit_variants.length > 0
-                          ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                          : preview.image_url
-                        }
-                        alt="Preview"
-                        className="w-full h-full object-contain"
-                      />
+                      {/* Media content - video or image */}
+                      {preview.media_type === 'video' && preview.video_url ? (
+                        <>
+                          {console.log('[Profile Video]', { media_type: preview.media_type, video_url: preview.video_url })}
+                          <video
+                            src={preview.video_url}
+                            controls
+                            loop
+                            muted={isVideoMuted}
+                            playsInline
+                            className="w-full h-full object-contain"
+                            onLoadStart={() => console.log('[Profile Video] Load started, url:', preview.video_url)}
+                            onLoadedData={() => console.log('[Profile Video] Data loaded successfully')}
+                            onCanPlay={() => console.log('[Profile Video] Can play now')}
+                            onError={(e) => {
+                              const video = e.currentTarget
+                              console.error('[Profile Video] Error:', {
+                                url: preview.video_url,
+                                errorCode: video.error?.code,
+                                errorMsg: video.error?.message,
+                                networkState: video.networkState,
+                                readyState: video.readyState
+                              })
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <img
+                          src={preview.edit_variants && preview.edit_variants.length > 0
+                            ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                            : preview.image_url
+                          }
+                          alt="Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      )}
                     </div>
                     <div className="p-4 flex flex-col gap-3">
                       <div className="flex flex-col sm:flex-row gap-3">
                         <button
                           onClick={() => {
                             impact('light')
-                            const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                              ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                              : preview.image_url
-                            saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
+                            if (preview.media_type === 'video' && preview.video_url) {
+                              saveToGallery(preview.video_url, `ai-video-${Date.now()}.mp4`)
+                            } else {
+                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                : preview.image_url
+                              saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
+                            }
                           }}
                           className="flex-1 min-h-[48px] h-auto py-3 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                         >
@@ -898,12 +988,13 @@ export default function Profile() {
                             if (!user?.id) return
                             impact('light')
                             try {
-                              const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: preview.image_url, caption: cleanPrompt(preview.prompt) }) })
+                              const fileUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
+                              const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: fileUrl, caption: cleanPrompt(preview.prompt) }) })
                               const j = await r.json().catch(() => null)
                               if (r.ok && j?.ok) { notify('success') }
                               else {
                                 notify('error')
-                                shareImage(preview.image_url, cleanPrompt(preview.prompt))
+                                shareImage(fileUrl, cleanPrompt(preview.prompt))
                               }
                             } catch {
                               notify('error')
@@ -921,10 +1012,10 @@ export default function Profile() {
                         <button
                           onClick={() => setShowRemixShareConfirm(true)}
                           disabled={remixShareLoading}
-                          className="flex-1 min-h-[44px] py-2.5 px-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-50 overflow-hidden"
+                          className="flex-1 min-h-[44px] py-2 px-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] disabled:opacity-50"
                         >
                           {remixShareLoading ? <Loader2 size={14} className="flex-shrink-0 animate-spin" /> : <Repeat size={14} className="flex-shrink-0" />}
-                          <span className="truncate">{t('profile.preview.shareRemix')}</span>
+                          <span className="text-center leading-tight">{t('profile.preview.shareRemix')}</span>
                         </button>
                         <button
                           onClick={() => {
@@ -934,10 +1025,10 @@ export default function Profile() {
                               setShowPublishConfirm(true)
                             }
                           }}
-                          className={`flex-1 min-h-[44px] py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-colors ${preview.is_published ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                          className={`flex-1 min-h-[44px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-colors ${preview.is_published ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
                         >
-                          {preview.is_published ? <EyeOff size={14} /> : <Globe size={14} />}
-                          {preview.is_published ? t('profile.preview.unpublish') : t('profile.preview.publish')}
+                          {preview.is_published ? <EyeOff size={14} className="flex-shrink-0" /> : <Globe size={14} className="flex-shrink-0" />}
+                          <span className="text-center leading-tight">{preview.is_published ? t('profile.preview.unpublish') : t('profile.preview.publish')}</span>
                         </button>
                       </div>
 
@@ -1050,7 +1141,8 @@ export default function Profile() {
                                 generation_id: preview.id,
                                 owner_username: user.username || null,
                                 owner_user_id: user.id,
-                                model: preview.model || null
+                                model: preview.model || null,
+                                video_url: preview.video_url || null
                               })
                             })
                             if (res.ok) {

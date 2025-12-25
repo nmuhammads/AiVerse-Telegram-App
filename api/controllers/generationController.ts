@@ -19,6 +19,11 @@ interface KieAIRequest {
     userId: number
   }
   resolution?: string
+  // Параметры для видео (Seedance 1.5 Pro)
+  video_duration?: '4' | '8' | '12'
+  video_resolution?: '480p' | '720p'
+  fixed_lens?: boolean
+  generate_audio?: boolean
 }
 
 interface KieAIResponse {
@@ -36,6 +41,7 @@ const MODEL_CONFIGS = {
   nanobanana: { kind: 'jobs' as const, model: 'google/nano-banana-edit' },
   'nanobanana-pro': { kind: 'jobs' as const, model: 'nano-banana-pro' },
   'qwen-edit': { kind: 'jobs' as const, model: 'qwen/text-or-image' },
+  'seedance-1.5-pro': { kind: 'jobs' as const, model: 'bytedance/seedance-1.5-pro', mediaType: 'video' as const },
 }
 
 function mapSeedreamImageSize(ratio?: string): string | undefined {
@@ -329,7 +335,38 @@ const MODEL_PRICES: Record<string, number> = {
   flux: 4,
 }
 
-async function completeGeneration(generationId: number, userId: number, imageUrl: string, model: string, cost: number, parentId?: number, contestEntryId?: number) {
+// Цены для видео-генерации Seedance 1.5 Pro
+// Формула: ceil(api_credits * 1.5) — наценка 1.5x от стоимости API
+const VIDEO_PRICES: Record<string, Record<string, { base: number; audio: number }>> = {
+  '480p': {
+    '4': { base: 12, audio: 24 },
+    '8': { base: 21, audio: 42 },
+    '12': { base: 29, audio: 58 },
+  },
+  '720p': {
+    '4': { base: 24, audio: 48 },
+    '8': { base: 42, audio: 84 },
+    '12': { base: 58, audio: 116 },
+  },
+}
+
+// Рассчитать стоимость видео в токенах
+function calculateVideoCost(resolution: string, duration: string, withAudio: boolean): number {
+  const prices = VIDEO_PRICES[resolution]?.[duration]
+  if (!prices) return 42 // Default: 720p, 8s
+  return withAudio ? prices.audio : prices.base
+}
+
+async function completeGeneration(
+  generationId: number,
+  userId: number,
+  imageUrl: string,
+  model: string,
+  cost: number,
+  parentId?: number,
+  contestEntryId?: number,
+  inputImages?: string[]
+) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !userId || !generationId) return
 
   // 0. Check if already completed to prevent double charge
@@ -341,13 +378,24 @@ async function completeGeneration(generationId: number, userId: number, imageUrl
 
   console.log(`[DB] Completing generation ${generationId} for user ${userId}`)
   try {
-    // 1. Update generation status
-    const updateRes = await supaPatch('generations', `?id=eq.${generationId}`, {
-      image_url: imageUrl,
+    // Determine media type from model
+    const mediaType = model === 'seedance-1.5-pro' ? 'video' : 'image'
+
+    // 1. Update generation status - save video to video_url, image to image_url
+    const updatePayload: Record<string, unknown> = {
       status: 'completed',
-      completed_at: new Date().toISOString()
-    })
-    console.log(`[DB] Generation ${generationId} status updated:`, updateRes.ok)
+      completed_at: new Date().toISOString(),
+      media_type: mediaType
+    }
+
+    if (mediaType === 'video') {
+      updatePayload.video_url = imageUrl
+    } else {
+      updatePayload.image_url = imageUrl
+    }
+
+    const updateRes = await supaPatch('generations', `?id=eq.${generationId}`, updatePayload)
+    console.log(`[DB] Generation ${generationId} status updated (media_type: ${mediaType}, url field: ${mediaType === 'video' ? 'video_url' : 'image_url'}):`, updateRes.ok)
 
     // Баланс уже списан при создании генерации (в handleGenerateImage)
     // При успешном завершении не нужно ничего делать с балансом
@@ -452,10 +500,20 @@ async function completeGeneration(generationId: number, userId: number, imageUrl
 
 
     // 4. Generate Thumbnail (Async, don't block response)
-    if (imageUrl) {
-      createThumbnail(imageUrl, imageUrl, `gen_${generationId}_thumb.jpg`).catch(err => {
+    // For videos: use first input image as thumbnail (more efficient than extracting from video)
+    // For images: use the generated image itself
+    const isVideoModel = model === 'seedance-1.5-pro'
+    const thumbnailSource = isVideoModel && inputImages && inputImages.length > 0
+      ? inputImages[0]  // Use first input frame for video thumbnail
+      : imageUrl        // Use generated image for image thumbnail
+
+    if (thumbnailSource) {
+      createThumbnail(thumbnailSource, thumbnailSource, `gen_${generationId}_thumb.jpg`).catch(err => {
         console.error(`[Thumbnail] Failed to generate thumbnail for ${generationId}:`, err)
       })
+      if (isVideoModel) {
+        console.log(`[Thumbnail] Creating video thumbnail from input image for ${generationId}`)
+      }
     }
 
   } catch (e) {
@@ -595,6 +653,39 @@ async function generateImageWithKieAI(
       }
     }
 
+    // Seedance 1.5 Pro — Видео генерация
+    if (model === 'seedance-1.5-pro') {
+      const { video_duration, video_resolution, fixed_lens, generate_audio } = requestData as any
+
+      const input: Record<string, unknown> = {
+        prompt,
+        aspect_ratio: aspect_ratio || '16:9',
+        resolution: video_resolution || '720p',
+        duration: video_duration || '8',
+        fixed_lens: fixed_lens ?? false,
+        generate_audio: generate_audio ?? false,
+      }
+
+      // Добавить изображения если есть (I2V режим)
+      if (imageUrls.length > 0) {
+        input.input_urls = imageUrls
+      }
+
+      console.log('[Seedance] Creating video task:', JSON.stringify(input))
+      const taskId = await createJobsTask(apiKey, 'bytedance/seedance-1.5-pro', input, onTaskCreated, metaPayload)
+
+      // Для видео используем более длинный таймаут — 6 минут
+      const VIDEO_TIMEOUT_MS = 360000
+      const url = await pollJobsTask(apiKey, taskId, VIDEO_TIMEOUT_MS)
+
+      if (url === 'TIMEOUT') {
+        console.log('[Seedance] Video generation timed out, status stays pending')
+        return { timeout: true, inputImages: imageUrls }
+      }
+
+      console.log('[Seedance] Video generated:', url)
+      return { images: [url], inputImages: imageUrls }
+    }
 
 
     throw new Error('Unsupported model')
@@ -613,7 +704,11 @@ export async function handleGenerateImage(req: Request, res: Response) {
   })
 
   try {
-    const { prompt, model, aspect_ratio, images, negative_prompt, user_id, resolution, contest_entry_id } = req.body
+    const {
+      prompt, model, aspect_ratio, images, negative_prompt, user_id, resolution, contest_entry_id,
+      // Параметры для видео (Seedance 1.5 Pro)
+      video_duration, video_resolution, fixed_lens, generate_audio
+    } = req.body
 
     // Валидация входных данных
     if (!prompt || typeof prompt !== 'string') {
@@ -705,6 +800,14 @@ export async function handleGenerateImage(req: Request, res: Response) {
       if (model === 'nanobanana-pro' && resolution === '2K') {
         cost = 10
       }
+      // Dynamic pricing for Seedance 1.5 Pro (Video)
+      if (model === 'seedance-1.5-pro') {
+        cost = calculateVideoCost(
+          video_resolution || '720p',
+          video_duration || '8',
+          generate_audio ?? false
+        )
+      }
       const q = await supaSelect('users', `?user_id=eq.${encodeURIComponent(String(user_id))}&select=balance`)
       const balance = Array.isArray(q.data) && q.data[0]?.balance != null ? Number(q.data[0].balance) : 0
 
@@ -781,7 +884,8 @@ export async function handleGenerateImage(req: Request, res: Response) {
 
     // Вызов Kie.ai API с таймаутом
     // Set a hard timeout for the entire generation process (e.g. 5 min) to avoid platform timeouts
-    const GENERATION_TIMEOUT_MS = 300000
+    // For video, use 6 min timeout
+    const GENERATION_TIMEOUT_MS = model === 'seedance-1.5-pro' ? 360000 : 300000
 
     const generationPromise = generateImageWithKieAI(apiKey, {
       model,
@@ -794,7 +898,12 @@ export async function handleGenerateImage(req: Request, res: Response) {
         tokens: cost,
         userId: Number(user_id)
       } : undefined,
-      resolution
+      resolution,
+      // Параметры для видео
+      video_duration,
+      video_resolution,
+      fixed_lens,
+      generate_audio
     }, async (taskId) => {
       if (generationId) {
         console.log(`[API] Task ID received: ${taskId} for generation ${generationId}`)
@@ -885,7 +994,7 @@ export async function handleGenerateImage(req: Request, res: Response) {
       if (generationId) {
         // Complete generation (update DB, rewards)
         // IMPORTANT: Await this to ensure DB is updated before response
-        await completeGeneration(generationId, Number(user_id), imageUrl, model, cost, req.body.parent_id, req.body.contest_entry_id)
+        await completeGeneration(generationId, Number(user_id), imageUrl, model, cost, req.body.parent_id, req.body.contest_entry_id, result.inputImages)
       }
       console.log('[API] Generation successful, sending response')
       return res.json({
@@ -932,7 +1041,7 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   console.log(`[CheckStatus] Checking pending generations for user ${user_id}`)
 
   // Get pending generations (all of them, to handle missing task_id too)
-  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending`)
+  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending&select=*,input_images`)
   if (!q.ok || !Array.isArray(q.data)) {
     return res.json({ checked: 0, updated: 0 })
   }
@@ -987,7 +1096,7 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
           }
         }
 
-        await completeGeneration(gen.id, gen.user_id, result.imageUrl, gen.model, cost, gen.parent_id)
+        await completeGeneration(gen.id, gen.user_id, result.imageUrl, gen.model, cost, gen.parent_id, undefined, gen.input_images)
         updated++
       } else if (result.status === 'failed') {
         // Возврат токенов при fail от провайдера
@@ -1016,28 +1125,53 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
 
 // Get generation by ID for remix functionality
 export async function getGenerationById(req: Request, res: Response) {
+  console.log('[getGenerationById] === REQUEST RECEIVED ===')
   try {
     const { id } = req.params
+    console.log('[getGenerationById] Requested ID:', id)
+
     if (!id) {
+      console.log('[getGenerationById] ERROR: No ID provided')
       return res.status(400).json({ error: 'Generation ID required' })
     }
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
+      console.log('[getGenerationById] ERROR: Supabase not configured')
       return res.status(500).json({ error: 'Database not configured' })
     }
 
-    // Fetch generation with user info
-    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,user_id,status,users(username,first_name)`
+    // Fetch generation - include video_url for video generations
+    // Note: aspect_ratio not in DB, extracted from prompt metadata
+    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type,users(username,first_name)`
+    console.log('[getGenerationById] Query:', query)
+
     const result = await supaSelect('generations', query)
+    console.log('[getGenerationById] Supabase result.ok:', result.ok, 'data length:', Array.isArray(result.data) ? result.data.length : 'not array')
+
+    // Log error details if query failed
+    if (!result.ok) {
+      console.error('[getGenerationById] Supabase error response:', JSON.stringify(result.data))
+    }
 
     if (!result.ok || !Array.isArray(result.data) || result.data.length === 0) {
+      console.log('[getGenerationById] ERROR: Generation not found or query failed')
       return res.status(404).json({ error: 'Generation not found' })
     }
 
     const gen = result.data[0]
+    console.log('[getGenerationById] Found generation:', {
+      id: gen.id,
+      model: gen.model,
+      status: gen.status,
+      media_type: gen.media_type,
+      aspect_ratio: gen.aspect_ratio,
+      prompt_length: gen.prompt?.length,
+      has_input_images: !!gen.input_images?.length
+    })
 
     // Check if generation is deleted
     if (gen.status === 'deleted') {
+      console.log('[getGenerationById] ERROR: Generation is deleted')
       return res.status(404).json({ error: 'Generation not found' })
     }
 
@@ -1054,18 +1188,31 @@ export async function getGenerationById(req: Request, res: Response) {
       cleanPrompt = cleanPrompt.replace(/\s*\[type=[^\]]+\]\s*$/, '').trim()
     }
 
-    return res.json({
+    const response = {
       id: gen.id,
       prompt: cleanPrompt,
       model: gen.model,
       input_images: gen.input_images || [],
       image_url: gen.image_url,
+      video_url: gen.video_url,
       aspect_ratio: ratio,
       generation_type: type,
-      users: gen.users
+      media_type: gen.media_type || (gen.model === 'seedance-1.5-pro' ? 'video' : 'image'),
+      users: gen.users,
+    }
+
+    console.log('[getGenerationById] Sending response:', {
+      id: response.id,
+      model: response.model,
+      media_type: response.media_type,
+      aspect_ratio: response.aspect_ratio,
+      prompt_preview: response.prompt?.slice(0, 50)
     })
+    console.log('[getGenerationById] === DONE ===')
+
+    return res.json(response)
   } catch (e) {
-    console.error('getGenerationById error:', e)
+    console.error('[getGenerationById] ERROR:', e)
     return res.status(500).json({ error: 'Failed to fetch generation' })
   }
 }

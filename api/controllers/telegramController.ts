@@ -387,16 +387,33 @@ export async function sendDocument(req: Request, res: Response) {
       if (!resp.ok) return res.status(400).json({ ok: false, error: 'file fetch failed', status: resp.status, ct: contentType })
       const ab = await resp.arrayBuffer()
       const blob = new Blob([ab], { type: contentType })
-      const ext = contentType.includes('png') ? 'png' : (contentType.includes('jpeg') || contentType.includes('jpg')) ? 'jpg' : (contentType.includes('webp') ? 'webp' : 'bin')
+
+      // Determine extension based on content-type (including video)
+      const isVideo = contentType.includes('video/') || contentType.includes('mp4')
+      const ext = (() => {
+        if (contentType.includes('mp4') || contentType.includes('video/mp4')) return 'mp4'
+        if (contentType.includes('webm')) return 'webm'
+        if (contentType.includes('png')) return 'png'
+        if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg'
+        if (contentType.includes('webp')) return 'webp'
+        if (contentType.includes('gif')) return 'gif'
+        return 'bin'
+      })()
       const filename = `ai-${Date.now()}.${ext}`
+
       const form = new FormData()
       form.append('chat_id', String(chat_id))
-      form.append('document', blob, filename)
-      console.info('sendDocument:upload_post', { filename, ct: contentType })
-      const r = await fetch(`${API}/sendDocument`, { method: 'POST', body: form })
+
+      // Use sendVideo for video files, sendDocument for others
+      const method = isVideo ? 'sendVideo' : 'sendDocument'
+      const fieldName = isVideo ? 'video' : 'document'
+      form.append(fieldName, blob, filename)
+
+      console.info(`${method}:upload_post`, { filename, ct: contentType, isVideo })
+      const r = await fetch(`${API}/${method}`, { method: 'POST', body: form })
       const j = await r.json().catch(() => null)
-      console.info('sendDocument:upload_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
-      if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || 'telegram sendDocument failed', resp: j })
+      console.info(`${method}:upload_resp`, { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
+      if (!j || j.ok !== true) return res.status(500).json({ ok: false, error: j?.description || `telegram ${method} failed`, resp: j })
       const msgId = j?.result?.message_id
       if (textWhole && textWhole.length > 0) {
         const MAX_MSG = 4096
@@ -433,35 +450,58 @@ export async function sendDocument(req: Request, res: Response) {
 }
 
 export async function proxyDownload(req: Request, res: Response) {
+  console.log('[proxyDownload] === REQUEST RECEIVED ===')
   try {
     const src = String(req.query?.url || '')
     const nameParam = String(req.query?.name || '')
-    if (!src) return res.status(400).json({ ok: false, error: 'missing url' })
-    console.info('proxyDownload:start', { src: src.slice(0, 160), name: nameParam })
-    const r = await fetch(src, { headers: { 'Accept': 'image/*;q=0.9, */*;q=0.1' } })
+    console.log('[proxyDownload] URL:', src.slice(0, 200))
+    console.log('[proxyDownload] Name param:', nameParam)
+
+    if (!src) {
+      console.log('[proxyDownload] ERROR: missing url')
+      return res.status(400).json({ ok: false, error: 'missing url' })
+    }
+
+    console.log('[proxyDownload] Fetching from source...')
+    const r = await fetch(src, { headers: { 'Accept': '*/*' } })
+    console.log('[proxyDownload] Fetch status:', r.status)
+
     if (!r.ok) {
-      console.warn('proxyDownload:fetch_failed', { status: r.status })
+      console.warn('[proxyDownload] Fetch failed:', { status: r.status })
       return res.status(400).json({ ok: false, error: 'fetch failed', status: r.status })
     }
+
     const ct = r.headers.get('content-type') || 'application/octet-stream'
+    console.log('[proxyDownload] Content-Type:', ct)
+
     const ab = await r.arrayBuffer()
     const buf = Buffer.from(ab)
+    console.log('[proxyDownload] Buffer size:', buf.length)
+
     const ext = (() => {
+      if (ct.includes('mp4') || ct.includes('video/mp4')) return 'mp4'
+      if (ct.includes('webm')) return 'webm'
       if (ct.includes('png')) return 'png'
       if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpg'
       if (ct.includes('webp')) return 'webp'
+      if (ct.includes('gif')) return 'gif'
       return 'bin'
     })()
-    const filename = nameParam || `image.${ext}`
+    console.log('[proxyDownload] Extension:', ext)
+
+    const filename = nameParam || `ai-${Date.now()}.${ext}`
     res.setHeader('Content-Type', ct)
     res.setHeader('Content-Length', String(buf.length))
     res.setHeader('Accept-Ranges', 'bytes')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition')
+
+    console.log('[proxyDownload] Sending response, size:', buf.length)
     res.send(buf)
+    console.log('[proxyDownload] === DONE ===')
   } catch (e) {
-    console.warn('proxyDownload:error', { message: (e as Error)?.message })
+    console.error('[proxyDownload] ERROR:', (e as Error)?.message)
     res.status(500).json({ ok: false, error: 'proxy error' })
   }
 }
@@ -528,6 +568,7 @@ export async function sendRemixShare(req: Request, res: Response) {
   try {
     const chat_id = Number(req.body?.chat_id || 0)
     const photo = String(req.body?.photo_url || '')
+    const video = String(req.body?.video_url || '')
     const generationId = Number(req.body?.generation_id || 0)
     const ownerUsername = req.body?.owner_username ? String(req.body.owner_username) : null
     const ownerUserId = req.body?.owner_user_id ? String(req.body.owner_user_id) : null
@@ -542,13 +583,14 @@ export async function sendRemixShare(req: Request, res: Response) {
         'seedream4': 'Seedream 4',
         'seedream4-5': 'Seedream 4.5',
         'nanobanana': 'NanoBanana',
-        'nanobanana-pro': 'NanoBanana Pro'
+        'nanobanana-pro': 'NanoBanana Pro',
+        'seedance-1.5-pro': 'Seedance Pro'
       }
       const displayName = modelNames[model] || model
       caption = `✨ AI Verse${authorText}\n🎨 Модель: ${displayName}\n\nХочешь сделать так же? Жми кнопку «Повторить» ниже! 👇`
     }
 
-    if (!API || !chat_id || !photo || !generationId) {
+    if (!API || !chat_id || (!photo && !video) || !generationId) {
       return res.status(400).json({ ok: false, error: 'invalid payload' })
     }
 
@@ -575,15 +617,22 @@ export async function sendRemixShare(req: Request, res: Response) {
       ]]
     }
 
-    console.info('sendRemixShare:start', { chat_id, generationId, refValue })
+    console.info('sendRemixShare:start', { chat_id, generationId, refValue, isVideo: !!video })
 
-    // Try sending photo with inline keyboard by URL
-    const resp = await tg('sendPhoto', {
+    // Determine method and media url
+    const method = video ? 'sendVideo' : 'sendPhoto'
+    const mediaUrl = video || photo
+    const mediaKey = video ? 'video' : 'photo'
+
+    // Try sending with inline keyboard by URL
+    const payload: any = {
       chat_id,
-      photo,
       caption,
       reply_markup: kb
-    })
+    }
+    payload[mediaKey] = mediaUrl
+
+    const resp = await tg(method, payload)
 
     if (resp?.ok) {
       // Auto-publish the generation
@@ -596,47 +645,60 @@ export async function sendRemixShare(req: Request, res: Response) {
 
     // Fallback: Download and upload image directly (for expired URLs like tempfile.aiquickdraw.com)
     try {
-      console.info('sendRemixShare:fallback_upload', { photo: photo.slice(0, 128) })
-      const imgResp = await fetch(photo)
+      console.info('sendRemixShare:fallback_upload', { mediaUrl: mediaUrl.slice(0, 128), type: mediaKey })
+      const imgResp = await fetch(mediaUrl)
       if (!imgResp.ok) {
-        console.error('sendRemixShare:image_fetch_failed', { status: imgResp.status })
-        return res.status(500).json({ ok: false, error: 'image fetch failed', status: imgResp.status })
+        console.error('sendRemixShare:media_fetch_failed', { status: imgResp.status })
+        return res.status(500).json({ ok: false, error: 'media fetch failed', status: imgResp.status })
       }
 
       const ab = await imgResp.arrayBuffer()
       const originalSize = ab.byteLength
-      const MAX_PHOTO_SIZE = 8 * 1024 * 1024 // 8MB (leave buffer for Telegram's 10MB limit)
+      const MAX_FILE_SIZE = 48 * 1024 * 1024 // 48MB (Telegram bot api limit is 50MB)
 
-      let imageBuffer: Buffer
+      let fileBuffer: Buffer
       let filename: string
       let contentType: string
 
-      if (originalSize > MAX_PHOTO_SIZE) {
-        // Compress large images with sharp
-        console.info('sendRemixShare:compressing', { originalSize })
-        imageBuffer = await sharp(Buffer.from(ab))
+      const ct = imgResp.headers.get('content-type') || (video ? 'video/mp4' : 'image/jpeg')
+      const isVideoContentType = ct.includes('video/') || ct.includes('mp4')
+
+      if (originalSize > MAX_FILE_SIZE && !isVideoContentType) {
+        // Compress large images with sharp (cannot compress video easily without ffmpeg)
+        console.info('sendRemixShare:compressing_image', { originalSize })
+        fileBuffer = await sharp(Buffer.from(ab))
           .jpeg({ quality: 85 })
           .toBuffer()
         filename = `ai-${Date.now()}.jpg`
         contentType = 'image/jpeg'
-        console.info('sendRemixShare:compressed', { newSize: imageBuffer.length })
+        console.info('sendRemixShare:compressed', { newSize: fileBuffer.length })
       } else {
-        const ct = imgResp.headers.get('content-type') || 'image/jpeg'
-        imageBuffer = Buffer.from(ab)
-        const ext = ct.includes('png') ? 'png' : (ct.includes('webp') ? 'webp' : 'jpg')
+        fileBuffer = Buffer.from(ab)
+        const ext = (() => {
+          if (ct.includes('mp4') || ct.includes('video/mp4')) return 'mp4'
+          if (ct.includes('webm')) return 'webm'
+          if (ct.includes('png')) return 'png'
+          if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpg'
+          if (ct.includes('webp')) return 'webp'
+          if (ct.includes('gif')) return 'gif'
+          return 'bin'
+        })()
         filename = `ai-${Date.now()}.${ext}`
         contentType = ct
       }
 
-      const blob = new Blob([new Uint8Array(imageBuffer)], { type: contentType })
+      const blob = new Blob([new Uint8Array(fileBuffer)], { type: contentType })
 
       const form = new FormData()
       form.append('chat_id', String(chat_id))
       form.append('caption', caption)
-      form.append('photo', blob, filename)
+      // Append fields dynamically based on type
+      const method = isVideoContentType ? 'sendVideo' : 'sendPhoto'
+      const fieldName = isVideoContentType ? 'video' : 'photo'
+      form.append(fieldName, blob, filename)
       form.append('reply_markup', JSON.stringify(kb))
 
-      const r = await fetch(`${API}/sendPhoto`, { method: 'POST', body: form })
+      const r = await fetch(`${API}/${method}`, { method: 'POST', body: form })
       const j = await r.json().catch(() => null)
 
       if (j?.ok) {
