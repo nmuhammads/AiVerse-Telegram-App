@@ -103,7 +103,7 @@ const initialState: GenerationState = {
   prompt: '',
   negativePrompt: '',
   uploadedImages: [],
-  aspectRatio: 'Auto',
+  aspectRatio: '1:1',
   generationMode: 'text',
   generatedImage: null,
   generatedVideo: null,
@@ -112,10 +112,10 @@ const initialState: GenerationState = {
   currentScreen: 'form',
   parentGenerationId: null,
   parentAuthorUsername: null,
-  // Видео параметры по умолчанию
-  videoDuration: '8',
-  videoResolution: '720p',
-  fixedLens: false,
+  // Видео параметры по умолчанию (первые пункты)
+  videoDuration: '4',
+  videoResolution: '480p',
+  fixedLens: true,
   generateAudio: false
 }
 

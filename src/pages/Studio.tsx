@@ -450,8 +450,9 @@ export default function Studio() {
 
   // Показать результат для изображения ИЛИ видео
   const hasResult = currentScreen === 'result' && (generatedImage || generatedVideo)
-  const resultUrl = generatedImage || generatedVideo || ''
   const isVideoResult = !!generatedVideo
+  // Для видео используем generatedVideo, для изображений - generatedImage
+  const resultUrl = isVideoResult ? generatedVideo : (generatedImage || '')
 
   if (hasResult) {
     return (
