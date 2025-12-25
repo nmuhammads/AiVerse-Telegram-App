@@ -1141,14 +1141,20 @@ export async function getGenerationById(req: Request, res: Response) {
     }
 
     // Fetch generation with user info
-    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,user_id,status,media_type,aspect_ratio,users(username,first_name)`
+    // Note: removed aspect_ratio as it may not exist in table
+    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,user_id,status,media_type,users(username,first_name)`
     console.log('[getGenerationById] Query:', query)
 
     const result = await supaSelect('generations', query)
     console.log('[getGenerationById] Supabase result.ok:', result.ok, 'data length:', Array.isArray(result.data) ? result.data.length : 'not array')
 
+    // Log error details if query failed
+    if (!result.ok) {
+      console.error('[getGenerationById] Supabase error response:', JSON.stringify(result.data))
+    }
+
     if (!result.ok || !Array.isArray(result.data) || result.data.length === 0) {
-      console.log('[getGenerationById] ERROR: Generation not found')
+      console.log('[getGenerationById] ERROR: Generation not found or query failed')
       return res.status(404).json({ error: 'Generation not found' })
     }
 
@@ -1188,7 +1194,7 @@ export async function getGenerationById(req: Request, res: Response) {
       model: gen.model,
       input_images: gen.input_images || [],
       image_url: gen.image_url,
-      aspect_ratio: gen.aspect_ratio || ratio,
+      aspect_ratio: ratio,
       generation_type: type,
       media_type: gen.media_type || null,
       users: gen.users
