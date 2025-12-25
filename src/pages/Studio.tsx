@@ -192,9 +192,14 @@ export default function Studio() {
     }
 
     if (remixId) {
+      console.log('[Remix] Starting fetch for remixId:', remixId)
       fetch(`/api/generation/${remixId}`)
-        .then(res => res.json())
+        .then(res => {
+          console.log('[Remix] Fetch response status:', res.status, res.ok)
+          return res.json()
+        })
         .then(data => {
+          console.log('[Remix] Raw API response:', JSON.stringify(data))
           if (data && !data.error) {
             // Set prompt
             setPrompt(data.prompt || '')
@@ -229,13 +234,17 @@ export default function Studio() {
 
             console.log('[Remix] Loaded data:', {
               id: data.id,
+              prompt: data.prompt?.slice(0, 50),
               model: data.model,
               ratio: data.aspect_ratio,
+              media_type: data.media_type,
               hasInputImages: data.input_images?.length > 0
             })
+          } else {
+            console.error('[Remix] API returned error:', data?.error)
           }
         })
-        .catch(err => console.error('Failed to load remix data', err))
+        .catch(err => console.error('[Remix] Failed to load remix data:', err))
     }
   }, [searchParams, setPrompt, setSelectedModel, setParentGeneration, setAspectRatio, setUploadedImages, setGenerationMode, setMediaType])
 
