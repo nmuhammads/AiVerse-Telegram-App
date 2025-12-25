@@ -143,6 +143,7 @@ export default function Studio() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [balance, setBalance] = useState<number | null>(null)
   const [isFullScreen, setIsFullScreen] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
   const [scale, setScale] = useState(1)
   const [resolution, setResolution] = useState<'2K' | '4K'>('4K')
   const [searchParams] = useSearchParams()
@@ -454,6 +455,9 @@ export default function Studio() {
   // Для видео используем generatedVideo, для изображений - generatedImage
   const resultUrl = isVideoResult ? generatedVideo : (generatedImage || '')
 
+  // Debug log
+  console.log('[Studio Result]', { generatedImage, generatedVideo, isVideoResult, resultUrl })
+
   if (hasResult) {
     return (
       <div className="min-h-dvh bg-black safe-bottom-tabbar flex flex-col justify-end pb-24">
@@ -477,14 +481,30 @@ export default function Studio() {
             <CardContent className="space-y-4">
               <div className="relative rounded-lg overflow-hidden group bg-black/20 flex items-center justify-center py-2">
                 {isVideoResult ? (
-                  <video
-                    src={resultUrl}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
-                    className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md"
-                  />
+                  <>
+                    {console.log('[Studio Video]', { resultUrl })}
+                    <video
+                      src={resultUrl}
+                      controls
+                      loop
+                      muted={isMuted}
+                      playsInline
+                      className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md"
+                      onLoadStart={() => console.log('[Studio Video] Load started, url:', resultUrl)}
+                      onLoadedData={() => console.log('[Studio Video] Data loaded successfully')}
+                      onCanPlay={() => console.log('[Studio Video] Can play now')}
+                      onError={(e) => {
+                        const video = e.currentTarget
+                        console.error('[Studio Video] Error:', {
+                          url: resultUrl,
+                          errorCode: video.error?.code,
+                          errorMsg: video.error?.message,
+                          networkState: video.networkState,
+                          readyState: video.readyState
+                        })
+                      }}
+                    />
+                  </>
                 ) : (
                   <img src={resultUrl} alt="result" className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md" />
                 )}

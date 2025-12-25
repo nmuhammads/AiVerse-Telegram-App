@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2 } from 'lucide-react'
 
 // Custom GridImage component for handling load states
 const GridImage = ({ src, originalUrl, alt, className, onImageError }: { src: string, originalUrl: string, alt: string, className?: string, onImageError?: () => void }) => {
@@ -112,9 +112,10 @@ export default function Profile() {
   const [remixCount, setRemixCount] = useState<number>(0)
   const [followingCount, setFollowingCount] = useState<number>(0)
   const [followersCount, setFollowersCount] = useState<number>(0)
-  const [items, setItems] = useState<{ id: number; image_url: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null }[]>([])
-  const [preview, setPreview] = useState<{ id: number; image_url: string; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null } | null>(null)
+  const [items, setItems] = useState<{ id: number; image_url: string | null; video_url?: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null }[]>([])
+  const [preview, setPreview] = useState<{ id: number; image_url: string; video_url?: string | null; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null } | null>(null)
   const [previewIndex, setPreviewIndex] = useState(0) // 0 = original, 1+ = edit variants
+  const [isVideoMuted, setIsVideoMuted] = useState(true)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [total, setTotal] = useState<number | undefined>(undefined)
@@ -691,9 +692,9 @@ export default function Profile() {
               })}
             </div>
             {/* Visibility Filter */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <Globe size={14} className="flex-shrink-0 text-zinc-500" />
-              <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
+              <div className="flex flex-shrink-0 bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
                 {[
                   { value: 'all', label: t('profile.filters.all') },
                   { value: 'published', label: t('profile.filters.published') },
@@ -717,7 +718,7 @@ export default function Profile() {
                 ))}
               </div>
               {/* Media Type Filter */}
-              <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
+              <div className="flex flex-shrink-0 bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
                 {[
                   { value: 'all', label: t('profile.filters.all'), icon: null },
                   { value: 'image', label: t('profile.filters.photo'), icon: ImageIcon },
@@ -749,7 +750,7 @@ export default function Profile() {
                   setItems([])
                   setOffset(0)
                 }}
-                className={`w-8 h-8 rounded-full text-[11px] font-medium transition-all flex items-center justify-center border ${showEditedOnly
+                className={`flex-shrink-0 w-8 h-8 rounded-full text-[11px] font-medium transition-all flex items-center justify-center border ${showEditedOnly
                   ? 'bg-violet-600 text-white border-violet-500'
                   : 'bg-zinc-800/50 text-zinc-400 hover:text-white border-white/5'
                   }`}
@@ -766,9 +767,9 @@ export default function Profile() {
             <>
               <div>
                 <div className="grid grid-cols-2 gap-3">
-                  {items.filter(h => !!h.image_url).map((h) => (
+                  {items.filter(h => !!(h.image_url || h.video_url)).map((h) => (
                     <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
-                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants, media_type: h.media_type }) }} className="block w-full">
+                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', video_url: h.video_url, prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants, media_type: h.media_type }) }} className="block w-full">
                         <GridImage
                           src={h.compressed_url || h.image_url || ''}
                           originalUrl={h.image_url || ''}
@@ -912,15 +913,31 @@ export default function Profile() {
                         </>
                       )}
                       {/* Media content - video or image */}
-                      {preview.media_type === 'video' ? (
-                        <video
-                          src={preview.image_url}
-                          controls
-                          autoPlay
-                          loop
-                          playsInline
-                          className="w-full h-full object-contain"
-                        />
+                      {preview.media_type === 'video' && preview.video_url ? (
+                        <>
+                          {console.log('[Profile Video]', { media_type: preview.media_type, video_url: preview.video_url })}
+                          <video
+                            src={preview.video_url}
+                            controls
+                            loop
+                            muted={isVideoMuted}
+                            playsInline
+                            className="w-full h-full object-contain"
+                            onLoadStart={() => console.log('[Profile Video] Load started, url:', preview.video_url)}
+                            onLoadedData={() => console.log('[Profile Video] Data loaded successfully')}
+                            onCanPlay={() => console.log('[Profile Video] Can play now')}
+                            onError={(e) => {
+                              const video = e.currentTarget
+                              console.error('[Profile Video] Error:', {
+                                url: preview.video_url,
+                                errorCode: video.error?.code,
+                                errorMsg: video.error?.message,
+                                networkState: video.networkState,
+                                readyState: video.readyState
+                              })
+                            }}
+                          />
+                        </>
                       ) : (
                         <img
                           src={preview.edit_variants && preview.edit_variants.length > 0

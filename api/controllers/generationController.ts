@@ -378,13 +378,24 @@ async function completeGeneration(
 
   console.log(`[DB] Completing generation ${generationId} for user ${userId}`)
   try {
-    // 1. Update generation status
-    const updateRes = await supaPatch('generations', `?id=eq.${generationId}`, {
-      image_url: imageUrl,
+    // Determine media type from model
+    const mediaType = model === 'seedance-1.5-pro' ? 'video' : 'image'
+
+    // 1. Update generation status - save video to video_url, image to image_url
+    const updatePayload: Record<string, unknown> = {
       status: 'completed',
-      completed_at: new Date().toISOString()
-    })
-    console.log(`[DB] Generation ${generationId} status updated:`, updateRes.ok)
+      completed_at: new Date().toISOString(),
+      media_type: mediaType
+    }
+
+    if (mediaType === 'video') {
+      updatePayload.video_url = imageUrl
+    } else {
+      updatePayload.image_url = imageUrl
+    }
+
+    const updateRes = await supaPatch('generations', `?id=eq.${generationId}`, updatePayload)
+    console.log(`[DB] Generation ${generationId} status updated (media_type: ${mediaType}, url field: ${mediaType === 'video' ? 'video_url' : 'image_url'}):`, updateRes.ok)
 
     // Баланс уже списан при создании генерации (в handleGenerateImage)
     // При успешном завершении не нужно ничего делать с балансом

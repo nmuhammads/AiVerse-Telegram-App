@@ -450,19 +450,34 @@ export async function sendDocument(req: Request, res: Response) {
 }
 
 export async function proxyDownload(req: Request, res: Response) {
+  console.log('[proxyDownload] === REQUEST RECEIVED ===')
   try {
     const src = String(req.query?.url || '')
     const nameParam = String(req.query?.name || '')
-    if (!src) return res.status(400).json({ ok: false, error: 'missing url' })
-    console.info('proxyDownload:start', { src: src.slice(0, 160), name: nameParam })
+    console.log('[proxyDownload] URL:', src.slice(0, 200))
+    console.log('[proxyDownload] Name param:', nameParam)
+
+    if (!src) {
+      console.log('[proxyDownload] ERROR: missing url')
+      return res.status(400).json({ ok: false, error: 'missing url' })
+    }
+
+    console.log('[proxyDownload] Fetching from source...')
     const r = await fetch(src, { headers: { 'Accept': '*/*' } })
+    console.log('[proxyDownload] Fetch status:', r.status)
+
     if (!r.ok) {
-      console.warn('proxyDownload:fetch_failed', { status: r.status })
+      console.warn('[proxyDownload] Fetch failed:', { status: r.status })
       return res.status(400).json({ ok: false, error: 'fetch failed', status: r.status })
     }
+
     const ct = r.headers.get('content-type') || 'application/octet-stream'
+    console.log('[proxyDownload] Content-Type:', ct)
+
     const ab = await r.arrayBuffer()
     const buf = Buffer.from(ab)
+    console.log('[proxyDownload] Buffer size:', buf.length)
+
     const ext = (() => {
       if (ct.includes('mp4') || ct.includes('video/mp4')) return 'mp4'
       if (ct.includes('webm')) return 'webm'
@@ -472,16 +487,21 @@ export async function proxyDownload(req: Request, res: Response) {
       if (ct.includes('gif')) return 'gif'
       return 'bin'
     })()
+    console.log('[proxyDownload] Extension:', ext)
+
     const filename = nameParam || `ai-${Date.now()}.${ext}`
     res.setHeader('Content-Type', ct)
     res.setHeader('Content-Length', String(buf.length))
     res.setHeader('Accept-Ranges', 'bytes')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`)
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Disposition')
+
+    console.log('[proxyDownload] Sending response, size:', buf.length)
     res.send(buf)
+    console.log('[proxyDownload] === DONE ===')
   } catch (e) {
-    console.warn('proxyDownload:error', { message: (e as Error)?.message })
+    console.error('[proxyDownload] ERROR:', (e as Error)?.message)
     res.status(500).json({ ok: false, error: 'proxy error' })
   }
 }
