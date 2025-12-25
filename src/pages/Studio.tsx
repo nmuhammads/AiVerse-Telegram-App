@@ -3,21 +3,30 @@ import { useTranslation, Trans } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info, Camera, Clipboard, FolderOpen, Pencil } from 'lucide-react'
+import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info, Camera, Clipboard, FolderOpen, Pencil, Video, Volume2, VolumeX, Lock, Unlock } from 'lucide-react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
-import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/generationStore'
+import { useGenerationStore, type ModelType, type AspectRatio, type VideoDuration, type VideoResolution } from '@/store/generationStore'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { PaymentModal } from '@/components/PaymentModal'
 import { compressImage } from '@/utils/imageCompression'
 
 
-const MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
+// Модели для генерации изображений
+const IMAGE_MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
   { id: 'nanobanana', name: 'NanoBanana', desc: '3 токена', color: 'from-yellow-400 to-orange-500', icon: '/models/optimized/nanobanana.png' },
   { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '15 токенов', color: 'from-pink-500 to-rose-500', icon: '/models/optimized/nanobanana-pro.png' },
   { id: 'seedream4', name: 'Seedream 4', desc: '4 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/optimized/seedream.png' },
   { id: 'seedream4-5', name: 'Seedream 4.5', desc: '7 токенов', color: 'from-blue-400 to-indigo-500', icon: '/models/optimized/seedream-4-5.png' },
 ]
+
+// Модели для генерации видео
+const VIDEO_MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
+  { id: 'seedance-1.5-pro', name: 'Seedance Pro', desc: 'от 24 токенов', color: 'from-red-500 to-orange-500', icon: '/models/optimized/seedream.png' },
+]
+
+// Для обратной совместимости
+const MODELS = IMAGE_MODELS
 
 const MODEL_PRICES: Record<ModelType, number> = {
   nanobanana: 3,
@@ -25,6 +34,7 @@ const MODEL_PRICES: Record<ModelType, number> = {
   seedream4: 4,
   'seedream4-5': 7,
   'p-image-edit': 2,
+  'seedance-1.5-pro': 42, // Default: 720p, 8s, без аудио
 }
 
 const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
@@ -33,6 +43,27 @@ const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
   nanobanana: ['Auto', '16:9', '4:3', '1:1', '3:4', '9:16'],
   'seedream4-5': ['16:9', '4:3', '1:1', '3:4', '9:16'],
   'p-image-edit': ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4'],
+  'seedance-1.5-pro': ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'],
+}
+
+// Цены для видео Seedance 1.5 Pro
+const VIDEO_PRICES: Record<string, Record<string, { base: number; audio: number }>> = {
+  '480p': {
+    '4': { base: 12, audio: 24 },
+    '8': { base: 21, audio: 42 },
+    '12': { base: 29, audio: 58 },
+  },
+  '720p': {
+    '4': { base: 24, audio: 48 },
+    '8': { base: 42, audio: 84 },
+    '12': { base: 58, audio: 116 },
+  },
+}
+
+const calculateVideoCost = (resolution: string, duration: string, withAudio: boolean): number => {
+  const prices = VIDEO_PRICES[resolution]?.[duration]
+  if (!prices) return 42
+  return withAudio ? prices.audio : prices.base
 }
 
 const RATIO_EMOJIS: Record<AspectRatio, string> = {
@@ -63,19 +94,26 @@ export default function Studio() {
   const { t } = useTranslation()
   const {
     selectedModel,
-
+    mediaType,
     prompt,
     negativePrompt,
     uploadedImages,
     aspectRatio,
     generationMode,
     generatedImage,
+    generatedVideo,
     isGenerating,
     error,
     currentScreen,
     parentAuthorUsername,
     parentGenerationId,
+    // Видео параметры
+    videoDuration,
+    videoResolution,
+    fixedLens,
+    generateAudio,
     setSelectedModel,
+    setMediaType,
     setPrompt,
     setNegativePrompt,
     setUploadedImages,
@@ -84,10 +122,16 @@ export default function Studio() {
     setAspectRatio,
     setGenerationMode,
     setGeneratedImage,
+    setGeneratedVideo,
     setIsGenerating,
     setError,
     setCurrentScreen,
     setParentGeneration,
+    // Видео setters
+    setVideoDuration,
+    setVideoResolution,
+    setFixedLens,
+    setGenerateAudio,
   } = useGenerationStore()
 
   const { shareImage, saveToGallery, user, platform, tg } = useTelegram()
@@ -311,24 +355,35 @@ export default function Studio() {
 
     impact('heavy')
 
-    // Create AbortController for client-side timeout (300s)
+    // Create AbortController for client-side timeout (300s for images, 360s for video)
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 300000)
+    const timeoutMs = mediaType === 'video' ? 360000 : 300000
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
+      const requestBody: Record<string, unknown> = {
+        prompt,
+        model: selectedModel,
+        aspect_ratio: aspectRatio,
+        images: generationMode === 'image' ? uploadedImages : [],
+        user_id: user?.id || null,
+        parent_id: parentGenerationId || undefined,
+        resolution: selectedModel === 'nanobanana-pro' ? resolution : undefined,
+        contest_entry_id: contestEntryId || undefined
+      }
+
+      // Добавить параметры видео для Seedance 1.5 Pro
+      if (mediaType === 'video') {
+        requestBody.video_duration = videoDuration
+        requestBody.video_resolution = videoResolution
+        requestBody.fixed_lens = fixedLens
+        requestBody.generate_audio = generateAudio
+      }
+
       const res = await fetch('/api/generation/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt,
-          model: selectedModel,
-          aspect_ratio: aspectRatio,
-          images: generationMode === 'image' ? uploadedImages : [],
-          user_id: user?.id || null,
-          parent_id: parentGenerationId || undefined,
-          resolution: selectedModel === 'nanobanana-pro' ? resolution : undefined,
-          contest_entry_id: contestEntryId || undefined
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       })
 
@@ -351,13 +406,23 @@ export default function Studio() {
       }
 
       if (!res.ok) throw new Error(data.error || t('studio.errors.generationError'))
-      setGeneratedImage(data.image)
+
+      // Обработать результат: для видео и изображений
+      if (mediaType === 'video') {
+        setGeneratedVideo(data.image) // API возвращает URL в поле image
+        setGeneratedImage(null)
+      } else {
+        setGeneratedImage(data.image)
+        setGeneratedVideo(null)
+      }
+
       setParentGeneration(null, null) // Reset parent after success
       // Баланс уже был списан на сервере при создании генерации
       // Не обновляем локально чтобы избежать двойного списания
 
       try {
-        const item = { id: Date.now(), url: data.image, prompt, model: MODELS.find(m => m.id === selectedModel)?.name, ratio: aspectRatio, date: new Date().toLocaleDateString() }
+        const modelName = mediaType === 'video' ? 'Seedance Pro' : MODELS.find(m => m.id === selectedModel)?.name
+        const item = { id: Date.now(), url: data.image, prompt, model: modelName, ratio: aspectRatio, date: new Date().toLocaleDateString(), mediaType }
         const prev = JSON.parse(localStorage.getItem('img_gen_history_v2') || '[]')
         const next = [item, ...prev]
         localStorage.setItem('img_gen_history_v2', JSON.stringify(next))
@@ -368,7 +433,7 @@ export default function Studio() {
       let msg = t('studio.errors.generationError')
       if (e instanceof Error) {
         if (e.name === 'AbortError') {
-          msg = t('studio.errors.timeout')
+          msg = mediaType === 'video' ? t('studio.errors.videoTimeout') : t('studio.errors.timeout')
         } else if (e.message === 'Failed to fetch' || e.message.includes('Load failed')) {
           msg = t('studio.errors.network')
         } else {
@@ -383,37 +448,66 @@ export default function Studio() {
     }
   }
 
-  if (currentScreen === 'result' && generatedImage) {
+  // Показать результат для изображения ИЛИ видео
+  const hasResult = currentScreen === 'result' && (generatedImage || generatedVideo)
+  const resultUrl = generatedImage || generatedVideo || ''
+  const isVideoResult = !!generatedVideo
+
+  if (hasResult) {
     return (
       <div className="min-h-dvh bg-black safe-bottom-tabbar flex flex-col justify-end pb-24">
         <div className="mx-auto max-w-3xl w-full px-4">
           <Card className="bg-zinc-900/90 border-white/10 backdrop-blur-xl relative">
             <button
-              onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setError(null) }}
+              onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setGeneratedVideo(null); setError(null) }}
               className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white transition-colors z-10"
             >
               <X size={20} />
             </button>
             <CardHeader>
-              <CardTitle className="text-white">{t('studio.result.title')}</CardTitle>
-              <CardDescription className="text-white/60">{MODELS.find(m => m.id === selectedModel)?.name}</CardDescription>
+              <CardTitle className="text-white flex items-center gap-2">
+                {isVideoResult && <Video size={20} className="text-orange-400" />}
+                {isVideoResult ? t('studio.result.videoTitle') : t('studio.result.title')}
+              </CardTitle>
+              <CardDescription className="text-white/60">
+                {isVideoResult ? 'Seedance Pro' : MODELS.find(m => m.id === selectedModel)?.name}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative rounded-lg overflow-hidden group bg-black/20 flex items-center justify-center py-2">
-                <img src={generatedImage} alt="result" className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md" />
-                <button
-                  onClick={() => {
-                    impact('light')
-                    setIsFullScreen(true)
-                  }}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/70 transition-colors"
-                >
-                  <Maximize2 size={16} />
-                </button>
+                {isVideoResult ? (
+                  <video
+                    src={resultUrl}
+                    controls
+                    autoPlay
+                    loop
+                    playsInline
+                    className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md"
+                  />
+                ) : (
+                  <img src={resultUrl} alt="result" className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md" />
+                )}
+                {!isVideoResult && (
+                  <button
+                    onClick={() => {
+                      impact('light')
+                      setIsFullScreen(true)
+                    }}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/70 transition-colors"
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                )}
               </div>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button onClick={() => { saveToGallery(generatedImage, `ai-${Date.now()}.jpg`) }} className="flex-1 bg-white text-black hover:bg-zinc-200 font-bold">
+                  <Button
+                    onClick={() => {
+                      const ext = isVideoResult ? 'mp4' : 'jpg'
+                      saveToGallery(resultUrl, `ai-${Date.now()}.${ext}`)
+                    }}
+                    className="flex-1 bg-white text-black hover:bg-zinc-200 font-bold"
+                  >
                     <DownloadIcon size={16} className="mr-2" />
                     {t('studio.result.save')}
                   </Button>
@@ -422,12 +516,12 @@ export default function Studio() {
                       if (!user?.id) return
                       impact('light')
                       try {
-                        const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: generatedImage, caption: prompt }) })
+                        const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: resultUrl, caption: prompt }) })
                         const j = await r.json().catch(() => null)
                         if (r.ok && j?.ok) { notify('success') }
                         else {
                           notify('error')
-                          shareImage(generatedImage, prompt)
+                          if (!isVideoResult) shareImage(resultUrl, prompt)
                         }
                       } catch {
                         notify('error')
@@ -439,14 +533,22 @@ export default function Studio() {
                     {t('studio.result.sendToChat')}
                   </Button>
                 </div>
+                {/* Кнопка редактирования только для изображений */}
+                {!isVideoResult && (
+                  <Button
+                    onClick={() => navigate(`/editor?image=${encodeURIComponent(resultUrl)}`)}
+                    className="w-full bg-cyan-600 text-white hover:bg-cyan-500 font-bold"
+                  >
+                    <Pencil size={16} className="mr-2" />
+                    {t('editor.edit')}
+                  </Button>
+                )}
                 <Button
-                  onClick={() => navigate(`/editor?image=${encodeURIComponent(generatedImage)}`)}
-                  className="w-full bg-cyan-600 text-white hover:bg-cyan-500 font-bold"
+                  onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setGeneratedVideo(null); setError(null) }}
+                  className="w-full bg-zinc-800 text-white hover:bg-zinc-700 font-bold border border-white/10"
                 >
-                  <Pencil size={16} className="mr-2" />
-                  {t('editor.edit')}
+                  {t('studio.result.close')}
                 </Button>
-                <Button onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setError(null) }} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 font-bold border border-white/10">{t('studio.result.close')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -521,47 +623,114 @@ export default function Studio() {
           </div>
         </div>
 
-        {/* 1. Compact Model Selector (Grid, no scroll) */}
-        <div className="grid grid-cols-4 gap-2">
-          {MODELS.map(m => {
-            const isSelected = selectedModel === m.id
-            return (
-              <button
-                key={m.id}
-                onClick={() => { setSelectedModel(m.id); impact('light') }}
-                className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl transition-all duration-200 ${isSelected
-                  ? 'bg-zinc-800 shadow-lg'
-                  : 'bg-zinc-900/40 hover:bg-zinc-800/60'
-                  }`}
-              >
-                <div className={`w-10 h-10 rounded-xl overflow-hidden shadow-md transition-transform duration-200 ${isSelected ? 'scale-110' : ''}`}>
-                  <img src={m.icon} alt={m.name} className="w-full h-full object-cover" />
-                </div>
-                <span className={`text-[10px] font-semibold text-center leading-tight ${isSelected ? 'text-white' : 'text-zinc-500'}`}>
-                  {m.name}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* 2. Mode Toggle */}
+        {/* 0. Media Type Toggle: Фото / Видео */}
         <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
           <button
-            onClick={() => { setGenerationMode('text'); impact('light') }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${generationMode === 'text' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            onClick={() => {
+              setMediaType('image')
+              // При переключении на фото выбираем первую модель изображений
+              if (selectedModel === 'seedance-1.5-pro') {
+                setSelectedModel('nanobanana-pro')
+              }
+              impact('light')
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-sm font-bold transition-all ${mediaType === 'image' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            <Type size={14} />
-            <span>{t('studio.mode.textToImage')}</span>
+            <ImageIcon size={16} />
+            <span>{t('studio.mediaType.image')}</span>
           </button>
           <button
-            onClick={() => { setGenerationMode('image'); impact('light') }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${generationMode === 'image' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            onClick={() => {
+              setMediaType('video')
+              // При переключении на видео выбираем модель видео
+              setSelectedModel('seedance-1.5-pro')
+              impact('light')
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-sm font-bold transition-all ${mediaType === 'video' ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            <ImageIcon size={14} />
-            <span>{t('studio.mode.imageToImage')}</span>
+            <Video size={16} />
+            <span>{t('studio.mediaType.video')}</span>
           </button>
         </div>
+
+        {/* 1. Compact Model Selector (Grid, no scroll) */}
+        {mediaType === 'image' && (
+          <div className="grid grid-cols-4 gap-2">
+            {IMAGE_MODELS.map(m => {
+              const isSelected = selectedModel === m.id
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => { setSelectedModel(m.id); impact('light') }}
+                  className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl transition-all duration-200 ${isSelected
+                    ? 'bg-zinc-800 shadow-lg'
+                    : 'bg-zinc-900/40 hover:bg-zinc-800/60'
+                    }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl overflow-hidden shadow-md transition-transform duration-200 ${isSelected ? 'scale-110' : ''}`}>
+                    <img src={m.icon} alt={m.name} className="w-full h-full object-cover" />
+                  </div>
+                  <span className={`text-[10px] font-semibold text-center leading-tight ${isSelected ? 'text-white' : 'text-zinc-500'}`}>
+                    {m.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* 1.5 Video Model Info (показываем когда выбрано видео) */}
+        {mediaType === 'video' && (
+          <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-xl">
+            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
+              <img src="/models/optimized/seedream.png" alt="Seedance Pro" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-white">Seedance Pro</div>
+              <div className="text-xs text-zinc-400">{t('studio.video.modelDesc')}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Mode Toggle (T2I/I2I) — только для изображений */}
+        {mediaType === 'image' && (
+          <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
+            <button
+              onClick={() => { setGenerationMode('text'); impact('light') }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'text' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <Type size={14} />
+              <span>{t('studio.mode.textToImage')}</span>
+            </button>
+            <button
+              onClick={() => { setGenerationMode('image'); impact('light') }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'image' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <ImageIcon size={14} />
+              <span>{t('studio.mode.imageToImage')}</span>
+            </button>
+          </div>
+        )}
+
+        {/* 2.5 Video Mode Toggle (T2V/I2V) — только для видео */}
+        {mediaType === 'video' && (
+          <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
+            <button
+              onClick={() => { setGenerationMode('text'); setUploadedImages([]); impact('light') }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'text' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <Type size={14} />
+              <span>{t('studio.mode.textToVideo')}</span>
+            </button>
+            <button
+              onClick={() => { setGenerationMode('image'); impact('light') }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'image' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <ImageIcon size={14} />
+              <span>{t('studio.mode.imageToVideo')}</span>
+            </button>
+          </div>
+        )}
 
         {/* 3. Prompt Input (New Animation) */}
         <div className="relative mt-1">
@@ -601,8 +770,8 @@ export default function Studio() {
 
 
 
-        {/* 4. Reference Image (Multi-Image Support) */}
-        {generationMode === 'image' && (
+        {/* 4. Reference Image for IMAGES mode (Multi-Image Support) */}
+        {generationMode === 'image' && mediaType === 'image' && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="border-2 border-dashed border-white/10 rounded-xl p-4 bg-zinc-900/20 relative overflow-hidden">
 
@@ -737,6 +906,178 @@ export default function Studio() {
           </div>
         )}
 
+        {/* 4.1 Reference Frames for VIDEO mode (Start/End frames for I2V) */}
+        {generationMode === 'image' && mediaType === 'video' && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Start Frame */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.startFrame')}</label>
+                {uploadedImages[0] ? (
+                  <div className="border-2 border-dashed border-white/10 rounded-xl aspect-[4/3] bg-zinc-900/20 relative overflow-hidden">
+                    <img src={uploadedImages[0]} alt="start-frame" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => {
+                        const newImages = [...uploadedImages]
+                        newImages[0] = ''
+                        setUploadedImages(newImages.filter(Boolean))
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Select file button */}
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input')
+                        input.type = 'file'
+                        input.accept = 'image/*'
+                        input.onchange = async (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0]
+                          if (file) {
+                            const base64 = await new Promise<string>((resolve) => {
+                              const reader = new FileReader()
+                              reader.onloadend = () => resolve(reader.result as string)
+                              reader.readAsDataURL(file)
+                            })
+                            const newImages = [...uploadedImages]
+                            newImages[0] = base64
+                            setUploadedImages(newImages)
+                          }
+                        }
+                        input.click()
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                    >
+                      <ImageIcon size={14} />
+                      <span className="text-[10px] font-medium">{t('studio.upload.selectPhoto')}</span>
+                    </button>
+                    {/* Paste zone */}
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      onPaste={async (e) => {
+                        e.preventDefault()
+                        const items = e.clipboardData?.items
+                        if (!items) return
+                        for (const item of Array.from(items)) {
+                          if (item.type.startsWith('image/')) {
+                            const file = item.getAsFile()
+                            if (file) {
+                              const base64 = await new Promise<string>((resolve) => {
+                                const reader = new FileReader()
+                                reader.onloadend = () => resolve(reader.result as string)
+                                reader.readAsDataURL(file)
+                              })
+                              const newImages = [...uploadedImages]
+                              newImages[0] = base64
+                              setUploadedImages(newImages)
+                              break
+                            }
+                          }
+                        }
+                        e.currentTarget.innerHTML = ''
+                      }}
+                      onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                      className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-[10px] font-medium cursor-text select-none focus:outline-none focus:border-violet-500/50"
+                    >
+                      <Clipboard size={14} />
+                      <span>{t('studio.upload.paste')}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* End Frame */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.endFrame')}</label>
+                {uploadedImages[1] ? (
+                  <div className="border-2 border-dashed border-white/10 rounded-xl aspect-[4/3] bg-zinc-900/20 relative overflow-hidden">
+                    <img src={uploadedImages[1]} alt="end-frame" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => {
+                        const newImages = [...uploadedImages]
+                        newImages.splice(1, 1)
+                        setUploadedImages(newImages.filter(Boolean))
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Select file button */}
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input')
+                        input.type = 'file'
+                        input.accept = 'image/*'
+                        input.onchange = async (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0]
+                          if (file) {
+                            const base64 = await new Promise<string>((resolve) => {
+                              const reader = new FileReader()
+                              reader.onloadend = () => resolve(reader.result as string)
+                              reader.readAsDataURL(file)
+                            })
+                            const newImages = [...uploadedImages]
+                            if (!newImages[0]) newImages[0] = ''
+                            newImages[1] = base64
+                            setUploadedImages(newImages.filter(Boolean))
+                          }
+                        }
+                        input.click()
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                    >
+                      <ImageIcon size={14} />
+                      <span className="text-[10px] font-medium">{t('studio.upload.selectPhoto')}</span>
+                    </button>
+                    {/* Paste zone */}
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      onPaste={async (e) => {
+                        e.preventDefault()
+                        const items = e.clipboardData?.items
+                        if (!items) return
+                        for (const item of Array.from(items)) {
+                          if (item.type.startsWith('image/')) {
+                            const file = item.getAsFile()
+                            if (file) {
+                              const base64 = await new Promise<string>((resolve) => {
+                                const reader = new FileReader()
+                                reader.onloadend = () => resolve(reader.result as string)
+                                reader.readAsDataURL(file)
+                              })
+                              const newImages = [...uploadedImages]
+                              if (!newImages[0]) newImages[0] = ''
+                              newImages[1] = base64
+                              setUploadedImages(newImages.filter(Boolean))
+                              break
+                            }
+                          }
+                        }
+                        e.currentTarget.innerHTML = ''
+                      }}
+                      onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                      className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-[10px] font-medium cursor-text select-none focus:outline-none focus:border-violet-500/50"
+                    >
+                      <Clipboard size={14} />
+                      <span>{t('studio.upload.paste')}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-zinc-500 mt-2 px-1">{t('studio.video.framesHint')}</p>
+          </div>
+        )}
+
         {/* 5. Aspect Ratio Selector (Emojis) */}
         {(true || generationMode === 'text') && (
           <div className="space-y-2">
@@ -777,6 +1118,99 @@ export default function Studio() {
           </div>
         )}
 
+        {/* 5.2 Video Parameters (Seedance 1.5 Pro only) — Compact Layout */}
+        {mediaType === 'video' && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-4">
+            {/* Row 1: Duration & Resolution */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Duration */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.duration')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-lg border border-white/5">
+                  {(['4', '8', '12'] as VideoDuration[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => { setVideoDuration(d); impact('light') }}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${videoDuration === d ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      {d}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resolution */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.resolution')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-lg border border-white/5">
+                  <button
+                    onClick={() => { setVideoResolution('480p'); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${videoResolution === '480p' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    480p
+                  </button>
+                  <button
+                    onClick={() => { setVideoResolution('720p'); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${videoResolution === '720p' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    720p
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: Camera & Audio */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Camera */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.camera')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-lg border border-white/5">
+                  <button
+                    onClick={() => { setFixedLens(true); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${fixedLens ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <Lock size={10} />
+                    {t('studio.video.cameraStatic')}
+                  </button>
+                  <button
+                    onClick={() => { setFixedLens(false); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${!fixedLens ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <Unlock size={10} />
+                    {t('studio.video.cameraDynamic')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Audio */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.audio')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-lg border border-white/5">
+                  <button
+                    onClick={() => { setGenerateAudio(false); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${!generateAudio ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <VolumeX size={10} />
+                    {t('studio.video.audioOff')}
+                  </button>
+                  <button
+                    onClick={() => { setGenerateAudio(true); impact('light') }}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${generateAudio ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <Volume2 size={10} />
+                    {t('studio.video.audioOn')}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Camera hint */}
+            <p className="text-[10px] text-zinc-500 px-1">
+              {fixedLens ? t('studio.video.cameraStaticHint') : t('studio.video.cameraDynamicHint')}
+            </p>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className={`${error.includes('Время ожидания') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'} border rounded-xl p-3 flex items-center gap-3 text-sm animate-in fade-in slide-in-from-bottom-2`}>
@@ -806,7 +1240,10 @@ export default function Studio() {
               {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
               <span>{isGenerating ? t('studio.generate.generating') : t('studio.generate.button')}</span>
               {!isGenerating && <span className="bg-black/20 px-2 py-0.5 rounded text-xs font-normal ml-1">
-                {t('studio.tokens', { count: selectedModel === 'nanobanana-pro' && resolution === '2K' ? 10 : MODEL_PRICES[selectedModel] })}
+                {mediaType === 'video'
+                  ? `${calculateVideoCost(videoResolution, videoDuration, generateAudio)} ${t('studio.tokens')}`
+                  : `${selectedModel === 'nanobanana-pro' && resolution === '2K' ? 10 : MODEL_PRICES[selectedModel]} ${t('studio.tokens')}`
+                }
               </span>}
             </div>
           </Button>

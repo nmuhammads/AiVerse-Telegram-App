@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon } from 'lucide-react'
 
 // Custom GridImage component for handling load states
 const GridImage = ({ src, originalUrl, alt, className, onImageError }: { src: string, originalUrl: string, alt: string, className?: string, onImageError?: () => void }) => {
@@ -112,8 +112,8 @@ export default function Profile() {
   const [remixCount, setRemixCount] = useState<number>(0)
   const [followingCount, setFollowingCount] = useState<number>(0)
   const [followersCount, setFollowersCount] = useState<number>(0)
-  const [items, setItems] = useState<{ id: number; image_url: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null }[]>([])
-  const [preview, setPreview] = useState<{ id: number; image_url: string; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null } | null>(null)
+  const [items, setItems] = useState<{ id: number; image_url: string | null; compressed_url?: string | null; prompt: string; created_at: string | null; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null }[]>([])
+  const [preview, setPreview] = useState<{ id: number; image_url: string; prompt: string; is_published: boolean; model?: string | null; edit_variants?: string[] | null; media_type?: 'image' | 'video' | null } | null>(null)
   const [previewIndex, setPreviewIndex] = useState(0) // 0 = original, 1+ = edit variants
   const [showPrompt, setShowPrompt] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -123,6 +123,7 @@ export default function Profile() {
   // Filters
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [visibility, setVisibility] = useState<'all' | 'published' | 'private'>('all')
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'image' | 'video'>('all')
   const [showEditedOnly, setShowEditedOnly] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
@@ -254,13 +255,20 @@ export default function Profile() {
           if (showEditedOnly) {
             filteredItems = filteredItems.filter((item: any) => item.edit_variants && item.edit_variants.length > 0)
           }
+          // Filter by media type
+          if (mediaTypeFilter !== 'all') {
+            filteredItems = filteredItems.filter((item: any) => {
+              const itemMediaType = item.media_type || 'image' // default to image if not set
+              return itemMediaType === mediaTypeFilter
+            })
+          }
           setItems(filteredItems)
           setTotal(j.total)
           setOffset(0)
         }
       })
       .finally(() => setLoading(false))
-  }, [user?.id, selectedModels, visibility, showEditedOnly])
+  }, [user?.id, selectedModels, visibility, showEditedOnly, mediaTypeFilter])
 
   const {
     setPrompt,
@@ -708,6 +716,31 @@ export default function Profile() {
                   </button>
                 ))}
               </div>
+              {/* Media Type Filter */}
+              <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5">
+                {[
+                  { value: 'all', label: t('profile.filters.all'), icon: null },
+                  { value: 'image', label: t('profile.filters.photo'), icon: ImageIcon },
+                  { value: 'video', label: t('profile.filters.video'), icon: Video },
+                ].map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => {
+                      impact('light')
+                      setMediaTypeFilter(m.value as typeof mediaTypeFilter)
+                      setItems([])
+                      setOffset(0)
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1 ${mediaTypeFilter === m.value
+                      ? 'bg-violet-600 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                      }`}
+                  >
+                    {m.icon && <m.icon size={12} />}
+                    {m.label}
+                  </button>
+                ))}
+              </div>
               {/* Edited filter toggle */}
               <button
                 onClick={() => {
@@ -735,7 +768,7 @@ export default function Profile() {
                 <div className="grid grid-cols-2 gap-3">
                   {items.filter(h => !!h.image_url).map((h) => (
                     <div key={h.id} className="group relative rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
-                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants }) }} className="block w-full">
+                      <button onClick={() => { setPreviewIndex(0); setPreview({ id: h.id, image_url: h.image_url || '', prompt: h.prompt, is_published: h.is_published, model: h.model, edit_variants: h.edit_variants, media_type: h.media_type }) }} className="block w-full">
                         <GridImage
                           src={h.compressed_url || h.image_url || ''}
                           originalUrl={h.image_url || ''}
@@ -753,6 +786,12 @@ export default function Profile() {
                       {h.edit_variants && h.edit_variants.length > 0 && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500/80 backdrop-blur-md flex items-center justify-center z-10 pointer-events-none border border-violet-400/30">
                           <Pencil size={12} className="text-white" />
+                        </div>
+                      )}
+                      {/* Video indicator */}
+                      {h.media_type === 'video' && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500/80 backdrop-blur-md flex items-center justify-center z-10 pointer-events-none border border-red-400/30">
+                          <Video size={12} className="text-white" />
                         </div>
                       )}
                       <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -817,20 +856,23 @@ export default function Profile() {
                             <Trash2 size={14} />
                           </button>
                         )}
-                        <button
-                          onClick={() => {
-                            impact('light')
-                            const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                              ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                              : preview.image_url
-                            setPreview(null)
-                            navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
-                          }}
-                          className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
-                        >
-                          <Pencil size={14} />
-                          {t('editor.edit')}
-                        </button>
+                        {/* Edit button - hide for videos */}
+                        {preview.media_type !== 'video' && (
+                          <button
+                            onClick={() => {
+                              impact('light')
+                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                : preview.image_url
+                              setPreview(null)
+                              navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
+                            }}
+                            className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
+                          >
+                            <Pencil size={14} />
+                            {t('editor.edit')}
+                          </button>
+                        )}
                       </div>
                       {/* Carousel navigation */}
                       {preview.edit_variants && preview.edit_variants.length > 0 && (
@@ -869,14 +911,26 @@ export default function Profile() {
                           </div>
                         </>
                       )}
-                      <img
-                        src={preview.edit_variants && preview.edit_variants.length > 0
-                          ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                          : preview.image_url
-                        }
-                        alt="Preview"
-                        className="w-full h-full object-contain"
-                      />
+                      {/* Media content - video or image */}
+                      {preview.media_type === 'video' ? (
+                        <video
+                          src={preview.image_url}
+                          controls
+                          autoPlay
+                          loop
+                          playsInline
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <img
+                          src={preview.edit_variants && preview.edit_variants.length > 0
+                            ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                            : preview.image_url
+                          }
+                          alt="Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      )}
                     </div>
                     <div className="p-4 flex flex-col gap-3">
                       <div className="flex flex-col sm:flex-row gap-3">

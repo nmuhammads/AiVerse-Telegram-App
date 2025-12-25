@@ -1,12 +1,20 @@
 import { create } from 'zustand'
 
-export type ModelType = 'nanobanana-pro' | 'seedream4' | 'nanobanana' | 'seedream4-5' | 'p-image-edit'
+export type ModelType = 'nanobanana-pro' | 'seedream4' | 'nanobanana' | 'seedream4-5' | 'p-image-edit' | 'seedance-1.5-pro'
 
 export type AspectRatio = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '21:9' | '16:21' | 'Auto' | 'square_hd' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9'
+
+export type MediaType = 'image' | 'video'
+
+export type VideoDuration = '4' | '8' | '12'
+
+export type VideoResolution = '480p' | '720p'
 
 export interface GenerationState {
   // Текущая выбранная модель
   selectedModel: ModelType
+  // Тип медиа: изображение или видео
+  mediaType: MediaType
   // Промпт для генерации
   prompt: string
   // Негативный промпт (для Qwen)
@@ -17,8 +25,10 @@ export interface GenerationState {
   aspectRatio: AspectRatio
   // Режим генерации
   generationMode: 'text' | 'image'
-  // Результат генерации
+  // Результат генерации (изображение)
   generatedImage: string | null
+  // Результат генерации (видео)
+  generatedVideo: string | null
   // Состояние загрузки
   isGenerating: boolean
   // Ошибка
@@ -29,11 +39,23 @@ export interface GenerationState {
   parentAuthorUsername: string | null
   // Текущий экран
   currentScreen: 'form' | 'result'
+
+  // === Параметры для видео (Seedance 1.5 Pro) ===
+  // Длительность видео (секунды)
+  videoDuration: VideoDuration
+  // Разрешение видео
+  videoResolution: VideoResolution
+  // Статичная камера (true) или динамичная (false)
+  fixedLens: boolean
+  // Генерация аудио (удваивает стоимость!)
+  generateAudio: boolean
 }
 
 export interface GenerationActions {
   // Установить модель
   setSelectedModel: (model: ModelType) => void
+  // Установить тип медиа
+  setMediaType: (type: MediaType) => void
   // Установить промпт
   setPrompt: (prompt: string) => void
   // Установить негативный промпт
@@ -48,8 +70,10 @@ export interface GenerationActions {
   setAspectRatio: (ratio: AspectRatio) => void
   // Установить режим генерации
   setGenerationMode: (mode: 'text' | 'image') => void
-  // Установить результат
+  // Установить результат (изображение)
   setGeneratedImage: (image: string | null) => void
+  // Установить результат (видео)
+  setGeneratedVideo: (video: string | null) => void
   // Установить состояние загрузки
   setIsGenerating: (isGenerating: boolean) => void
   // Установить ошибку
@@ -58,23 +82,41 @@ export interface GenerationActions {
   setCurrentScreen: (screen: 'form' | 'result') => void
   // Установить родительскую генерацию
   setParentGeneration: (id: number | null, username: string | null) => void
+
+  // === Actions для видео ===
+  // Установить длительность видео
+  setVideoDuration: (duration: VideoDuration) => void
+  // Установить разрешение видео
+  setVideoResolution: (resolution: VideoResolution) => void
+  // Установить режим камеры
+  setFixedLens: (fixed: boolean) => void
+  // Установить генерацию аудио
+  setGenerateAudio: (generate: boolean) => void
+
   // Сбросить состояние
   reset: () => void
 }
 
 const initialState: GenerationState = {
   selectedModel: 'nanobanana-pro',
+  mediaType: 'image',
   prompt: '',
   negativePrompt: '',
   uploadedImages: [],
   aspectRatio: 'Auto',
   generationMode: 'text',
   generatedImage: null,
+  generatedVideo: null,
   isGenerating: false,
   error: null,
   currentScreen: 'form',
   parentGenerationId: null,
-  parentAuthorUsername: null
+  parentAuthorUsername: null,
+  // Видео параметры по умолчанию
+  videoDuration: '8',
+  videoResolution: '720p',
+  fixedLens: false,
+  generateAudio: false
 }
 
 export const useGenerationStore = create<GenerationState & GenerationActions>()(
@@ -82,6 +124,7 @@ export const useGenerationStore = create<GenerationState & GenerationActions>()(
     ...initialState,
 
     setSelectedModel: (model) => set({ selectedModel: model }),
+    setMediaType: (type) => set({ mediaType: type }),
     setPrompt: (prompt) => set({ prompt }),
     setNegativePrompt: (negativePrompt) => set({ negativePrompt }),
     setUploadedImages: (images) => set({ uploadedImages: images }),
@@ -90,10 +133,17 @@ export const useGenerationStore = create<GenerationState & GenerationActions>()(
     setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
     setGenerationMode: (mode) => set({ generationMode: mode }),
     setGeneratedImage: (image) => set({ generatedImage: image }),
+    setGeneratedVideo: (video) => set({ generatedVideo: video }),
     setIsGenerating: (isGenerating) => set({ isGenerating }),
     setError: (error) => set({ error }),
     setCurrentScreen: (screen) => set({ currentScreen: screen }),
     setParentGeneration: (id, username) => set({ parentGenerationId: id, parentAuthorUsername: username }),
+
+    // Видео actions
+    setVideoDuration: (duration) => set({ videoDuration: duration }),
+    setVideoResolution: (resolution) => set({ videoResolution: resolution }),
+    setFixedLens: (fixed) => set({ fixedLens: fixed }),
+    setGenerateAudio: (generate) => set({ generateAudio: generate }),
 
     reset: () => set({
       prompt: '',
@@ -101,11 +151,17 @@ export const useGenerationStore = create<GenerationState & GenerationActions>()(
       uploadedImages: [],
       generationMode: 'text',
       generatedImage: null,
+      generatedVideo: null,
       isGenerating: false,
       error: null,
       currentScreen: 'form',
       parentGenerationId: null,
-      parentAuthorUsername: null
+      parentAuthorUsername: null,
+      videoDuration: '8',
+      videoResolution: '720p',
+      fixedLens: false,
+      generateAudio: false
     })
   })
 )
+
