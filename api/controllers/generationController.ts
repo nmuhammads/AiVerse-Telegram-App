@@ -1142,8 +1142,7 @@ export async function getGenerationById(req: Request, res: Response) {
 
     // Fetch generation - include video_url for video generations
     // Note: aspect_ratio not in DB, extracted from prompt metadata
-    // Note: users join removed - can cause issues if FK not configured in Supabase
-    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type`
+    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type,users(username,first_name)`
     console.log('[getGenerationById] Query:', query)
 
     const result = await supaSelect('generations', query)
@@ -1199,6 +1198,7 @@ export async function getGenerationById(req: Request, res: Response) {
       aspect_ratio: ratio,
       generation_type: type,
       media_type: gen.media_type || (gen.model === 'seedance-1.5-pro' ? 'video' : 'image'),
+      users: gen.users,
     }
 
     console.log('[getGenerationById] Sending response:', {
