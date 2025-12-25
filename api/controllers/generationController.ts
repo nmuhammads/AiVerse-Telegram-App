@@ -1169,8 +1169,9 @@ export async function getGenerationById(req: Request, res: Response) {
       model: gen.model,
       input_images: gen.input_images || [],
       image_url: gen.image_url,
-      aspect_ratio: ratio,
+      aspect_ratio: gen.aspect_ratio || ratio,
       generation_type: type,
+      media_type: gen.media_type || null,
       users: gen.users
     })
   } catch (e) {
