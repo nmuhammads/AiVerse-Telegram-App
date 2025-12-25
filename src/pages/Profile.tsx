@@ -831,10 +831,11 @@ export default function Profile() {
                         <button
                           onClick={() => {
                             impact('light')
+                            const shareUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
                             if (navigator.share) {
-                              navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: preview.image_url }).catch(() => { })
+                              navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: shareUrl }).catch(() => { })
                             } else {
-                              shareImage(preview.image_url, cleanPrompt(preview.prompt))
+                              shareImage(shareUrl, cleanPrompt(preview.prompt))
                             }
                           }}
                           className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
@@ -968,10 +969,14 @@ export default function Profile() {
                         <button
                           onClick={() => {
                             impact('light')
-                            const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                              ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                              : preview.image_url
-                            saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
+                            if (preview.media_type === 'video' && preview.video_url) {
+                              saveToGallery(preview.video_url, `ai-video-${Date.now()}.mp4`)
+                            } else {
+                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                : preview.image_url
+                              saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
+                            }
                           }}
                           className="flex-1 min-h-[48px] h-auto py-3 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
                         >
@@ -983,12 +988,13 @@ export default function Profile() {
                             if (!user?.id) return
                             impact('light')
                             try {
-                              const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: preview.image_url, caption: cleanPrompt(preview.prompt) }) })
+                              const fileUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
+                              const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: fileUrl, caption: cleanPrompt(preview.prompt) }) })
                               const j = await r.json().catch(() => null)
                               if (r.ok && j?.ok) { notify('success') }
                               else {
                                 notify('error')
-                                shareImage(preview.image_url, cleanPrompt(preview.prompt))
+                                shareImage(fileUrl, cleanPrompt(preview.prompt))
                               }
                             } catch {
                               notify('error')
