@@ -516,5 +516,16 @@
     },
     "promo": {
         "banner": "🎄 New Year Promo! +20% tokens on any purchase until Jan 5! 🎁"
+    },
+    "pending": {
+        "hint": "{{count}} image processing. Tap 🔄 to refresh."
+    },
+    "rewards": {
+        "subscribe": "Subscribe → +10 tokens",
+        "claim": "Claim",
+        "checking": "Checking...",
+        "notSubscribed": "Subscribe to channel first",
+        "success": "+10 tokens claimed!",
+        "modalDescription": "Subscribe to our channel and get bonus tokens!"
     }
 }

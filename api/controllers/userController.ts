@@ -284,8 +284,10 @@ export async function listGenerations(req: Request, res: Response) {
 
     // Enhanced query to get full details
     let select = `select=id,image_url,video_url,prompt,created_at,is_published,model,likes_count,remix_count,input_images,user_id,edit_variants,media_type,users(username,first_name,last_name,avatar_url),generation_likes(user_id)`
-    // Filter: show items that have either image_url OR video_url
-    let query = `?user_id=eq.${encodeURIComponent(userId)}&status=neq.deleted&model=neq.seedream4.5&or=(image_url.ilike.http%25,video_url.ilike.http%25)&${select}&order=created_at.desc&limit=${limit}&offset=${offset}`
+    // Filter: show items that have either image_url OR video_url (both must start with https:// and not be empty)
+    // Using stricter filter to exclude empty generations from other bots
+    // Exclude specific models that come from other bots
+    let query = `?user_id=eq.${encodeURIComponent(userId)}&status=neq.deleted&model=neq.seedream4.5&model=neq.wavespeed-ai/wan-2.2-spicy/image-to-video&model=neq.bytedance/seedance-v1-pro-fast/image-to-video&or=(image_url.ilike.https://%25,video_url.ilike.https://%25)&${select}&order=created_at.desc&limit=${limit}&offset=${offset}`
 
     // Legacy: published_only support
     if (publishedOnly) {
@@ -547,3 +549,104 @@ export async function getFollowers(req: Request, res: Response) {
     return res.status(500).json({ error: 'get followers failed' })
   }
 }
+
+const CHANNEL_USERNAME = 'aiversebots'
+const CHANNEL_REWARD_TOKENS = 10
+
+// Check if user is subscribed to channel and if they already claimed reward
+export async function checkChannelSubscription(req: Request, res: Response) {
+  try {
+    const userId = req.params.userId
+    if (!userId) return res.status(400).json({ error: 'userId required' })
+    if (!TOKEN) return res.status(500).json({ error: 'Telegram token not configured' })
+    if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
+
+    // Check if already claimed (record exists in channel_subscribers)
+    const existingRecord = await supaSelect('channel_subscribers', `?user_id=eq.${userId}&channel_username=eq.${CHANNEL_USERNAME}&select=id,reward_claimed`)
+    const claimed = Array.isArray(existingRecord.data) && existingRecord.data.length > 0 && existingRecord.data[0].reward_claimed
+
+    if (claimed) {
+      return res.json({ isSubscribed: true, rewardClaimed: true })
+    }
+
+    // Check subscription status via Telegram API
+    const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
+    const tgData = await tgResp.json()
+
+    const status = tgData?.result?.status
+    const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
+
+    return res.json({ isSubscribed, rewardClaimed: false })
+  } catch (e) {
+    console.error('checkChannelSubscription error:', e)
+    return res.status(500).json({ error: 'check subscription failed' })
+  }
+}
+
+// Claim reward for channel subscription
+export async function claimChannelReward(req: Request, res: Response) {
+  try {
+    const { userId } = req.body
+    if (!userId) return res.status(400).json({ error: 'userId required' })
+    if (!TOKEN) return res.status(500).json({ error: 'Telegram token not configured' })
+    if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
+
+    // Check if already claimed
+    const existingRecord = await supaSelect('channel_subscribers', `?user_id=eq.${userId}&channel_username=eq.${CHANNEL_USERNAME}&select=id,reward_claimed`)
+    if (Array.isArray(existingRecord.data) && existingRecord.data.length > 0 && existingRecord.data[0].reward_claimed) {
+      return res.json({ success: false, alreadyClaimed: true })
+    }
+
+    // Check subscription status via Telegram API
+    const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
+    const tgData = await tgResp.json()
+
+    const status = tgData?.result?.status
+    const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
+
+    if (!isSubscribed) {
+      return res.json({ success: false, notSubscribed: true })
+    }
+
+    // Add tokens to user balance
+    const userQuery = await supaSelect('users', `?user_id=eq.${userId}&select=balance`)
+    const currentBalance = (userQuery.ok && Array.isArray(userQuery.data) && userQuery.data[0]) ? userQuery.data[0].balance : 0
+    const newBalance = currentBalance + CHANNEL_REWARD_TOKENS
+
+    const balanceUpdate = await supaPatch('users', `?user_id=eq.${userId}`, { balance: newBalance })
+    if (!balanceUpdate.ok) {
+      console.error('Failed to update balance:', balanceUpdate.data)
+      return res.status(500).json({ error: 'Failed to update balance' })
+    }
+
+    // Record in channel_subscribers
+    const record = await supaPost('channel_subscribers', {
+      user_id: userId,
+      channel_username: CHANNEL_USERNAME,
+      reward_claimed: true,
+      tokens_awarded: CHANNEL_REWARD_TOKENS
+    }, '?on_conflict=user_id,channel_username')
+
+    if (!record.ok) {
+      console.error('Failed to record subscription:', record.data)
+    }
+
+    // Send Telegram message to user
+    const message = `🎉 Спасибо за подписку на канал @${CHANNEL_USERNAME}!\n\n+${CHANNEL_REWARD_TOKENS} токенов зачислено на ваш баланс!`
+    await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: userId,
+        text: message,
+        parse_mode: 'HTML'
+      })
+    }).catch(e => console.error('Failed to send reward message:', e))
+
+    return res.json({ success: true, newBalance, tokensAwarded: CHANNEL_REWARD_TOKENS })
+  } catch (e) {
+    console.error('claimChannelReward error:', e)
+    return res.status(500).json({ error: 'claim reward failed' })
+  }
+}
+

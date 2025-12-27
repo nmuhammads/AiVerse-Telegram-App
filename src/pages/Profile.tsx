@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2 } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2, Gift } from 'lucide-react'
 
 // Custom GridImage component for handling load states
 const GridImage = ({ src, originalUrl, alt, className, onImageError }: { src: string, originalUrl: string, alt: string, className?: string, onImageError?: () => void }) => {
@@ -122,6 +122,7 @@ export default function Profile() {
   const [total, setTotal] = useState<number | undefined>(undefined)
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   // Filters
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [visibility, setVisibility] = useState<'all' | 'published' | 'private'>('all')
@@ -131,6 +132,9 @@ export default function Profile() {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [showCoverSelector, setShowCoverSelector] = useState(false)
   const [showAvatarOptions, setShowAvatarOptions] = useState(false)
+  // Channel subscription reward state
+  const [channelReward, setChannelReward] = useState<{ show: boolean; loading: boolean; claiming: boolean }>({ show: false, loading: true, claiming: false })
+  const [showRewardModal, setShowRewardModal] = useState(false)
   const displayName = (user?.first_name && user?.last_name)
     ? `${user.first_name} ${user.last_name} `
     : (user?.first_name || user?.username || t('profile.guest'))
@@ -211,6 +215,27 @@ export default function Profile() {
     }
   }, [user?.id])
 
+  // Check channel subscription status
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/user/channel-subscription/${user.id}`)
+        .then(async r => {
+          const j = await r.json().catch(() => null)
+          if (r.ok && j) {
+            // Show card only if not subscribed OR subscribed but reward not claimed
+            setChannelReward(prev => ({
+              ...prev,
+              loading: false,
+              show: !j.rewardClaimed
+            }))
+          } else {
+            setChannelReward(prev => ({ ...prev, loading: false, show: false }))
+          }
+        })
+        .catch(() => setChannelReward(prev => ({ ...prev, loading: false, show: false })))
+    }
+  }, [user?.id])
+
   // Refresh balance when modal closes or window gains focus (user returns from payment)
   useEffect(() => {
     if (!isPaymentModalOpen) {
@@ -271,6 +296,49 @@ export default function Profile() {
       })
       .finally(() => setLoading(false))
   }, [user?.id, selectedModels, visibility, showEditedOnly, mediaTypeFilter])
+
+  // Refresh function for pull-to-refresh
+  const handleRefresh = async () => {
+    if (!user?.id || refreshing) return
+    setRefreshing(true)
+    try {
+      // Check pending status first
+      await fetch('/api/generation/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id })
+      }).catch(() => { })
+
+      // Refresh generations
+      const modelParam = selectedModels.length > 0 ? `&model=${selectedModels.join(',')}` : ''
+      const visibilityParam = visibility !== 'all' ? `&visibility=${visibility}` : ''
+      const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=50&offset=0${modelParam}${visibilityParam}`)
+      const j = await r.json().catch(() => null)
+      if (r.ok && j) {
+        let filteredItems = j.items || []
+        if (showEditedOnly) {
+          filteredItems = filteredItems.filter((item: any) => item.edit_variants && item.edit_variants.length > 0)
+        }
+        if (mediaTypeFilter !== 'all') {
+          filteredItems = filteredItems.filter((item: any) => {
+            const itemMediaType = item.media_type || 'image'
+            return itemMediaType === mediaTypeFilter
+          })
+        }
+        setItems(filteredItems)
+        setTotal(j.total)
+        setOffset(0)
+      }
+
+      // Refresh balance
+      fetchBalance()
+      notify('success')
+    } catch {
+      notify('error')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const {
     setPrompt,
@@ -595,6 +663,19 @@ export default function Profile() {
                   {spins}
                 </div>
               </button>
+              {/* Channel Reward Button - Only show if not claimed */}
+              {!channelReward.loading && channelReward.show && (
+                <button
+                  onClick={() => { impact('light'); setShowRewardModal(true) }}
+                  className="relative w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl flex items-center justify-center border border-white/5 active:scale-[0.98] transition-all overflow-visible"
+                >
+                  <Gift size={18} className="text-amber-400" />
+                  {/* Badge */}
+                  <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1 min-w-[16px] h-4 rounded-full flex items-center justify-center border border-zinc-900 shadow-sm z-10 pointer-events-none">
+                    1
+                  </div>
+                </button>
+              )}
               <button
                 className="w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl flex items-center justify-center border border-white/5 active:scale-[0.98] transition-all"
                 onClick={() => {
@@ -652,9 +733,97 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Channel Reward Modal */}
+        {showRewardModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowRewardModal(false)}>
+            <div className="bg-zinc-900 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                    <Gift size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{t('rewards.subscribe')}</h3>
+                    <p className="text-xs text-zinc-400">@aiversebots</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowRewardModal(false)} className="text-zinc-500 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-zinc-300 mb-6">
+                {t('rewards.modalDescription', { defaultValue: 'Подпишитесь на наш канал и получите бонусные токены!' })}
+              </p>
+              <button
+                onClick={async () => {
+                  if (channelReward.claiming || !user?.id) return
+                  impact('light')
+                  setShowRewardModal(false)
+
+                  // Open channel first
+                  const wa = (window as any).Telegram?.WebApp
+                  if (wa) {
+                    wa.openTelegramLink('https://t.me/aiversebots')
+                  } else {
+                    window.open('https://t.me/aiversebots', '_blank')
+                  }
+
+                  // Wait a bit then try to claim
+                  setTimeout(async () => {
+                    setChannelReward(prev => ({ ...prev, claiming: true }))
+                    try {
+                      const r = await fetch('/api/user/claim-channel-reward', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user.id })
+                      })
+                      const j = await r.json().catch(() => null)
+                      if (r.ok && j) {
+                        if (j.success) {
+                          impact('heavy')
+                          notify('success')
+                          setBalance(j.newBalance)
+                          setChannelReward({ show: false, loading: false, claiming: false })
+                          const wa = (window as any).Telegram?.WebApp
+                          if (wa && wa.showAlert) {
+                            wa.showAlert(t('rewards.success'))
+                          }
+                        } else if (j.notSubscribed) {
+                          notify('warning')
+                          const wa = (window as any).Telegram?.WebApp
+                          if (wa && wa.showAlert) {
+                            wa.showAlert(t('rewards.notSubscribed'))
+                          }
+                        } else if (j.alreadyClaimed) {
+                          setChannelReward({ show: false, loading: false, claiming: false })
+                        }
+                      }
+                    } catch {
+                      notify('error')
+                    } finally {
+                      setChannelReward(prev => ({ ...prev, claiming: false }))
+                    }
+                  }, 2000)
+                }}
+                disabled={channelReward.claiming}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {channelReward.claiming ? t('rewards.checking') : t('rewards.claim')}
+              </button>
+            </div>
+          </div>
+        )}
         <div>
-          <div className="flex justify-between items-end mb-2 px-1">
+          <div className="flex justify-between items-center mb-2 px-1">
             <div className="text-lg font-bold text-white">{t('profile.history.title')}</div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={`text-zinc-400 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           {/* Storage Info Banner */}
           <div className="mb-4 px-1">

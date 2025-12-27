@@ -1051,14 +1051,34 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   const apiKey = process.env.KIE_API_KEY || ''
 
   for (const gen of pending) {
-    if (!gen.model) continue
+    // Handle missing model AND task_id - mark as failed
+    if (!gen.model && !gen.task_id) {
+      console.log(`[CheckStatus] Gen ${gen.id} missing both model and task_id, marking failed`)
 
-    // Handle missing task_id
+      // Возврат токенов
+      const cost = gen.cost || 0
+      if (cost > 0) {
+        const balQ = await supaSelect('users', `?user_id=eq.${gen.user_id}&select=balance`)
+        const currBal = Array.isArray(balQ.data) && balQ.data[0]?.balance != null ? Number(balQ.data[0].balance) : 0
+        const nextBal = currBal + cost
+        await supaPatch('users', `?user_id=eq.${gen.user_id}`, { balance: nextBal })
+        console.log(`[CheckStatus] Refunded ${cost} tokens to user ${gen.user_id}: ${currBal} -> ${nextBal}`)
+      }
+
+      await supaPatch('generations', `?id=eq.${gen.id}`, {
+        status: 'failed',
+        error_message: 'Missing model and task ID'
+      })
+      updated++
+      continue
+    }
+
+    // Handle missing task_id (but has model)
     if (!gen.task_id) {
       console.log(`[CheckStatus] Gen ${gen.id} missing task_id, marking failed`)
 
       // Возврат токенов при missing task_id
-      const cost = gen.cost || MODEL_PRICES[gen.model] || 0
+      const cost = gen.cost || (gen.model ? MODEL_PRICES[gen.model] : 0) || 0
       if (cost > 0) {
         const balQ = await supaSelect('users', `?user_id=eq.${gen.user_id}&select=balance`)
         const currBal = Array.isArray(balQ.data) && balQ.data[0]?.balance != null ? Number(balQ.data[0].balance) : 0
@@ -1078,6 +1098,7 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
     let result = { status: 'pending', imageUrl: '', error: '' }
 
     try {
+      // Check API status (use checkJobsTask as default if no model)
       if (gen.model === 'flux') {
         result = await checkFluxTask(apiKey, gen.task_id)
       } else {
@@ -1264,7 +1285,6 @@ export async function deleteGeneration(req: Request, res: Response) {
   }
 }
 
-// Delete a specific edit variant by index from edit_variants array
 export async function deleteEditVariant(req: Request, res: Response) {
   try {
     const { id, index } = req.params
@@ -1323,3 +1343,24 @@ export async function deleteEditVariant(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to delete variant' })
   }
 }
+
+// Get count of pending generations for a user
+export async function getPendingCount(req: Request, res: Response) {
+  try {
+    const user_id = req.query.user_id
+    if (!user_id) {
+      return res.status(400).json({ error: 'user_id is required' })
+    }
+
+    const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending&select=id`)
+    if (!q.ok || !Array.isArray(q.data)) {
+      return res.json({ count: 0 })
+    }
+
+    return res.json({ count: q.data.length })
+  } catch (e) {
+    console.error('getPendingCount error:', e)
+    return res.json({ count: 0 })
+  }
+}
+

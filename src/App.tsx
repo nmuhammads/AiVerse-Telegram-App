@@ -15,6 +15,7 @@ import SpinPage from "@/pages/SpinPage";
 import ImageEditorPage from "@/pages/ImageEditorPage";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
+import { PendingIndicator } from "@/components/PendingIndicator";
 import { useEffect, useRef } from "react";
 import WebApp from "@twa-dev/sdk";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
@@ -175,6 +176,7 @@ export default function App() {
             </Routes>
           </div>
           <TabBar />
+          <PendingIndicator />
           <AnnouncementModal />
         </div>
       </Router>
