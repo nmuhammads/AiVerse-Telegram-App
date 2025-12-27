@@ -135,8 +135,11 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
 
     return (
         <div
-            className={`fixed inset-0 z-[100] bg-black flex ${isMobile9_16 ? 'items-end pb-4' : 'items-center'} justify-center px-4 !m-0 !p-0 animate-in fade-in duration-200`}
-            style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: isMobile9_16 ? '0 16px 16px 16px' : '0 16px' }}
+            className={`fixed inset-0 z-[100] bg-black flex ${isMobile9_16 ? 'items-end' : 'items-center'} justify-center !m-0 !p-0 animate-in fade-in duration-200`}
+            style={{
+                top: 0, left: 0, right: 0, bottom: 0, margin: 0,
+                padding: isMobile9_16 ? '0 16px calc(env(safe-area-inset-bottom) + 32px) 16px' : '0 16px'
+            }}
             onClick={onClose}
         >
             <div
