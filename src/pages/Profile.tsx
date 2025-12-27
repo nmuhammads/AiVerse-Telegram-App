@@ -122,6 +122,7 @@ export default function Profile() {
   const [total, setTotal] = useState<number | undefined>(undefined)
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   // Filters
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [visibility, setVisibility] = useState<'all' | 'published' | 'private'>('all')
@@ -271,6 +272,49 @@ export default function Profile() {
       })
       .finally(() => setLoading(false))
   }, [user?.id, selectedModels, visibility, showEditedOnly, mediaTypeFilter])
+
+  // Refresh function for pull-to-refresh
+  const handleRefresh = async () => {
+    if (!user?.id || refreshing) return
+    setRefreshing(true)
+    try {
+      // Check pending status first
+      await fetch('/api/generation/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id })
+      }).catch(() => { })
+
+      // Refresh generations
+      const modelParam = selectedModels.length > 0 ? `&model=${selectedModels.join(',')}` : ''
+      const visibilityParam = visibility !== 'all' ? `&visibility=${visibility}` : ''
+      const r = await fetch(`/api/user/generations?user_id=${user.id}&limit=50&offset=0${modelParam}${visibilityParam}`)
+      const j = await r.json().catch(() => null)
+      if (r.ok && j) {
+        let filteredItems = j.items || []
+        if (showEditedOnly) {
+          filteredItems = filteredItems.filter((item: any) => item.edit_variants && item.edit_variants.length > 0)
+        }
+        if (mediaTypeFilter !== 'all') {
+          filteredItems = filteredItems.filter((item: any) => {
+            const itemMediaType = item.media_type || 'image'
+            return itemMediaType === mediaTypeFilter
+          })
+        }
+        setItems(filteredItems)
+        setTotal(j.total)
+        setOffset(0)
+      }
+
+      // Refresh balance
+      fetchBalance()
+      notify('success')
+    } catch {
+      notify('error')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const {
     setPrompt,
@@ -653,8 +697,15 @@ export default function Profile() {
           </div>
         </div>
         <div>
-          <div className="flex justify-between items-end mb-2 px-1">
+          <div className="flex justify-between items-center mb-2 px-1">
             <div className="text-lg font-bold text-white">{t('profile.history.title')}</div>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={`text-zinc-400 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           {/* Storage Info Banner */}
           <div className="mb-4 px-1">

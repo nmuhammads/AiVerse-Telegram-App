@@ -516,5 +516,8 @@
     },
     "promo": {
         "banner": "🎄 New Year Promo! +20% tokens on any purchase until Jan 5! 🎁"
+    },
+    "pending": {
+        "hint": "You have {{count}} generation(s) processing. Results will appear here in history."
     }
 }
