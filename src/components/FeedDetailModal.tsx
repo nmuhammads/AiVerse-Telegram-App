@@ -133,10 +133,17 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
     const isMobile = platform === 'ios' || platform === 'android'
     const isMobile9_16 = is9_16 && isMobile
 
+    // Calculate padding top for 9:16 images on mobile to avoid Telegram native buttons
+    const getPaddingTopFor9_16 = () => {
+        if (platform === 'android') return 'calc(env(safe-area-inset-top) + 80px)'
+        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 40px)'
+        return '96px'
+    }
+
     return (
         <div
-            className={`fixed inset-0 z-[100] bg-black flex ${isMobile9_16 ? 'items-start pt-24' : 'items-center'} justify-center px-4 pb-4 !m-0 !p-0 animate-in fade-in duration-200`}
-            style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0 }}
+            className={`fixed inset-0 z-[100] bg-black flex ${isMobile9_16 ? 'items-start' : 'items-center'} justify-center px-4 pb-4 !m-0 !p-0 animate-in fade-in duration-200`}
+            style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0, paddingTop: isMobile9_16 ? getPaddingTopFor9_16() : 0 }}
             onClick={onClose}
         >
             <div
