@@ -70,6 +70,23 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
     const hasVariants = allImages.length > 1
     const currentImage = allImages[imageIndex] || item.image_url
 
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+        const scrollY = window.scrollY
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${scrollY}px`
+        document.body.style.width = '100%'
+        document.body.style.overflow = 'hidden'
+
+        return () => {
+            document.body.style.position = ''
+            document.body.style.top = ''
+            document.body.style.width = ''
+            document.body.style.overflow = ''
+            window.scrollTo(0, scrollY)
+        }
+    }, [])
+
     // Close on escape
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -118,7 +135,8 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike }: Props) {
 
     return (
         <div
-            className={`fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex ${isMobile9_16 ? 'items-start pt-24' : 'items-center'} justify-center p-4 animate-in fade-in duration-200`}
+            className={`fixed inset-0 z-[100] bg-black flex ${isMobile9_16 ? 'items-start pt-24' : 'items-center'} justify-center px-4 pb-4 !m-0 !p-0 animate-in fade-in duration-200`}
+            style={{ top: 0, left: 0, right: 0, bottom: 0, margin: 0, padding: 0 }}
             onClick={onClose}
         >
             <div
