@@ -81,7 +81,7 @@ export function PendingIndicator() {
     }
 
     return (
-        <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2">
+        <div className="fixed bottom-28 right-4 z-50 flex flex-col items-end gap-2">
             {/* Hint popup */}
             <div
                 className={`max-w-[200px] px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-medium shadow-lg shadow-violet-500/30 border border-violet-400/30 backdrop-blur-md transition-all duration-300 origin-bottom-right ${showHint
