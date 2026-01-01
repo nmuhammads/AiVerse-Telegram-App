@@ -18,7 +18,7 @@ const IMAGE_MODELS: { id: ModelType; name: string; desc: string; color: string; 
   { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '15 токенов', color: 'from-pink-500 to-rose-500', icon: '/models/optimized/nanobanana-pro.png' },
   { id: 'seedream4', name: 'Seedream 4', desc: '4 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/optimized/seedream.png' },
   { id: 'seedream4-5', name: 'Seedream 4.5', desc: '7 токенов', color: 'from-blue-400 to-indigo-500', icon: '/models/optimized/seedream-4-5.png' },
-  { id: 'gpt-image-1.5', name: 'GPT image 1.5', desc: 'от 8 токенов', color: 'from-cyan-400 to-blue-500', icon: '/models/optimized/gpt-image.png' },
+  { id: 'gpt-image-1.5', name: 'GPT image 1.5', desc: 'от 5 токенов', color: 'from-cyan-400 to-blue-500', icon: '/models/optimized/gpt-image.png' },
 ]
 
 // Модели для генерации видео
@@ -36,12 +36,12 @@ const MODEL_PRICES: Record<ModelType, number> = {
   'seedream4-5': 7,
   'p-image-edit': 2,
   'seedance-1.5-pro': 42, // Default: 720p, 8s, без аудио
-  'gpt-image-1.5': 8, // Default: medium quality
+  'gpt-image-1.5': 5, // Default: medium quality
 }
 
 // Цены для GPT Image 1.5 по качеству
 const GPT_IMAGE_PRICES: Record<GptImageQuality, number> = {
-  medium: 8,
+  medium: 5,
   high: 15,
 }
 
