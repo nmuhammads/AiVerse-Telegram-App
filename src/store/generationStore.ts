@@ -53,7 +53,7 @@ export interface GenerationState {
   generateAudio: boolean
 
   // === Параметры для GPT Image 1.5 ===
-  // Качество генерации (medium=8 токенов, high=15 токенов)
+  // Качество генерации (medium=5 токенов, high=15 токенов)
   gptImageQuality: GptImageQuality
 }
 

@@ -336,18 +336,18 @@ const MODEL_PRICES: Record<string, number> = {
   seedream4: 4,
   'seedream4-5': 7,
   flux: 4,
-  'gpt-image-1.5': 8, // Default: medium quality
+  'gpt-image-1.5': 5, // Default: medium quality
 }
 
 // Цены для GPT Image 1.5 по качеству
 const GPT_IMAGE_PRICES: Record<string, number> = {
-  medium: 8,
+  medium: 5,
   high: 15,
 }
 
 // Рассчитать стоимость GPT Image 1.5 в токенах
 function calculateGptImageCost(quality: string): number {
-  return GPT_IMAGE_PRICES[quality] ?? 8
+  return GPT_IMAGE_PRICES[quality] ?? 5
 }
 
 // Цены для видео-генерации Seedance 1.5 Pro
