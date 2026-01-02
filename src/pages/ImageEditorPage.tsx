@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Pencil, Loader2, Zap, Download, Grid, Upload, ChevronLeft, Paintbrush } from 'lucide-react'
+import { X, Pencil, Loader2, Zap, Download, Grid, Upload, ChevronLeft, Paintbrush, Box } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -9,9 +9,12 @@ import { useHaptics } from '@/hooks/useHaptics'
 import { PaymentModal } from '@/components/PaymentModal'
 import { GenerationSelector } from '@/components/GenerationSelector'
 import { InpaintCanvas } from '@/components/InpaintCanvas'
+import { AnglesCube } from '@/components/AnglesCube'
+import { AnglesSlider } from '@/components/AnglesSlider'
 import { compressImage } from '@/utils/imageCompression'
 
 const EDITOR_PRICE = 2
+const ANGLES_PRICE = 4
 
 export default function ImageEditorPage() {
     const { t } = useTranslation()
@@ -34,9 +37,20 @@ export default function ImageEditorPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false)
     const [showBalancePopup, setShowBalancePopup] = useState(false)
     const [showGenerationSelector, setShowGenerationSelector] = useState(false)
-    const [mode, setMode] = useState<'edit' | 'inpaint'>('edit')
+    const [mode, setMode] = useState<'edit' | 'inpaint' | 'angles'>('edit')
     const [maskImage, setMaskImage] = useState<string | null>(null)
     const [showMaskEditor, setShowMaskEditor] = useState(false)
+
+    // Angles mode state
+    const [rotation, setRotation] = useState(45)      // -90 to 90
+    const [tilt, setTilt] = useState(-45)             // -45 to 45
+    const [zoom, setZoom] = useState(0)               // 0 to 10
+
+    const resetAngles = () => {
+        setRotation(45)
+        setTilt(-45)
+        setZoom(0)
+    }
 
     // Загрузка изображения из URL параметра
     useEffect(() => {
@@ -117,7 +131,8 @@ export default function ImageEditorPage() {
     }
 
     const handleGenerate = async () => {
-        if (!sourceImage || !prompt.trim()) {
+        // Для angles режима промпт не нужен
+        if (!sourceImage || (mode !== 'angles' && !prompt.trim())) {
             setError(t('editor.error.required'))
             notify('error')
             return
@@ -137,11 +152,14 @@ export default function ImageEditorPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt,
+                    prompt: mode === 'angles' ? '' : prompt,
                     images: imagesArray,
                     user_id: user?.id || null,
                     source_generation_id: sourceGenerationId,
-                    mode: mode
+                    mode: mode,
+                    rotation: mode === 'angles' ? rotation : undefined,
+                    tilt: mode === 'angles' ? tilt : undefined,
+                    zoom: mode === 'angles' ? zoom : undefined
                 })
             })
 
@@ -292,7 +310,7 @@ export default function ImageEditorPage() {
                                 <div className="flex bg-zinc-800/50 rounded-full p-0.5 border border-white/5 flex-1">
                                     <button
                                         onClick={() => { setMode('edit'); setMaskImage(null); impact('light') }}
-                                        className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'edit'
+                                        className={`flex-1 px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${mode === 'edit'
                                             ? 'bg-violet-600 text-white'
                                             : 'text-zinc-400 hover:text-white'
                                             }`}
@@ -302,13 +320,23 @@ export default function ImageEditorPage() {
                                     </button>
                                     <button
                                         onClick={() => { setMode('inpaint'); impact('light') }}
-                                        className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'inpaint'
+                                        className={`flex-1 px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${mode === 'inpaint'
                                             ? 'bg-violet-600 text-white'
                                             : 'text-zinc-400 hover:text-white'
                                             }`}
                                     >
                                         <Paintbrush size={14} />
                                         {t('editor.mode.inpaint')}
+                                    </button>
+                                    <button
+                                        onClick={() => { setMode('angles'); setMaskImage(null); impact('light') }}
+                                        className={`flex-1 px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${mode === 'angles'
+                                            ? 'bg-violet-600 text-white'
+                                            : 'text-zinc-400 hover:text-white'
+                                            }`}
+                                    >
+                                        <Box size={14} />
+                                        {t('editor.mode.angles')}
                                     </button>
                                 </div>
                             </div>
@@ -356,28 +384,74 @@ export default function ImageEditorPage() {
                     />
                 </div>
 
-                {/* Prompt */}
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                        {t('editor.instruction')}
-                    </label>
-                    <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder={t('editor.instructionPlaceholder')}
-                        className="w-full min-h-[100px] p-4 rounded-xl bg-zinc-900/50 border border-white/10 text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-cyan-500/50 transition-colors"
-                    />
-                </div>
+                {/* Angles Mode - 3D Cube and Sliders */}
+                {mode === 'angles' && sourceImage && (
+                    <div className="space-y-3">
+                        <AnglesCube
+                            imageUrl={sourceImage}
+                            rotation={rotation}
+                            tilt={tilt}
+                            zoom={zoom}
+                            onRotationChange={setRotation}
+                            onTiltChange={setTilt}
+                            onReset={resetAngles}
+                        />
+                        <AnglesSlider
+                            label={t('editor.angles.rotation')}
+                            value={rotation}
+                            min={-90}
+                            max={90}
+                            step={15}
+                            suffix="°"
+                            onChange={setRotation}
+                        />
+                        <AnglesSlider
+                            label={t('editor.angles.tilt')}
+                            value={tilt}
+                            min={-45}
+                            max={45}
+                            step={45}
+                            suffix="°"
+                            onChange={setTilt}
+                        />
+                        <AnglesSlider
+                            label={t('editor.angles.zoom')}
+                            value={zoom}
+                            min={0}
+                            max={10}
+                            step={5}
+                            suffix=""
+                            onChange={setZoom}
+                        />
+                    </div>
+                )}
 
-                {/* Hints */}
-                <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-200 text-xs">
-                    <p className="font-medium mb-1.5">💡 {t('editor.hints.title')}</p>
-                    <ul className="list-disc list-inside space-y-0.5 text-cyan-300/80">
-                        <li>{t('editor.hints.1')}</li>
-                        <li>{t('editor.hints.2')}</li>
-                        <li>{t('editor.hints.3')}</li>
-                    </ul>
-                </div>
+                {/* Prompt - only for edit/inpaint modes */}
+                {mode !== 'angles' && (
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                            {t('editor.instruction')}
+                        </label>
+                        <textarea
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={t('editor.instructionPlaceholder')}
+                            className="w-full min-h-[100px] p-4 rounded-xl bg-zinc-900/50 border border-white/10 text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        />
+                    </div>
+                )}
+
+                {/* Hints - only for edit/inpaint modes */}
+                {mode !== 'angles' && (
+                    <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-200 text-xs">
+                        <p className="font-medium mb-1.5">💡 {t('editor.hints.title')}</p>
+                        <ul className="list-disc list-inside space-y-0.5 text-cyan-300/80">
+                            <li>{t('editor.hints.1')}</li>
+                            <li>{t('editor.hints.2')}</li>
+                            <li>{t('editor.hints.3')}</li>
+                        </ul>
+                    </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -389,7 +463,7 @@ export default function ImageEditorPage() {
                 {/* Generate Button */}
                 <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating || !sourceImage || !prompt.trim()}
+                    disabled={isGenerating || !sourceImage || (mode !== 'angles' && !prompt.trim())}
                     className="w-full py-6 rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isGenerating ? (
@@ -399,10 +473,10 @@ export default function ImageEditorPage() {
                         </>
                     ) : (
                         <>
-                            <Pencil size={20} className="mr-2" />
+                            {mode === 'angles' ? <Box size={20} className="mr-2" /> : <Pencil size={20} className="mr-2" />}
                             {t('editor.generate')}
                             <span className="ml-2 bg-black/20 px-2 py-0.5 rounded text-xs">
-                                {EDITOR_PRICE} {t('editor.tokens')}
+                                {mode === 'angles' ? ANGLES_PRICE : EDITOR_PRICE} {t('editor.tokens')}
                             </span>
                         </>
                     )}

@@ -504,7 +504,14 @@
         },
         "mode": {
             "edit": "Edit",
-            "inpaint": "Inpaint"
+            "inpaint": "Inpaint",
+            "angles": "Angles"
+        },
+        "angles": {
+            "rotation": "Rotation",
+            "tilt": "Tilt",
+            "zoom": "Zoom",
+            "reset": "Reset"
         },
         "drawMask": "Draw Mask",
         "maskEditor": {
