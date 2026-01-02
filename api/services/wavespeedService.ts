@@ -42,12 +42,14 @@ export async function createAnglesPrediction(
     const json = await resp.json()
     console.log('[WaveSpeed] Task creation response:', json)
 
-    if (!resp.ok || !json.id) {
-        throw new Error(json.error || json.message || 'WaveSpeed task create failed')
+    // WaveSpeed API возвращает { code: 200, message: 'success', data: { id: '...' } }
+    const requestId = json.data?.id || json.id
+    if (!resp.ok || !requestId) {
+        throw new Error(json.error || json.data?.error || 'WaveSpeed task create failed')
     }
 
     // Polling для получения результата
-    return pollWavespeedTask(json.id)
+    return pollWavespeedTask(requestId)
 }
 
 function buildAnglePrompt(rotation: number, tilt: number, zoom: number): string {
@@ -101,16 +103,23 @@ async function pollWavespeedTask(requestId: string, timeoutMs = 300000): Promise
 
         const json = await resp.json()
 
-        if (json.status === 'completed' && json.output) {
+        // WaveSpeed API возвращает { code: 200, data: { status: '...', outputs: [...] } }
+        const data = json.data || json
+        const status = data.status
+
+        console.log(`[WaveSpeed] Poll status: ${status}`)
+
+        if (status === 'completed' && (data.outputs?.length > 0 || data.output)) {
             console.log(`[WaveSpeed] Task ${requestId} completed`)
-            // Output может быть массивом или строкой
-            const output = Array.isArray(json.output) ? json.output[0] : json.output
+            // Output может быть в outputs или output
+            const outputs = data.outputs || data.output
+            const output = Array.isArray(outputs) ? outputs[0] : outputs
             return output
         }
 
-        if (json.status === 'failed') {
-            console.error(`[WaveSpeed] Task ${requestId} failed:`, json.error)
-            throw new Error(json.error || 'WaveSpeed task failed')
+        if (status === 'failed') {
+            console.error(`[WaveSpeed] Task ${requestId} failed:`, data.error)
+            throw new Error(data.error || 'WaveSpeed task failed')
         }
 
         await new Promise(r => setTimeout(r, 2000))
