@@ -1,7 +1,12 @@
 import { AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-const isDevMode = () => import.meta.env.VITE_DEV_MODE === 'true'
+// Check for dev mode - handle various env value formats
+const isDevMode = () => {
+    const value = import.meta.env.VITE_DEV_MODE
+    console.log('[DevMode] VITE_DEV_MODE value:', value, 'type:', typeof value)
+    return value === 'true' || value === true || value === '"true"' || value === '1'
+}
 
 export function DevModeBanner() {
     const { t } = useTranslation()
