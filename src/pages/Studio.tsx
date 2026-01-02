@@ -9,6 +9,7 @@ import { useGenerationStore, type ModelType, type AspectRatio, type VideoDuratio
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { PaymentModal } from '@/components/PaymentModal'
+import { DevModeBanner } from '@/components/DevModeBanner'
 import { compressImage } from '@/utils/imageCompression'
 
 
@@ -684,6 +685,9 @@ export default function Studio() {
             </button>
           </div>
         </div>
+
+        {/* Dev Mode Banner */}
+        <DevModeBanner />
 
         {/* 0. Media Type Toggle: Фото / Видео */}
         <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">

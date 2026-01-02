@@ -5,6 +5,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { DevModeBanner } from '@/components/DevModeBanner'
 
 interface NotificationSettings {
     telegram_news: boolean
@@ -190,6 +191,9 @@ export default function Settings() {
 
             {/* Content */}
             <div className="px-4 space-y-6 mt-4">
+                {/* Dev Mode Banner */}
+                <DevModeBanner />
+
                 {sections.map((section, idx) => (
                     <div key={idx} className="space-y-3">
                         <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-1">{section.title}</h2>
