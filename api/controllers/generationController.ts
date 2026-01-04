@@ -410,6 +410,18 @@ async function completeGeneration(
       updatePayload.image_url = imageUrl
     }
 
+    // Inherit is_prompt_private from parent generation (for blind remix)
+    if (parentId) {
+      const parentPrivacyCheck = await supaSelect('generations', `?id=eq.${parentId}&select=is_prompt_private`)
+      if (parentPrivacyCheck.ok && Array.isArray(parentPrivacyCheck.data) && parentPrivacyCheck.data.length > 0) {
+        const parentIsPrivate = parentPrivacyCheck.data[0].is_prompt_private
+        if (parentIsPrivate) {
+          updatePayload.is_prompt_private = true
+          console.log(`[DB] Inheriting is_prompt_private=true from parent generation ${parentId}`)
+        }
+      }
+    }
+
     const updateRes = await supaPatch('generations', `?id=eq.${generationId}`, updatePayload)
     console.log(`[DB] Generation ${generationId} status updated (media_type: ${mediaType}, url field: ${mediaType === 'video' ? 'video_url' : 'image_url'}):`, updateRes.ok)
 
@@ -757,11 +769,50 @@ export async function handleGenerateImage(req: Request, res: Response) {
   })
 
   try {
-    const {
+    let {
       prompt, model, aspect_ratio, images, negative_prompt, user_id, resolution, contest_entry_id,
       // Параметры для видео (Seedance 1.5 Pro)
       video_duration, video_resolution, fixed_lens, generate_audio
     } = req.body
+
+    const parent_id = req.body.parent_id
+
+    // Флаг и данные для слепого ремикса (когда промпт получен из родительской генерации с is_prompt_private)
+    let isBlindRemix = false
+    let blindRemixAuthorUsername = ''
+
+    // Если prompt пустой, но есть parent_id — получить промпт из родительской генерации (слепой ремикс)
+    if ((!prompt || typeof prompt !== 'string' || !prompt.trim()) && parent_id) {
+      console.log('[API] Empty prompt with parent_id, fetching from parent generation:', parent_id)
+      const parentQuery = `?id=eq.${parent_id}&select=prompt,is_prompt_private,users(username)`
+      const parentResult = await supaSelect('generations', parentQuery)
+
+      if (parentResult.ok && Array.isArray(parentResult.data) && parentResult.data.length > 0) {
+        const parentData = parentResult.data[0]
+        const parentPrompt = parentData.prompt
+        const parentIsPrivate = parentData.is_prompt_private
+        const parentUsername = parentData.users?.username || 'Unknown'
+
+        if (parentPrompt) {
+          // Удалить метаданные из промпта [type=...; ratio=...; photos=...; avatars=...]
+          prompt = parentPrompt.replace(/\s*\[type=[^\]]+\]\s*$/, '').trim()
+          console.log('[API] Got prompt from parent generation:', prompt.slice(0, 50) + '...')
+
+          // Если родительский промпт приватный — это слепой ремикс
+          if (parentIsPrivate) {
+            isBlindRemix = true
+            blindRemixAuthorUsername = parentUsername
+            console.log(`[API] Blind remix detected, parent author: @${parentUsername}`)
+          }
+        }
+      }
+
+      if (!prompt || !prompt.trim()) {
+        return res.status(400).json({
+          error: 'Parent generation prompt not found'
+        })
+      }
+    }
 
     // Валидация входных данных
     if (!prompt || typeof prompt !== 'string') {
@@ -902,7 +953,12 @@ export async function handleGenerateImage(req: Request, res: Response) {
       const ratio = metadata.ratio || '1:1'
       const photos = metadata.imagesCount
       const metaString = ` [type=${type}; ratio=${ratio}; photos=${photos}; avatars=0]`
-      const promptWithMeta = prompt + metaString
+
+      // Для слепого ремикса сохраняем placeholder вместо оригинального промпта
+      const dbPrompt = isBlindRemix
+        ? `🔒 Prompt from @${blindRemixAuthorUsername}`
+        : prompt
+      const promptWithMeta = dbPrompt + metaString
 
       // Insert pending record
       // Для GPT Image 1.5 используем gptimage1.5 в БД
@@ -914,7 +970,8 @@ export async function handleGenerateImage(req: Request, res: Response) {
         status: 'pending',
         input_images: r2Images.length > 0 ? r2Images : undefined,
         parent_id: parent_id,
-
+        // Для слепого ремикса сразу устанавливаем is_prompt_private
+        is_prompt_private: isBlindRemix ? true : undefined,
         cost: cost,
         resolution: resolution
       }
