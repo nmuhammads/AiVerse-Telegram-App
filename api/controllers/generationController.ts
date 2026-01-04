@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import sharp from 'sharp'
+import { Request, Response } from 'express'
 
 // Типы для запросов к Kie.ai
 import { uploadImageFromBase64, uploadImageFromUrl, createThumbnail } from '../services/r2Service.js'
