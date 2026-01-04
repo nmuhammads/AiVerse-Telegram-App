@@ -122,36 +122,9 @@ export async function applyImageWatermark(
     }
 }
 
-// Base64 encoded font cache (fetched once)
-let cachedFontBase64: string | null = null
-
-/**
- * Fetch Noto Sans font (supports Cyrillic) and cache it
- */
-async function getFontBase64(): Promise<string> {
-    if (cachedFontBase64) return cachedFontBase64
-
-    try {
-        // Use Google Fonts API to get Noto Sans which supports Cyrillic
-        const fontUrl = 'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
-        const response = await fetch(fontUrl)
-        if (!response.ok) {
-            console.warn('Failed to fetch Noto Sans font, falling back to system fonts')
-            return ''
-        }
-        const buffer = await response.arrayBuffer()
-        cachedFontBase64 = Buffer.from(buffer).toString('base64')
-        console.log('Loaded Noto Sans font for watermarks')
-        return cachedFontBase64
-    } catch (e) {
-        console.error('Error fetching font:', e)
-        return ''
-    }
-}
-
 /**
  * Apply text watermark to image using Sharp
- * Uses embedded Noto Sans font for Cyrillic support
+ * Uses system Noto Sans font (installed in Docker) for Cyrillic support
  */
 export async function applyTextWatermark(
     imageBuffer: Buffer,
@@ -170,40 +143,29 @@ export async function applyTextWatermark(
     // Estimate text width and height
     // Text height is approximately fontSize
     const textHeight = fontSize
-    const textWidth = text.length * fontSize * 0.6
+    // Estimate text width (0.6 per character is approximate for bold fonts)
+    let textWidth = text.length * fontSize * 0.6
+
+    // Limit text width to max 80% of image width to prevent overflow on wide images
+    const maxTextWidth = width * 0.8
+    if (textWidth > maxTextWidth) {
+        textWidth = maxTextWidth
+    }
 
     // Calculate position
     const { x, y } = calculatePosition(position, width, height, textWidth, textHeight)
 
     // For SVG text, y is usually the baseline. 
-    // If calculatePosition returns top-left corner of the bbox, we need to adjust y for SVG text baseline.
-    // SVG text 'y' attribute usually specifies the baseline. 
-    // If we want 'y' to be the top of the text, we add approx 0.8 * fontSize (ascender).
+    // Adjust y for text baseline (add approx 0.8 * fontSize for ascender)
     const svgY = y + (fontSize * 0.8)
 
-    // Get embedded font (supports Cyrillic)
-    const fontBase64 = await getFontBase64()
-
-    // Create font-face definition if we have embedded font
-    const fontFace = fontBase64 ? `
-        @font-face {
-            font-family: 'NotoSans';
-            src: url(data:font/truetype;base64,${fontBase64}) format('truetype');
-        }
-    ` : ''
-
-    // Use NotoSans if embedded, fallback to system fonts
-    const fontFamily = fontBase64
-        ? "'NotoSans', 'Noto Sans', Arial, sans-serif"
-        : "'Noto Sans', 'DejaVu Sans', 'Liberation Sans', Arial, Helvetica, sans-serif"
+    // Use Noto Sans (installed in Docker via apk) which supports Cyrillic
+    const fontFamily = "'Noto Sans', 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif"
 
     // Create SVG text overlay with shadow for better visibility
     const svgText = `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <style type="text/css">
-          ${fontFace}
-        </style>
         <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.5"/>
         </filter>
@@ -226,3 +188,4 @@ export async function applyTextWatermark(
         .composite([{ input: Buffer.from(svgText), top: 0, left: 0 }])
         .toBuffer()
 }
+
