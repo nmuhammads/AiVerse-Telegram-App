@@ -17,7 +17,8 @@ interface KieJobsResponse {
 
 const WATERMARK_PRICES = {
     'nanobanana': 3,
-    'gpt-image-1.5': 5
+    'gpt-image-1.5': 5,
+    'remove-background': 1
 }
 
 
@@ -341,6 +342,260 @@ export async function generateWatermark(req: Request, res: Response) {
 
     } catch (e: any) {
         console.error('generateWatermark error:', e)
+        return res.status(500).json({ error: 'Internal server error', details: e.message || String(e) })
+    }
+}
+
+
+/**
+ * Upload custom watermark image
+ * POST /api/watermarks/upload
+ */
+export async function uploadWatermark(req: Request, res: Response) {
+    console.log('[Watermark] Upload request started')
+    try {
+        const userId = Number(req.headers['x-user-id'] || (req as any).userId || 0)
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' })
+        }
+
+        const { imageData } = req.body // Base64 image data
+
+        if (!imageData) {
+            return res.status(400).json({ error: 'No image data provided' })
+        }
+
+        console.log('[Watermark] Processing upload for user:', userId)
+
+        // 1. Process image (trim, ensure PNG with transparency)
+        let processedBuffer: Buffer
+        try {
+            // Parse base64 if it has data URL prefix
+            const base64Match = imageData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+            const base64Data = base64Match ? base64Match[2] : imageData
+            const inputBuffer = Buffer.from(base64Data, 'base64')
+
+            // Process with sharp: ensure alpha channel and remove extra whitespace
+            processedBuffer = await sharp(inputBuffer)
+                .ensureAlpha()
+                .trim()
+                .png()
+                .toBuffer()
+        } catch (e) {
+            console.error('[Watermark] Image processing error:', e)
+            return res.status(400).json({ error: 'Invalid image data' })
+        }
+
+        // 2. Upload to R2 with fixed filename (overwrites old watermark)
+        const base64 = `data:image/png;base64,${processedBuffer.toString('base64')}`
+
+        const customBucket = process.env.R2_BUCKET_WATERMARKS
+        const customUrl = process.env.R2_PUBLIC_URL_WATERMARKS
+        const fixedFileName = `user_${userId}.png`
+
+        const publicUrl = await uploadImageFromBase64(
+            base64,
+            'watermarks',
+            { bucket: customBucket, publicUrl: customUrl, customFileName: fixedFileName }
+        )
+        console.log('[Watermark] R2 URL:', publicUrl)
+
+        // 3. Update/Create watermark record in DB
+        const { data: existing } = await supaSelect('user_watermarks', `?user_id=eq.${userId}&limit=1`)
+        if (existing && existing.length > 0) {
+            await supaPatch('user_watermarks', `?id=eq.${existing[0].id}`, {
+                image_url: publicUrl,
+                type: 'custom',
+                is_active: true
+            })
+        } else {
+            await supaPost('user_watermarks', {
+                user_id: userId,
+                type: 'custom',
+                image_url: publicUrl,
+                text_content: null,
+                is_active: true
+            })
+        }
+
+        console.log('[Watermark] Upload Success!')
+        return res.json({ ok: true, imageUrl: publicUrl })
+
+    } catch (e: any) {
+        console.error('uploadWatermark error:', e)
+        return res.status(500).json({ error: 'Internal server error', details: e.message || String(e) })
+    }
+}
+
+
+/**
+ * Remove background from uploaded image
+ * POST /api/watermarks/remove-background
+ * Cost: 1 token
+ */
+export async function removeBackground(req: Request, res: Response) {
+    console.log('[Watermark] Remove background request started')
+    try {
+        const userId = Number(req.headers['x-user-id'] || (req as any).userId || 0)
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' })
+        }
+
+        const { imageData } = req.body // Base64 image data
+
+        if (!imageData) {
+            return res.status(400).json({ error: 'No image data provided' })
+        }
+
+        // 1. Check balance
+        const { data: userData } = await supaSelect('users', `?user_id=eq.${userId}&select=balance`)
+        const balance = userData?.[0]?.balance ?? 0
+        const price = WATERMARK_PRICES['remove-background']
+
+        if (balance < price) {
+            return res.json({ ok: false, error: 'insufficient_balance' })
+        }
+
+        console.log('[Watermark] Removing background for user:', userId)
+
+        // 2. First upload the image to R2 so we have a URL for Kie.ai
+        let imageUrl: string
+        try {
+            const base64Match = imageData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+            const base64Data = base64Match ? base64Match[2] : imageData
+            const inputBuffer = Buffer.from(base64Data, 'base64')
+
+            // Convert to PNG
+            const pngBuffer = await sharp(inputBuffer).png().toBuffer()
+            const base64Png = `data:image/png;base64,${pngBuffer.toString('base64')}`
+
+            const customBucket = process.env.R2_BUCKET_WATERMARKS
+            const customUrl = process.env.R2_PUBLIC_URL_WATERMARKS
+            const tempFileName = `temp_${userId}_${Date.now()}.png`
+
+            imageUrl = await uploadImageFromBase64(
+                base64Png,
+                'watermarks',
+                { bucket: customBucket, publicUrl: customUrl, customFileName: tempFileName }
+            )
+            console.log('[Watermark] Temp image URL:', imageUrl)
+        } catch (e) {
+            console.error('[Watermark] Image processing error:', e)
+            return res.status(400).json({ error: 'Invalid image data' })
+        }
+
+        // 3. Create Kie.ai task
+        const kieApiKey = process.env.KIE_API_KEY
+        if (!kieApiKey) {
+            return res.status(500).json({ error: 'KIE_API_KEY not configured' })
+        }
+
+        const createTaskRes = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${kieApiKey}`
+            },
+            body: JSON.stringify({
+                model: 'recraft/remove-background',
+                input: { image: imageUrl }
+            })
+        })
+
+        const createTaskData: KieJobsResponse = await createTaskRes.json()
+        console.log('[Watermark] Kie.ai create task response:', createTaskData)
+
+        if (createTaskData.code !== 200 || !createTaskData.data?.taskId) {
+            return res.status(500).json({ error: 'Failed to create background removal task', details: createTaskData.msg })
+        }
+
+        const taskId = createTaskData.data.taskId
+
+        // 4. Poll for result
+        const timeout = Number(process.env.KIE_TASK_TIMEOUT_MS) || 60000
+        const pollInterval = 2000
+        const startTime = Date.now()
+
+        let resultUrl: string | null = null
+
+        while (Date.now() - startTime < timeout) {
+            await new Promise(r => setTimeout(r, pollInterval))
+
+            const statusRes = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+                headers: { 'Authorization': `Bearer ${kieApiKey}` }
+            })
+            const statusData: KieJobsResponse = await statusRes.json()
+            console.log('[Watermark] Kie.ai status:', statusData.data?.state)
+
+            if (statusData.data?.state === 'success' && statusData.data.resultJson) {
+                const result = JSON.parse(statusData.data.resultJson)
+                resultUrl = result.resultUrls?.[0]
+                break
+            } else if (statusData.data?.state === 'fail') {
+                return res.status(500).json({ error: 'Background removal failed', details: statusData.data.failMsg })
+            }
+        }
+
+        if (!resultUrl) {
+            return res.status(500).json({ error: 'Background removal timed out' })
+        }
+
+        console.log('[Watermark] Background removed, result URL:', resultUrl)
+
+        // 5. Download result and save to R2 with fixed filename
+        const resultRes = await fetch(resultUrl)
+        if (!resultRes.ok) {
+            return res.status(500).json({ error: 'Failed to fetch result image' })
+        }
+        const resultBuffer = Buffer.from(await resultRes.arrayBuffer())
+
+        // Process with sharp (trim transparent edges)
+        const processedBuffer = await sharp(resultBuffer)
+            .ensureAlpha()
+            .trim()
+            .png()
+            .toBuffer()
+
+        const base64Result = `data:image/png;base64,${processedBuffer.toString('base64')}`
+
+        const customBucket = process.env.R2_BUCKET_WATERMARKS
+        const customUrl = process.env.R2_PUBLIC_URL_WATERMARKS
+        const fixedFileName = `user_${userId}.png`
+
+        const publicUrl = await uploadImageFromBase64(
+            base64Result,
+            'watermarks',
+            { bucket: customBucket, publicUrl: customUrl, customFileName: fixedFileName }
+        )
+        console.log('[Watermark] Final R2 URL:', publicUrl)
+
+        // 6. Deduct balance
+        const newBalance = balance - price
+        await supaPatch('users', `?user_id=eq.${userId}`, { balance: newBalance })
+
+        // 7. Update/Create watermark record in DB
+        const { data: existing } = await supaSelect('user_watermarks', `?user_id=eq.${userId}&limit=1`)
+        if (existing && existing.length > 0) {
+            await supaPatch('user_watermarks', `?id=eq.${existing[0].id}`, {
+                image_url: publicUrl,
+                type: 'custom',
+                is_active: true
+            })
+        } else {
+            await supaPost('user_watermarks', {
+                user_id: userId,
+                type: 'custom',
+                image_url: publicUrl,
+                text_content: null,
+                is_active: true
+            })
+        }
+
+        console.log('[Watermark] Remove background success!')
+        return res.json({ ok: true, imageUrl: publicUrl, balance: newBalance })
+
+    } catch (e: any) {
+        console.error('removeBackground error:', e)
         return res.status(500).json({ error: 'Internal server error', details: e.message || String(e) })
     }
 }

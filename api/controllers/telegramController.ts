@@ -913,7 +913,11 @@ export async function sendWithWatermark(req: Request, res: Response) {
     const { data: watermarks } = await supaSelect('user_watermarks', `?user_id=eq.${userId}&is_active=eq.true&limit=1`)
     const watermark = watermarks?.[0]
 
-    if (!watermark || (!watermark.text_content && watermark.type !== 'ai_generated') || (watermark.type === 'ai_generated' && !watermark.image_url)) {
+    // Check if watermark is valid
+    const isImageWatermark = (watermark?.type === 'ai_generated' || watermark?.type === 'custom') && watermark?.image_url
+    const isTextWatermark = watermark?.text_content
+
+    if (!watermark || (!isImageWatermark && !isTextWatermark)) {
       // No watermark settings, fallback to sendWithPrompt behavior
       return res.status(400).json({ ok: false, error: 'no_watermark_settings' })
     }
@@ -929,14 +933,8 @@ export async function sendWithWatermark(req: Request, res: Response) {
 
     // Apply watermark
     let watermarkedBuffer: Buffer
-    if (watermark.type === 'ai_generated' && watermark.image_url) {
-      // Map font_size (10-100) to scale percentage (10-50%?)
-      // Standard scale: font_size directly as percentage if sliders are 10-100?
-      // Default font_size is 48 -> 48% is HUGE.
-      // Maybe slider 10-100 maps to 10%-50%?
-      // Or 10-100 maps to 5%-30%?
-      // Let's assume font_size IS the percentage (10 to 100).
-      // 48% is big but user can slide it down.
+    if (isImageWatermark) {
+      // Use image watermark (ai_generated or custom)
       const scale = watermark.font_size || 20
 
       watermarkedBuffer = await applyImageWatermark(
@@ -947,6 +945,7 @@ export async function sendWithWatermark(req: Request, res: Response) {
         scale
       )
     } else {
+      // Use text watermark
       watermarkedBuffer = await applyTextWatermark(
         imageBuffer,
         watermark.text_content || '',

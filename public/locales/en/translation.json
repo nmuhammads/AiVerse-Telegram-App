@@ -62,7 +62,29 @@
         "insufficientBalance": "Insufficient balance",
         "switchToText": "Switch to text",
         "switchToAi": "Switch to AI watermark",
-        "switchedToAi": "Switched to AI watermark"
+        "switchedToAi": "Switched to AI watermark",
+        "tabs": {
+            "generator": "Generator",
+            "custom": "Custom"
+        },
+        "uploadSection": "Upload image",
+        "uploadImage": "Upload image",
+        "uploaded": "✨ Image uploaded!",
+        "customLoaded": "Image uploaded",
+        "invalidFileType": "Please select an image",
+        "removeBg": "Remove background",
+        "bgRemoved": "✨ Background removed!",
+        "removingBg": "Removing background...",
+        "bgRemovedLabel": "Background removed",
+        "saveAsIs": "Save as is",
+        "uploadPreview": {
+            "title": "Image preview"
+        },
+        "replaceWarning": {
+            "title": "⚠️ Replace watermark?",
+            "text": "Current watermark will be permanently deleted and replaced with a new one.",
+            "confirm": "Replace"
+        }
     },
     "home": {
         "tabs": {
@@ -438,6 +460,8 @@
         "guest": "Guest",
         "empty": "Empty",
         "cancel": "Cancel",
+        "done": "Done",
+        "error": "Error",
         "topUp": "Top Up",
         "loading": "Loading..."
     },
@@ -534,6 +558,7 @@
             "3": "Fewer words = more accurate result"
         },
         "generate": "Edit",
+        "removeBg": "Remove Background",
         "generating": "Processing...",
         "tokens": "tokens",
         "result": "Result",
@@ -548,7 +573,8 @@
         "mode": {
             "edit": "Edit",
             "inpaint": "Inpaint",
-            "angles": "Angles"
+            "angles": "Angles",
+            "removeBg": "Remove BG"
         },
         "angles": {
             "rotation": "Rotation",

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Check, Trash2, Sparkles, Zap } from 'lucide-react'
+import { ChevronLeft, Check, Trash2, Sparkles, Zap, Upload } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useTranslation } from 'react-i18next'
@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 
 interface WatermarkSettings {
     id?: number
-    type: 'text' | 'ai_generated'
+    type: 'text' | 'ai_generated' | 'custom'
     text_content: string
     opacity: number
     position: string
@@ -26,6 +26,7 @@ const POSITIONS = [
 ]
 
 type AIModel = 'nanobanana' | 'gpt-image-1.5'
+type EditorMode = 'generator' | 'custom'
 
 const MODELS: { id: AIModel; name: string; price: number }[] = [
     { id: 'nanobanana', name: 'NanoBanana', price: 3 },
@@ -43,13 +44,21 @@ export default function WatermarkEditor() {
     const navigate = useNavigate()
     const { impact } = useHaptics()
     const { user, tg, platform } = useTelegram()
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [generating, setGenerating] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const [removingBg, setRemovingBg] = useState(false)
     const [showPositions, setShowPositions] = useState(false)
     const [selectedModel, setSelectedModel] = useState<AIModel>('gpt-image-1.5')
     const [balance, setBalance] = useState<number | null>(null)
+    const [editorMode, setEditorMode] = useState<EditorMode>('generator')
+    const [showReplaceConfirm, setShowReplaceConfirm] = useState<'generate' | 'upload' | 'removeBg' | null>(null)
+    const [pendingUploadData, setPendingUploadData] = useState<string | null>(null)
+    // Upload preview modal state
+    const [uploadPreview, setUploadPreview] = useState<{ imageData: string; processed: boolean } | null>(null)
     const [settings, setSettings] = useState<WatermarkSettings>({
         type: 'text',
         text_content: '',
@@ -65,7 +74,8 @@ export default function WatermarkEditor() {
     const getPaddingTop = () => {
         if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 10px)'
         if (platform === 'android') return 'calc(env(safe-area-inset-top) + 20px)'
-        return '20px'
+        // Desktop needs more padding to avoid Telegram's top bar
+        return '60px'
     }
 
     // Load existing watermark and balance
@@ -177,8 +187,127 @@ export default function WatermarkEditor() {
         }
     }
 
-    const handleGenerateAI = async () => {
+    // Check if user has existing image watermark
+    const hasExistingImageWatermark = settings.image_url && (settings.type === 'ai_generated' || settings.type === 'custom')
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            toast.error(t('watermark.invalidFileType') || 'Выберите изображение')
+            return
+        }
+
+        const reader = new FileReader()
+        reader.onload = () => {
+            const base64 = reader.result as string
+            // Show preview modal instead of direct upload
+            setUploadPreview({ imageData: base64, processed: false })
+        }
+        reader.readAsDataURL(file)
+
+        // Reset input
+        if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+
+    const performUpload = async (imageData: string) => {
         if (!user?.id) return
+        impact('medium')
+        setUploading(true)
+
+        try {
+            const res = await fetch('/api/watermarks/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': String(user.id)
+                },
+                body: JSON.stringify({ imageData })
+            })
+            const data = await res.json()
+
+            if (data.ok && data.imageUrl) {
+                const timestampedUrl = `${data.imageUrl}?t=${Date.now()}`
+                setSettings(s => ({
+                    ...s,
+                    type: 'custom',
+                    image_url: timestampedUrl,
+                    opacity: 0.8
+                }))
+                setUploadPreview(null) // Close modal
+                toast.success(t('watermark.uploaded') || '✨ Изображение загружено!')
+            } else {
+                toast.error(t('common.error'))
+            }
+        } catch {
+            toast.error(t('common.error'))
+        } finally {
+            setUploading(false)
+            setPendingUploadData(null)
+        }
+    }
+
+    // Remove background in modal (updates preview)
+    const handleRemoveBgInModal = async () => {
+        if (!user?.id || !uploadPreview) return
+
+        impact('medium')
+        setRemovingBg(true)
+
+        try {
+            const res = await fetch('/api/watermarks/remove-background', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': String(user.id)
+                },
+                body: JSON.stringify({ imageData: uploadPreview.imageData })
+            })
+            const data = await res.json()
+
+            if (data.ok && data.imageUrl) {
+                const timestampedUrl = `${data.imageUrl}?t=${Date.now()}`
+                // Update preview with the processed image URL directly (with timestamp)
+                setUploadPreview({ imageData: timestampedUrl, processed: true })
+
+                // Update balance in UI
+                if (typeof data.balance === 'number') {
+                    setBalance(data.balance)
+                }
+
+                // Also update settings since backend already saved it
+                setSettings(s => ({
+                    ...s,
+                    type: 'custom',
+                    image_url: timestampedUrl,
+                    opacity: 0.8
+                }))
+
+                toast.success(t('watermark.bgRemoved') || '✨ Фон удалён!')
+            } else {
+                if (data.error === 'insufficient_balance') {
+                    toast.error(t('watermark.insufficientBalance'))
+                } else {
+                    toast.error(t('common.error'))
+                }
+            }
+        } catch {
+            toast.error(t('common.error'))
+        } finally {
+            setRemovingBg(false)
+        }
+    }
+
+    const handleGenerateAI = async (skipConfirm = false) => {
+        if (!user?.id) return
+
+        // Show confirmation if has existing watermark
+        if (!skipConfirm && hasExistingImageWatermark) {
+            setShowReplaceConfirm('generate')
+            return
+        }
+
         impact('heavy')
         setGenerating(true)
 
@@ -263,10 +392,160 @@ export default function WatermarkEditor() {
                 </div>
             </div>
 
-            {/* Mobile Header (Create if hidden but needed? Or just assume desktop testing?) 
-                If the user specifically asked for this, and they might be on mobile, 
-                I should consider enabling it. But let's stick to the existing header component.
-            */}
+            {/* Mode Tabs */}
+            <div className="px-4 py-2 bg-black">
+                <div className="grid grid-cols-2 gap-1 p-1 bg-zinc-900 rounded-xl">
+                    <button
+                        onClick={() => {
+                            impact('light')
+                            setEditorMode('generator')
+                        }}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${editorMode === 'generator'
+                            ? 'bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                    >
+                        <Sparkles size={14} />
+                        {t('watermark.tabs.generator') || 'Генератор'}
+                    </button>
+                    <button
+                        onClick={() => {
+                            impact('light')
+                            setEditorMode('custom')
+                        }}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${editorMode === 'custom'
+                            ? 'bg-white/10 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                    >
+                        <Upload size={14} />
+                        {t('watermark.tabs.custom') || 'Свой'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Hidden file input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+            />
+
+            {/* Replace Confirmation Dialog */}
+            {showReplaceConfirm && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-zinc-900 rounded-2xl p-6 max-w-sm w-full space-y-4">
+                        <h3 className="text-lg font-bold text-white">
+                            {t('watermark.replaceWarning.title') || '⚠️ Заменить водяной знак?'}
+                        </h3>
+                        <p className="text-zinc-400 text-sm">
+                            {t('watermark.replaceWarning.text') || 'Текущий водяной знак будет удалён навсегда и заменён новым.'}
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowReplaceConfirm(null)
+                                    setPendingUploadData(null)
+                                }}
+                                className="flex-1 py-2.5 rounded-xl bg-zinc-800 text-white font-medium"
+                            >
+                                {t('common.cancel') || 'Отмена'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (showReplaceConfirm === 'generate') {
+                                        setShowReplaceConfirm(null)
+                                        handleGenerateAI(true)
+                                    } else if (showReplaceConfirm === 'upload' && pendingUploadData) {
+                                        setShowReplaceConfirm(null)
+                                        performUpload(pendingUploadData)
+                                    }
+                                }}
+                                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-medium"
+                            >
+                                {t('watermark.replaceWarning.confirm') || 'Заменить'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Upload Preview Modal */}
+            {uploadPreview && (
+                <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+                    <div className="bg-zinc-900 rounded-2xl p-6 max-w-sm w-full space-y-4">
+                        <h3 className="text-lg font-bold text-white text-center">
+                            {t('watermark.uploadPreview.title') || 'Превью изображения'}
+                        </h3>
+
+                        {/* Image Preview */}
+                        <div className="relative aspect-square bg-zinc-800 rounded-xl overflow-hidden flex items-center justify-center">
+                            {removingBg ? (
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-10 h-10 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-sm text-zinc-400">{t('watermark.removingBg') || 'Удаляю фон...'}</span>
+                                </div>
+                            ) : (
+                                <img
+                                    src={uploadPreview.imageData}
+                                    alt="Preview"
+                                    className="max-w-full max-h-full object-contain"
+                                />
+                            )}
+                            {uploadPreview.processed && !removingBg && (
+                                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                    ✓ {t('watermark.bgRemovedLabel') || 'Фон удалён'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-2">
+                            {!uploadPreview.processed && (
+                                <button
+                                    onClick={handleRemoveBgInModal}
+                                    disabled={removingBg}
+                                    className="w-full py-3 rounded-xl bg-zinc-800 border border-white/10 text-white font-medium flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95 transition-transform"
+                                >
+                                    ✂️ {t('watermark.removeBg') || 'Удалить фон'}
+                                    <span className="text-xs text-zinc-400">1⚡</span>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => {
+                                    if (uploadPreview.processed) {
+                                        // Already saved by backend when removing bg
+                                        setUploadPreview(null)
+                                    } else {
+                                        performUpload(uploadPreview.imageData)
+                                    }
+                                }}
+                                disabled={uploading || removingBg}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95 transition-transform"
+                            >
+                                {uploading ? (
+                                    <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    uploadPreview.processed
+                                        ? (t('common.done') || 'Готово')
+                                        : (t('watermark.saveAsIs') || 'Сохранить так')
+                                )}
+                            </button>
+
+                            <button
+                                onClick={() => setUploadPreview(null)}
+                                disabled={removingBg}
+                                className="w-full py-2 text-sm text-zinc-500 hover:text-white transition-colors"
+                            >
+                                {t('common.cancel') || 'Отмена'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="p-4 space-y-6">
                 {/* Preview */}
@@ -283,15 +562,15 @@ export default function WatermarkEditor() {
                             }`}
                         style={{
                             opacity: settings.opacity,
-                            // Apply width to container if it's an image watermark
-                            ...(settings.type === 'ai_generated' && settings.image_url ? {
+                            // Apply width to container if it's an image watermark (ai_generated or custom)
+                            ...((settings.type === 'ai_generated' || settings.type === 'custom') && settings.image_url ? {
                                 width: `${settings.font_size}%`,
                                 maxWidth: '80%'
                             } : {})
                         }}
                     >
-                        {/* Always prefer image_url if type is ai_generated */}
-                        {settings.type === 'ai_generated' && settings.image_url ? (
+                        {/* Show image if type is ai_generated or custom and has image_url */}
+                        {(settings.type === 'ai_generated' || settings.type === 'custom') && settings.image_url ? (
                             <img
                                 src={settings.image_url}
                                 alt="Watermark"
@@ -397,74 +676,121 @@ export default function WatermarkEditor() {
                     )}
                 </div>
 
-                {/* AI Generate Section */}
-                <div className="space-y-3 pt-2 border-t border-white/10">
-                    <label className="text-sm text-zinc-400 font-medium flex items-center gap-2">
-                        <Sparkles size={14} className="text-violet-400" />
-                        AI Генерация
-                    </label>
+                {/* AI Generate Section - only in generator mode */}
+                {editorMode === 'generator' && (
+                    <div className="space-y-3 pt-2 border-t border-white/10">
+                        <label className="text-sm text-zinc-400 font-medium flex items-center gap-2">
+                            <Sparkles size={14} className="text-violet-400" />
+                            AI Генерация
+                        </label>
 
-                    <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-900 rounded-xl">
-                        {MODELS.map(m => (
+                        <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-900 rounded-xl">
+                            {MODELS.map(m => (
+                                <button
+                                    key={m.id}
+                                    onClick={() => {
+                                        impact('light')
+                                        setSelectedModel(m.id)
+                                    }}
+                                    className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${selectedModel === m.id
+                                        ? 'bg-white/10 text-white shadow-sm'
+                                        : 'text-zinc-500 hover:text-zinc-300'
+                                        }`}
+                                >
+                                    {m.name} <span className="text-xs opacity-60 ml-1">{m.price}⚡</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => handleGenerateAI()}
+                            disabled={generating}
+                            className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95 transition-transform"
+                        >
+                            {generating ? (
+                                <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <Sparkles size={18} />
+                                    {t('watermark.generate') || 'Сгенерировать'}
+                                </>
+                            )}
+                        </button>
+
+                        {/* Switch between AI and Text modes */}
+                        {(settings.type === 'ai_generated' || settings.type === 'custom') && (
                             <button
-                                key={m.id}
                                 onClick={() => {
                                     impact('light')
-                                    setSelectedModel(m.id)
+                                    setSettings(s => ({ ...s, type: 'text' }))
                                 }}
-                                className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${selectedModel === m.id
-                                    ? 'bg-white/10 text-white shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-300'
-                                    }`}
+                                className="w-full py-2 text-sm text-zinc-500 hover:text-white transition-colors"
                             >
-                                {m.name} <span className="text-xs opacity-60 ml-1">{m.price}₮</span>
+                                {t('watermark.switchToText') || 'Вернуться к тексту'}
                             </button>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={handleGenerateAI}
-                        disabled={generating}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95 transition-transform"
-                    >
-                        {generating ? (
-                            <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <>
-                                <Sparkles size={18} />
-                                {t('watermark.generate') || 'Сгенерировать'}
-                            </>
                         )}
-                    </button>
 
-                    {/* Switch between AI and Text modes */}
-                    {settings.type === 'ai_generated' && (
-                        <button
-                            onClick={() => {
-                                impact('light')
-                                setSettings(s => ({ ...s, type: 'text' }))
-                            }}
-                            className="w-full py-2 text-sm text-zinc-500 hover:text-white transition-colors"
-                        >
-                            {t('watermark.switchToText') || 'Вернуться к тексту'}
-                        </button>
-                    )}
+                        {/* Show "Return to AI" button if user has saved image watermark but currently in text mode */}
+                        {settings.type === 'text' && settings.image_url && (
+                            <button
+                                onClick={() => {
+                                    impact('light')
+                                    setSettings(s => ({ ...s, type: 'ai_generated' }))
+                                    toast.success(t('watermark.switchedToAi') || 'Переключено на AI знак')
+                                }}
+                                className="w-full py-2 text-sm text-violet-400 hover:text-violet-300 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Sparkles size={14} />
+                                {t('watermark.switchToAi') || 'Вернуться к AI знаку'}
+                            </button>
+                        )}
+                    </div>
+                )}
 
-                    {/* Show "Return to AI" button if user has saved AI watermark but currently in text mode */}
-                    {settings.type === 'text' && settings.image_url && (
+                {/* Custom Upload Section - only in custom mode */}
+                {editorMode === 'custom' && (
+                    <div className="space-y-3 pt-2 border-t border-white/10">
+                        <label className="text-sm text-zinc-400 font-medium flex items-center gap-2">
+                            <Upload size={14} className="text-violet-400" />
+                            {t('watermark.uploadSection') || 'Загрузка изображения'}
+                        </label>
+
                         <button
-                            onClick={() => {
-                                impact('light')
-                                setSettings(s => ({ ...s, type: 'ai_generated' }))
-                                toast.success(t('watermark.switchedToAi') || 'Переключено на AI знак')
-                            }}
-                            className="w-full py-2 text-sm text-violet-400 hover:text-violet-300 transition-colors flex items-center justify-center gap-2"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 active:scale-95 transition-transform"
                         >
-                            <Sparkles size={14} />
-                            {t('watermark.switchToAi') || 'Вернуться к AI знаку'}
+                            {uploading ? (
+                                <div className="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <Upload size={18} />
+                                    {t('watermark.uploadImage') || 'Загрузить изображение'}
+                                </>
+                            )}
                         </button>
-                    )}
-                </div>
+
+                        {/* Show current custom watermark info */}
+                        {settings.type === 'custom' && settings.image_url && (
+                            <div className="text-center text-sm text-zinc-500">
+                                ✓ {t('watermark.customLoaded') || 'Изображение загружено'}
+                            </div>
+                        )}
+
+                        {/* Switch to text mode */}
+                        {(settings.type === 'custom' || settings.type === 'ai_generated') && (
+                            <button
+                                onClick={() => {
+                                    impact('light')
+                                    setSettings(s => ({ ...s, type: 'text' }))
+                                }}
+                                className="w-full py-2 text-sm text-zinc-500 hover:text-white transition-colors"
+                            >
+                                {t('watermark.switchToText') || 'Вернуться к тексту'}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Bottom Actions */}
