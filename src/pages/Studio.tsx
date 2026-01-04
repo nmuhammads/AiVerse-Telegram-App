@@ -806,12 +806,7 @@ export default function Studio() {
             <div className="flex items-center gap-1.5 text-xs font-medium text-violet-400 animate-in fade-in slide-in-from-bottom-2 mb-1 px-1">
               <Sparkles size={12} />
               <span>{t('studio.prompt.from', { username: parentAuthorUsername })}</span>
-              {isPromptPrivate && (
-                <span className="flex items-center gap-1 text-amber-400">
-                  <Lock size={10} />
-                  {t('profile.preview.hiddenByAuthor')}
-                </span>
-              )}
+
               <button
                 onClick={() => {
                   setParentGeneration(null, null)
@@ -829,8 +824,7 @@ export default function Studio() {
             {isPromptPrivate && parentAuthorUsername ? (
               <>
                 {/* Visual placeholder - no access to real prompt */}
-                <div className="prompt-input min-h-[120px] bg-zinc-900/80 backdrop-blur-sm rounded-xl border border-amber-500/30 flex items-center justify-center">
-                  <Lock size={18} className="mr-2 text-amber-400" />
+                <div className="prompt-input min-h-[120px] bg-zinc-900/80 backdrop-blur-sm rounded-xl border border-amber-500/30 !flex items-center justify-center">
                   <span className="text-zinc-400 italic">{t('profile.preview.hiddenByAuthor')}</span>
                 </div>
               </>
