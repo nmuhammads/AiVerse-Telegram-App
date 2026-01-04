@@ -62,6 +62,12 @@ export default function WatermarkEditor() {
 
     const isMobile = platform === 'ios' || platform === 'android'
 
+    const getPaddingTop = () => {
+        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 10px)'
+        if (platform === 'android') return 'calc(env(safe-area-inset-top) + 20px)'
+        return '20px'
+    }
+
     // Load existing watermark and balance
     useEffect(() => {
         if (user?.id) {
@@ -223,40 +229,35 @@ export default function WatermarkEditor() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white pb-44">
+        <div className="min-h-screen bg-black text-white pb-44" style={{ paddingTop: getPaddingTop() }}>
             {/* Header */}
-            {/* Show header on mobile too if user wants balance, but usually kept hidden on mobile. 
-                However, to satisfy "Add balance to header", I'll modify the header content. 
-                If user wants it visible on mobile, they might ask. For now I keep !isMobile check 
-                but add the balance to it. 
-             */}
-            {!isMobile && (
-                <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10">
-                    <div className="flex items-center justify-between px-4 py-3">
-                        <div className="flex items-center gap-3">
+            <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10">
+                <div className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        {!isMobile && (
                             <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-white/10 rounded-xl">
                                 <ChevronLeft size={24} />
                             </button>
-                            <h1 className="text-lg font-bold">{t('watermark.title')}</h1>
-                        </div>
+                        )}
+                        <h1 className="text-lg font-bold">{t('watermark.title')}</h1>
+                    </div>
 
-                        {/* Balance display */}
-                        <div className="flex items-center">
-                            <button
-                                onClick={() => impact('light')}
-                                className="px-3 py-1.5 rounded-full bg-zinc-900 border border-white/10 flex items-center gap-1.5 active:scale-95 transition-transform"
-                            >
-                                <Zap size={14} className="text-yellow-500 fill-yellow-500" />
-                                {balance === null ? (
-                                    <div className="h-4 w-8 bg-zinc-700 rounded animate-pulse" />
-                                ) : (
-                                    <span className="text-xs font-bold text-white">{balance}</span>
-                                )}
-                            </button>
-                        </div>
+                    {/* Balance display */}
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => impact('light')}
+                            className="px-3 py-1.5 rounded-full bg-zinc-900 border border-white/10 flex items-center gap-1.5 active:scale-95 transition-transform"
+                        >
+                            <Zap size={14} className="text-yellow-500 fill-yellow-500" />
+                            {balance === null ? (
+                                <div className="h-4 w-8 bg-zinc-700 rounded animate-pulse" />
+                            ) : (
+                                <span className="text-xs font-bold text-white">{balance}</span>
+                            )}
+                        </button>
                     </div>
                 </div>
-            )}
+            </div>
 
             {/* Mobile Header (Create if hidden but needed? Or just assume desktop testing?) 
                 If the user specifically asked for this, and they might be on mobile, 
