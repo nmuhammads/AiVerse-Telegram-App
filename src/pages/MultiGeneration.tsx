@@ -583,7 +583,7 @@ interface ModelBlockProps {
     onToggleExpand: () => void
     onUpdateConfig: (config: Partial<ModelConfig>) => void
     onRemove: () => void
-    getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality) => number
+    getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality, resolution?: string) => number
     saveToGallery: (url: string, filename: string) => void
 }
 
@@ -598,7 +598,7 @@ function ModelBlock({
     saveToGallery
 }: ModelBlockProps) {
     const { t } = useTranslation()
-    const price = getModelPrice(modelConfig.modelId, modelConfig.gptImageQuality)
+    const price = getModelPrice(modelConfig.modelId, modelConfig.gptImageQuality, modelConfig.resolution)
     const ratios = SUPPORTED_RATIOS[modelConfig.modelId] || ['1:1']
 
     return (

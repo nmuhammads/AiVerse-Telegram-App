@@ -100,7 +100,7 @@ export interface MultiGenerationActions {
     calculateTotalCost: () => number
 
     // Получить цену модели
-    getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality) => number
+    getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality, resolution?: string) => number
 
     // Сброс состояния
     reset: () => void
@@ -222,9 +222,12 @@ export const useMultiGenerationStore = create<MultiGenerationState & MultiGenera
             })
         },
 
-        getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality) => {
+        getModelPrice: (modelId: ModelType, gptQuality?: GptImageQuality, resolution?: string) => {
             if (modelId === 'gpt-image-1.5') {
                 return GPT_IMAGE_PRICES[gptQuality || 'medium']
+            }
+            if (modelId === 'nanobanana-pro' && resolution === '2K') {
+                return 10
             }
             return MODEL_PRICES[modelId] || 0
         },
@@ -232,7 +235,7 @@ export const useMultiGenerationStore = create<MultiGenerationState & MultiGenera
         calculateTotalCost: () => {
             const { selectedModels, getModelPrice } = get()
             return selectedModels.reduce((total, m) => {
-                return total + getModelPrice(m.modelId, m.gptImageQuality)
+                return total + getModelPrice(m.modelId, m.gptImageQuality, m.resolution)
             }, 0)
         },
 
