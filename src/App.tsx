@@ -132,15 +132,9 @@ export default function App() {
       try { WebApp.expand() } catch { void 0 }
     }
     try {
-      WebApp.ready();
-      const ver = Number((WebApp as unknown as { version?: string }).version || '0')
-      if (WebApp.platform === 'ios' || WebApp.platform === 'android') {
-        if (ver >= 8) { try { (WebApp as unknown as { requestFullscreen?: () => void }).requestFullscreen?.() } catch { void 0 } }
-      }
       ensureExpand()
       WebApp.onEvent("activated", ensureExpand)
       WebApp.onEvent("viewportChanged", ensureExpand)
-      WebApp.setHeaderColor("bg_color");
     } catch { void 0 }
     return () => {
       try {
