@@ -3,7 +3,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info, Camera, Clipboard, FolderOpen, Pencil, Video, Volume2, VolumeX, Lock, Unlock } from 'lucide-react'
+import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info, Camera, Clipboard, FolderOpen, Pencil, Video, Volume2, VolumeX, Lock, Unlock, Layers } from 'lucide-react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { useGenerationStore, type ModelType, type AspectRatio, type VideoDuration, type VideoResolution, type GptImageQuality } from '@/store/generationStore'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -504,119 +504,107 @@ export default function Studio() {
 
   if (hasResult) {
     return (
-      <div className="min-h-dvh bg-black safe-bottom-tabbar flex flex-col justify-end pb-24">
-        <div className="mx-auto max-w-3xl w-full px-4">
-          <Card className="bg-zinc-900/90 border-white/10 backdrop-blur-xl relative">
-            <button
-              onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setGeneratedVideo(null); setError(null) }}
-              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white transition-colors z-10"
+      <div className="min-h-dvh bg-black flex flex-col" style={{ paddingTop: platform === 'ios' ? 'calc(env(safe-area-inset-top) + 10px)' : platform === 'android' ? 'calc(env(safe-area-inset-top) + 50px)' : '50px' }}>
+        {/* Изображение/видео по центру */}
+        <div className="flex-1 flex items-center justify-center px-4 py-4">
+          <div className="relative w-full max-w-xl">
+            {isVideoResult ? (
+              <>
+                {console.log('[Studio Video]', { resultUrl })}
+                <video
+                  src={resultUrl}
+                  controls
+                  loop
+                  muted={isMuted}
+                  playsInline
+                  className="w-full max-h-[60vh] object-contain rounded-xl shadow-2xl"
+                  onLoadStart={() => console.log('[Studio Video] Load started, url:', resultUrl)}
+                  onLoadedData={() => console.log('[Studio Video] Data loaded successfully')}
+                  onCanPlay={() => console.log('[Studio Video] Can play now')}
+                  onError={(e) => {
+                    const video = e.currentTarget
+                    console.error('[Studio Video] Error:', {
+                      url: resultUrl,
+                      errorCode: video.error?.code,
+                      errorMsg: video.error?.message,
+                      networkState: video.networkState,
+                      readyState: video.readyState
+                    })
+                  }}
+                />
+              </>
+            ) : (
+              <img src={resultUrl} alt="result" className="w-full max-h-[60vh] object-contain rounded-xl shadow-2xl" />
+            )}
+            {!isVideoResult && (
+              <button
+                onClick={() => {
+                  impact('light')
+                  setIsFullScreen(true)
+                }}
+                className="absolute top-3 right-3 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/70 transition-colors"
+              >
+                <Maximize2 size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Кнопки внизу */}
+        <div className="px-4 pb-24 space-y-3 max-w-xl mx-auto w-full">
+          <div className="flex gap-3">
+            <Button
+              onClick={() => {
+                const ext = isVideoResult ? 'mp4' : 'jpg'
+                saveToGallery(resultUrl, `ai-${Date.now()}.${ext}`)
+              }}
+              className="flex-1 bg-white text-black hover:bg-zinc-200 font-bold py-3"
             >
-              <X size={20} />
-            </button>
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                {isVideoResult && <Video size={20} className="text-orange-400" />}
-                {isVideoResult ? t('studio.result.videoTitle') : t('studio.result.title')}
-              </CardTitle>
-              <CardDescription className="text-white/60">
-                {isVideoResult ? 'Seedance Pro' : MODELS.find(m => m.id === selectedModel)?.name}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative rounded-lg overflow-hidden group bg-black/20 flex items-center justify-center py-2">
-                {isVideoResult ? (
-                  <>
-                    {console.log('[Studio Video]', { resultUrl })}
-                    <video
-                      src={resultUrl}
-                      controls
-                      loop
-                      muted={isMuted}
-                      playsInline
-                      className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md"
-                      onLoadStart={() => console.log('[Studio Video] Load started, url:', resultUrl)}
-                      onLoadedData={() => console.log('[Studio Video] Data loaded successfully')}
-                      onCanPlay={() => console.log('[Studio Video] Can play now')}
-                      onError={(e) => {
-                        const video = e.currentTarget
-                        console.error('[Studio Video] Error:', {
-                          url: resultUrl,
-                          errorCode: video.error?.code,
-                          errorMsg: video.error?.message,
-                          networkState: video.networkState,
-                          readyState: video.readyState
-                        })
-                      }}
-                    />
-                  </>
-                ) : (
-                  <img src={resultUrl} alt="result" className="max-h-[45vh] w-auto object-contain shadow-lg rounded-md" />
-                )}
-                {!isVideoResult && (
-                  <button
-                    onClick={() => {
-                      impact('light')
-                      setIsFullScreen(true)
-                    }}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md hover:bg-black/70 transition-colors"
-                  >
-                    <Maximize2 size={16} />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    onClick={() => {
-                      const ext = isVideoResult ? 'mp4' : 'jpg'
-                      saveToGallery(resultUrl, `ai-${Date.now()}.${ext}`)
-                    }}
-                    className="flex-1 bg-white text-black hover:bg-zinc-200 font-bold"
-                  >
-                    <DownloadIcon size={16} className="mr-2" />
-                    {t('studio.result.save')}
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      if (!user?.id) return
-                      impact('light')
-                      try {
-                        const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: resultUrl, caption: prompt }) })
-                        const j = await r.json().catch(() => null)
-                        if (r.ok && j?.ok) { notify('success') }
-                        else {
-                          notify('error')
-                          if (!isVideoResult) shareImage(resultUrl, prompt)
-                        }
-                      } catch {
-                        notify('error')
-                      }
-                    }}
-                    className="flex-1 bg-violet-600 text-white hover:bg-violet-700 font-bold"
-                  >
-                    <Send size={16} className="mr-2" />
-                    {t('studio.result.sendToChat')}
-                  </Button>
-                </div>
-                {/* Кнопка редактирования только для изображений */}
-                {!isVideoResult && (
-                  <Button
-                    onClick={() => navigate(`/editor?image=${encodeURIComponent(resultUrl)}`)}
-                    className="w-full bg-cyan-600 text-white hover:bg-cyan-500 font-bold"
-                  >
-                    <Pencil size={16} className="mr-2" />
-                    {t('editor.edit')}
-                  </Button>
-                )}
-                <Button
-                  onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setGeneratedVideo(null); setError(null) }}
-                  className="w-full bg-zinc-800 text-white hover:bg-zinc-700 font-bold border border-white/10"
-                >
-                  {t('studio.result.close')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              <DownloadIcon size={16} className="mr-2" />
+              {t('studio.result.save')}
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!user?.id) return
+                impact('light')
+                try {
+                  const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: resultUrl, caption: prompt }) })
+                  const j = await r.json().catch(() => null)
+                  if (r.ok && j?.ok) { notify('success') }
+                  else {
+                    notify('error')
+                    if (!isVideoResult) shareImage(resultUrl, prompt)
+                  }
+                } catch {
+                  notify('error')
+                }
+              }}
+              className="flex-1 bg-violet-600 text-white hover:bg-violet-700 font-bold py-3"
+            >
+              <Send size={16} className="mr-2" />
+              {t('studio.result.sendToChat')}
+            </Button>
+          </div>
+          {/* Кнопки Продолжить и Закрыть в один ряд */}
+          <div className="flex gap-3">
+            {!isVideoResult && (
+              <Button
+                onClick={() => navigate(`/editor?image=${encodeURIComponent(resultUrl)}`)}
+                className="flex-1 bg-cyan-600 text-white hover:bg-cyan-500 font-bold py-3"
+              >
+                <Pencil size={16} className="mr-2" />
+                {t('editor.continue')}
+              </Button>
+            )}
+            <Button
+              onClick={() => { setCurrentScreen('form'); setGeneratedImage(null); setGeneratedVideo(null); setError(null) }}
+              variant="outline"
+              className={`${!isVideoResult ? 'flex-1' : 'w-full'} border-white/20 bg-zinc-800 text-white hover:bg-zinc-700 font-bold py-3`}
+            >
+              <X size={16} className="mr-2" />
+              {t('studio.result.close')}
+            </Button>
+          </div>
         </div>
         {isFullScreen && (
           <div className="fixed inset-0 z-[200] bg-black flex flex-col">
@@ -746,6 +734,19 @@ export default function Studio() {
             })}
 
           </div>
+        )}
+
+        {/* Multi-Generation Button */}
+        {mediaType === 'image' && (
+          <button
+            onClick={() => { impact('light'); navigate('/multi-generation') }}
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600/20 to-pink-600/20 
+                       border border-purple-500/30 flex items-center justify-center gap-2
+                       hover:from-purple-600/30 hover:to-pink-600/30 transition-all active:scale-98"
+          >
+            <Layers size={16} className="text-purple-400" />
+            <span className="text-sm font-bold text-purple-300">{t('multiGeneration.button')}</span>
+          </button>
         )}
 
         {/* 1.5 Video Model Info (показываем когда выбрано видео) */}

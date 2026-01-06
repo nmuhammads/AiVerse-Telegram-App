@@ -14,6 +14,7 @@ import EventsPage from "@/pages/EventsPage";
 import SpinPage from "@/pages/SpinPage";
 import ImageEditorPage from "@/pages/ImageEditorPage";
 import WatermarkEditor from "@/pages/WatermarkEditor";
+import MultiGeneration from "@/pages/MultiGeneration";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
 import { PendingIndicator } from "@/components/PendingIndicator";
@@ -174,6 +175,7 @@ export default function App() {
               <Route path="/editor" element={<ImageEditorPage />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/watermark" element={<WatermarkEditor />} />
+              <Route path="/multi-generation" element={<MultiGeneration />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
