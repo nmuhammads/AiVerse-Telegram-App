@@ -212,37 +212,58 @@ export default function MultiGeneration() {
         const pollInterval = 3000
         const maxPolls = 120 // 6 минут максимум
 
+        // Создаём карту genId -> modelId из текущего состояния
+        const genIdToModelId = new Map<number, ModelType>()
+        const currentModels = useMultiGenerationStore.getState().selectedModels
+        for (let i = 0; i < generationIds.length; i++) {
+            if (currentModels[i]) {
+                genIdToModelId.set(generationIds[i], currentModels[i].modelId)
+            }
+        }
+
+        // Отслеживаем какие генерации ещё ожидают результатов
+        const pendingGenIds = new Set(generationIds.filter(id => id > 0))
+
         for (let poll = 0; poll < maxPolls; poll++) {
-            // Проверяем статус каждой генерации
-            let allDone = true
+            if (pendingGenIds.size === 0) break
 
-            for (let i = 0; i < generationIds.length; i++) {
-                const genId = generationIds[i]
-                const model = selectedModels[i]
-
-                if (!model || model.status !== 'generating') continue
+            // Проверяем статус каждой ожидающей генерации
+            for (const genId of Array.from(pendingGenIds)) {
+                const modelId = genIdToModelId.get(genId)
+                if (!modelId) continue
 
                 try {
                     const res = await fetch(`/api/generation/${genId}`)
+                    if (!res.ok) continue
+
                     const data = await res.json()
 
                     if (data.status === 'completed' && data.image_url) {
-                        setModelResult(model.modelId, data.image_url, null, genId)
+                        setModelResult(modelId, data.image_url, null, genId)
+                        pendingGenIds.delete(genId)
                         notify('success')
                     } else if (data.status === 'failed') {
-                        setModelResult(model.modelId, null, data.error_message || 'Generation failed', genId)
+                        setModelResult(modelId, null, data.error_message || 'Generation failed', genId)
+                        pendingGenIds.delete(genId)
                         notify('error')
-                    } else {
-                        allDone = false
                     }
-                } catch {
-                    // Игнорируем ошибки поллинга
-                    allDone = false
+                    // Если pending — оставляем в pendingGenIds
+                } catch (err) {
+                    console.error('[MultiGen] Poll error for genId', genId, err)
+                    // Игнорируем ошибки поллинга, пробуем снова
                 }
             }
 
-            if (allDone) break
+            if (pendingGenIds.size === 0) break
             await new Promise(r => setTimeout(r, pollInterval))
+        }
+
+        // Если после всех попыток остались pending — пометить как ошибку (timeout)
+        for (const genId of Array.from(pendingGenIds)) {
+            const modelId = genIdToModelId.get(genId)
+            if (modelId) {
+                setModelResult(modelId, null, 'Generation timeout', genId)
+            }
         }
     }
 

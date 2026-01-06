@@ -1339,7 +1339,7 @@ export async function getGenerationById(req: Request, res: Response) {
 
     // Fetch generation - include video_url for video generations
     // Note: aspect_ratio not in DB, extracted from prompt metadata
-    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type,is_prompt_private,users(username,first_name)`
+    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type,is_prompt_private,error_message,users(username,first_name)`
     console.log('[getGenerationById] Query:', query)
 
     const result = await supaSelect('generations', query)
@@ -1397,6 +1397,8 @@ export async function getGenerationById(req: Request, res: Response) {
       generation_type: type,
       media_type: gen.media_type || (gen.model === 'seedance-1.5-pro' ? 'video' : 'image'),
       users: gen.users,
+      status: gen.status, // Для polling в мульти-генерации
+      error_message: gen.error_message || null, // Для отображения ошибок
     }
 
     console.log('[getGenerationById] Sending response:', {
