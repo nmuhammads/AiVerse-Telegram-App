@@ -319,31 +319,7 @@ export default function MultiGeneration() {
                     </button>
                 </div>
 
-                {/* 1. Режим T2I / I2I — первый пункт */}
-                <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
-                    <button
-                        onClick={() => { setGenerationMode('text'); impact('light') }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'text'
-                            ? 'bg-zinc-800 text-white shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                    >
-                        <Type size={14} />
-                        <span>{t('studio.mode.textToImage')}</span>
-                    </button>
-                    <button
-                        onClick={() => { setGenerationMode('image'); impact('light') }}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'image'
-                            ? 'bg-zinc-800 text-white shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                    >
-                        <ImageIcon size={14} />
-                        <span>{t('studio.mode.imageToImage')}</span>
-                    </button>
-                </div>
-
-                {/* 2. Селектор моделей */}
+                {/* 1. Селектор моделей */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
@@ -387,6 +363,30 @@ export default function MultiGeneration() {
                             )
                         })}
                     </div>
+                </div>
+
+                {/* 2. Режим T2I / I2I */}
+                <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
+                    <button
+                        onClick={() => { setGenerationMode('text'); impact('light') }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'text'
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                    >
+                        <Type size={14} />
+                        <span>{t('studio.mode.textToImage')}</span>
+                    </button>
+                    <button
+                        onClick={() => { setGenerationMode('image'); impact('light') }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${generationMode === 'image'
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                    >
+                        <ImageIcon size={14} />
+                        <span>{t('studio.mode.imageToImage')}</span>
+                    </button>
                 </div>
 
                 {/* 3. Блоки выбранных моделей */}
