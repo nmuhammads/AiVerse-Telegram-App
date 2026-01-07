@@ -23,17 +23,6 @@
   <meta property="og:image" content="/logo.png" />
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    // Global logger init
-    window.__DEBUG_LOGS__ = [];
-    window.logEvent = function (msg) {
-      const time = new Date().toISOString().split('T')[1].slice(0, -1);
-      const logMsg = `[${time}] ${msg}`;
-      window.__DEBUG_LOGS__.push(logMsg);
-      console.log(logMsg);
-    };
-    window.logEvent('HTML Parsed');
-  </script>
   <script type="module">
     if (import.meta.hot?.on) {
       import.meta.hot.on('vite:error', (error) => {
