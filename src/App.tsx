@@ -126,8 +126,13 @@ function StartParamRouter() {
   return null;
 }
 
+import { DebugLogger } from "@/components/DebugLogger";
+
 export default function App() {
+  if (window.logEvent) window.logEvent('App Component Rendering')
+
   useEffect(() => {
+    if (window.logEvent) window.logEvent('App Mounted (useEffect)')
     const ensureExpand = () => {
       try { WebApp.expand() } catch { void 0 }
     }
@@ -143,7 +148,8 @@ export default function App() {
         loader.style.opacity = '0'
         setTimeout(() => {
           loader.remove()
-        }, 3500)
+          if (window.logEvent) window.logEvent('Preloader removed')
+        }, 500)
       }
     } catch { void 0 }
     return () => {
@@ -186,6 +192,7 @@ export default function App() {
           <TabBar />
           <PendingIndicator />
           <AnnouncementModal />
+          <DebugLogger />
         </div>
       </Router>
       <Toaster />
