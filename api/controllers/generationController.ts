@@ -383,7 +383,9 @@ async function completeGeneration(
   cost: number,
   parentId?: number,
   contestEntryId?: number,
-  inputImages?: string[]
+  inputImages?: string[],
+  resolution?: string,
+  languageCode?: string
 ) {
   if (!SUPABASE_URL || !SUPABASE_KEY || !userId || !generationId) return
 
@@ -499,7 +501,14 @@ async function completeGeneration(
       if (userId) {
         const settings = await getUserNotificationSettings(userId)
         if (settings.telegram_generation) {
-          const caption = `✨ Генерация завершена!`
+          let caption = `✨ Генерация завершена!`
+          if (model === 'nanobanana-pro' && (resolution === '2K' || resolution === '4K')) {
+            if (languageCode === 'en') {
+              caption += "\n\n⚠️ The file is too large. Telegram does not show it in full quality. Save to gallery to view in detail."
+            } else {
+              caption += "\n\n⚠️ Файл слишком большой. Telegram не показывает его в полном качестве. Сохраните в галерею для детального просмотра."
+            }
+          }
           await tg('sendDocument', {
             chat_id: userId,
             document: imageUrl,
@@ -913,6 +922,7 @@ export async function handleGenerateImage(req: Request, res: Response) {
     }
 
     // Проверка баланса пользователя
+    let languageCode = 'ru'
     let cost = 0
     if (user_id) {
       cost = MODEL_PRICES[model] ?? 0
@@ -933,8 +943,11 @@ export async function handleGenerateImage(req: Request, res: Response) {
         const gpt_image_quality = req.body.gpt_image_quality || 'medium'
         cost = calculateGptImageCost(gpt_image_quality)
       }
-      const q = await supaSelect('users', `?user_id=eq.${encodeURIComponent(String(user_id))}&select=balance`)
+      const q = await supaSelect('users', `?user_id=eq.${encodeURIComponent(String(user_id))}&select=balance,language_code`)
       const balance = Array.isArray(q.data) && q.data[0]?.balance != null ? Number(q.data[0].balance) : 0
+      if (Array.isArray(q.data) && q.data[0]?.language_code) {
+        languageCode = String(q.data[0].language_code)
+      }
 
       if (balance < cost) {
         console.warn(`Insufficient balance for user ${user_id}. Required: ${cost}, Available: ${balance}`)
@@ -1137,7 +1150,7 @@ export async function handleGenerateImage(req: Request, res: Response) {
     // Первое изображение обрабатываем через completeGeneration (для основной записи в БД)
     if (successfulImages.length > 0 && generationId) {
       const firstImage = successfulImages[0]
-      await completeGeneration(generationId, Number(user_id), firstImage, model, cost / imageCount, req.body.parent_id, req.body.contest_entry_id, r2Images)
+      await completeGeneration(generationId, Number(user_id), firstImage, model, cost / imageCount, req.body.parent_id, req.body.contest_entry_id, r2Images, resolution, languageCode)
 
 
       // Fetch user settings once for all extra notifications
@@ -1177,10 +1190,18 @@ export async function handleGenerateImage(req: Request, res: Response) {
         // Send Telegram Notification for extra image
         if (userSettings && userSettings.telegram_generation) {
           try {
+            let caption = '✨ Генерация завершена!'
+            if (model === 'nanobanana-pro' && (resolution === '2K' || resolution === '4K')) {
+              if (languageCode === 'en') {
+                caption += "\n\n⚠️ The file is too large. Telegram does not show it in full quality. Save to gallery to view in detail."
+              } else {
+                caption += "\n\n⚠️ Файл слишком большой. Telegram не показывает его в полном качестве. Сохраните в галерею для детального просмотра."
+              }
+            }
             await tg('sendDocument', {
               chat_id: Number(user_id),
               document: extraImage,
-              caption: '✨ Генерация завершена!'
+              caption: caption
             })
             console.log(`[Notification] Sent extra photo ${i + 1} to user ${user_id}`)
           } catch (e) {
@@ -1226,6 +1247,17 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   if (!user_id) return res.status(400).json({ error: 'user_id is required' })
 
   console.log(`[CheckStatus] Checking pending generations for user ${user_id}`)
+
+  // Fetch user language code
+  let languageCode = 'ru'
+  try {
+    const uQ = await supaSelect('users', `?user_id=eq.${user_id}&select=language_code`)
+    if (uQ.ok && Array.isArray(uQ.data) && uQ.data[0]) {
+      languageCode = uQ.data[0].language_code || 'ru'
+    }
+  } catch (e) {
+    console.error('[CheckStatus] Failed to fetch language code', e)
+  }
 
   // Get pending generations (all of them, to handle missing task_id too)
   const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending&select=*,input_images`)
@@ -1304,7 +1336,7 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
           }
         }
 
-        await completeGeneration(gen.id, gen.user_id, result.imageUrl, gen.model, cost, gen.parent_id, undefined, gen.input_images)
+        await completeGeneration(gen.id, gen.user_id, result.imageUrl, gen.model, cost, gen.parent_id, undefined, gen.input_images, gen.resolution, languageCode)
         updated++
       } else if (result.status === 'failed') {
         // Возврат токенов при fail от провайдера
