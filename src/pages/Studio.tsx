@@ -614,7 +614,7 @@ export default function Studio() {
     const paddingTopResult = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 10px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
     return (
-      <div className="min-h-dvh bg-black flex flex-col justify-end px-4 pb-24" style={{ paddingTop: paddingTopResult }}>
+      <div className="min-h-dvh bg-black flex flex-col justify-end px-4" style={{ paddingTop: paddingTopResult, paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
         {/* Image/Video Preview */}
         <div className="flex-1 flex items-center justify-center mb-4 relative">
           {isVideoResult ? (
@@ -694,7 +694,8 @@ export default function Studio() {
               {!hasMultipleImages && (
                 <button
                   onClick={() => { impact('light'); setIsFullScreen(true) }}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md"
+                  className="absolute right-4 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center backdrop-blur-md"
+                  style={{ top: 'calc(env(safe-area-inset-top) + 60px)' }}
                 >
                   <Maximize2 size={18} />
                 </button>
