@@ -613,8 +613,10 @@ export default function Studio() {
   if (hasResult) {
     const paddingTopResult = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 10px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
+    const paddingBottomResult = platform === 'ios' ? 'calc(env(safe-area-inset-bottom) + 96px)' : '120px'
+
     return (
-      <div className="min-h-dvh bg-black flex flex-col justify-end px-4" style={{ paddingTop: paddingTopResult, paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+      <div className="min-h-dvh bg-black flex flex-col justify-end px-4" style={{ paddingTop: paddingTopResult, paddingBottom: paddingBottomResult }}>
         {/* Image/Video Preview */}
         <div className="flex-1 flex items-center justify-center mb-4 relative">
           {isVideoResult ? (
