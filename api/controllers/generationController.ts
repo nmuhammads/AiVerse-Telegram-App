@@ -46,6 +46,7 @@ const MODEL_CONFIGS = {
   'qwen-edit': { kind: 'jobs' as const, model: 'qwen/text-or-image' },
   'seedance-1.5-pro': { kind: 'jobs' as const, model: 'bytedance/seedance-1.5-pro', mediaType: 'video' as const },
   'gpt-image-1.5': { kind: 'jobs' as const, model: 'gpt-image/1.5-text-to-image', dbModel: 'gptimage1.5' },
+  'test-model': { kind: 'test' as const, model: 'test-model' }, // Тестовая модель (не вызывает API)
 }
 
 function mapSeedreamImageSize(ratio?: string): string | undefined {
@@ -338,6 +339,7 @@ const MODEL_PRICES: Record<string, number> = {
   'seedream4-5': 7,
   flux: 4,
   'gpt-image-1.5': 5, // Default: medium quality
+  'test-model': 0, // Тестовая модель — бесплатно
 }
 
 // Цены для GPT Image 1.5 по качеству
@@ -578,6 +580,15 @@ async function generateImageWithKieAI(
     let metaPayload: KieMetaPayload | undefined
     if (requestData.meta) {
       metaPayload = prepareKieMeta(requestData.meta)
+    }
+
+    // Тестовая модель — возвращает placeholder изображение без вызова API
+    if (model === 'test-model') {
+      console.log('[Test Model] Simulating generation...')
+      await new Promise(resolve => setTimeout(resolve, 5000)) // Симуляция задержки 5 сек
+      const testImage = `https://placehold.co/1024x1024/8b5cf6/ffffff/png?text=Test+${Date.now()}`
+      console.log('[Test Model] Returning test image:', testImage)
+      return { images: [testImage], inputImages: imageUrls }
     }
 
     if (cfg.kind === 'flux-kontext') {

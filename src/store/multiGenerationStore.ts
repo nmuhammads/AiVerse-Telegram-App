@@ -22,6 +22,7 @@ const MODEL_PRICES: Record<ModelType, number> = {
     'p-image-edit': 2,
     'seedance-1.5-pro': 42,
     'gpt-image-1.5': 5,
+    'test-model': 0,
 }
 
 // Цены GPT Image по качеству
@@ -39,6 +40,7 @@ export const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
     'p-image-edit': ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4'],
     'seedance-1.5-pro': ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'],
     'gpt-image-1.5': ['1:1', '2:3', '3:2'],
+    'test-model': ['1:1', '16:9', '9:16'],
 }
 
 // Дефолтные соотношения для моделей
@@ -50,6 +52,7 @@ const DEFAULT_RATIOS: Record<ModelType, AspectRatio> = {
     'p-image-edit': 'Auto',
     'seedance-1.5-pro': '16:9',
     'gpt-image-1.5': '2:3',
+    'test-model': '1:1',
 }
 
 export interface MultiGenerationState {

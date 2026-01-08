@@ -622,6 +622,14 @@
         "noModelsSelected": "Select at least one model",
         "error": "Generation error",
         "resultWillAppear": "Result will appear here",
-        "desc": "Create 3 variants at once"
+        "desc": "Create up to 3 variants in different AI models at once"
+    },
+    "activeGenerations": {
+        "title": "Active generations",
+        "noPrompt": "No prompt",
+        "completed": "Done",
+        "error": "Error",
+        "clearCompleted": "Clear",
+        "maxReached": "Maximum 4 parallel generations reached"
     }
 }
