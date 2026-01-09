@@ -113,11 +113,15 @@ export function DebugOverlay() {
     }
 
     // Floating button when closed
+    // Показывать только в DEV режиме
+    const IS_DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true'
+    if (!IS_DEV_MODE) return null
+
     if (!isOpen) {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 right-4 z-[9999] w-12 h-12 rounded-full bg-purple-600 text-white shadow-lg flex items-center justify-center"
+                className="fixed bottom-32 left-4 z-[9999] w-12 h-12 rounded-full bg-purple-600 text-white shadow-lg flex items-center justify-center"
             >
                 <Bug size={20} />
             </button>

@@ -160,14 +160,14 @@ export function ActiveGenerationsPanel({ onViewResult }: ActiveGenerationsPanelP
     const { generations, removeGeneration, clearCompleted } = useActiveGenerationsStore()
     const { impact } = useHaptics()
 
+    // Error Modal State — ДОЛЖЕН быть ДО любых early returns!
+    const [viewError, setViewError] = useState<string | null>(null)
+
     // Only show if there are any generations
     if (generations.length === 0) return null
 
     const activeCount = generations.filter(g => g.status === 'processing').length
     const completedCount = generations.filter(g => g.status !== 'processing').length
-
-    // Error Modal State
-    const [viewError, setViewError] = useState<string | null>(null)
 
     return (
         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 relative">
