@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Sparkles, Loader2, CloudRain, Code2, Zap, Image as ImageIcon, Type, X, Send, Maximize2, Download as DownloadIcon, Info, Camera, Clipboard, FolderOpen, Pencil, Video, Volume2, VolumeX, Lock, Unlock, ChevronLeft, ChevronRight, Layers } from 'lucide-react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
-import { useGenerationStore, type ModelType, type AspectRatio, type VideoDuration, type VideoResolution, type GptImageQuality, type ImageCount } from '@/store/generationStore'
+import { useGenerationStore, type ModelType, type AspectRatio, type VideoDuration, type VideoResolution, type GptImageQuality, type ImageCount, type KlingVideoMode, type KlingDuration, type KlingMCQuality, type CharacterOrientation } from '@/store/generationStore'
 import { useActiveGenerationsStore, MAX_ACTIVE_IMAGES } from '@/store/activeGenerationsStore'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
@@ -32,6 +32,7 @@ const IMAGE_MODELS = ALL_IMAGE_MODELS.filter(m => !m.devOnly || IS_DEV_MODE)
 // Модели для генерации видео
 const VIDEO_MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
   { id: 'seedance-1.5-pro', name: 'Seedance Pro', desc: 'от 24 токенов', color: 'from-red-500 to-orange-500', icon: '/models/optimized/seedream.png' },
+  { id: 'kling-t2v', name: 'Kling AI', desc: 'от 55 токенов', color: 'from-cyan-500 to-blue-500', icon: '/models/optimized/kling.png' },
 ]
 
 // Для обратной совместимости
@@ -46,6 +47,9 @@ const MODEL_PRICES: Record<ModelType, number> = {
   'seedance-1.5-pro': 42, // Default: 720p, 8s, без аудио
   'gpt-image-1.5': 5, // Default: medium quality
   'test-model': 0, // Тестовая модель - бесплатно
+  'kling-t2v': 55, // Default: 5s, без звука
+  'kling-i2v': 55, // Default: 5s, без звука
+  'kling-mc': 30, // Default: 5s × 6 токенов/сек
 }
 
 // Цены для GPT Image 1.5 по качеству
@@ -63,6 +67,9 @@ const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
   'seedance-1.5-pro': ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'],
   'gpt-image-1.5': ['1:1', '2:3', '3:2'],
   'test-model': ['1:1', '16:9', '9:16'],
+  'kling-t2v': ['1:1', '16:9', '9:16'],
+  'kling-i2v': ['1:1', '16:9', '9:16'],
+  'kling-mc': ['1:1', '16:9', '9:16'],
 }
 
 // Цены для видео Seedance 1.5 Pro
@@ -83,6 +90,35 @@ const calculateVideoCost = (resolution: string, duration: string, withAudio: boo
   const prices = VIDEO_PRICES[resolution]?.[duration]
   if (!prices) return 42
   return withAudio ? prices.audio : prices.base
+}
+
+// === Цены для Kling AI ===
+// T2V & I2V: фиксированная цена по длительности
+const KLING_VIDEO_PRICES: Record<string, { base: number; audio: number }> = {
+  '5': { base: 55, audio: 110 },
+  '10': { base: 110, audio: 220 },
+}
+
+// Motion Control: цена за секунду (минимум 5 сек)
+const KLING_MC_PRICES: Record<string, number> = {
+  '720p': 6,
+  '1080p': 9,
+}
+
+const calculateKlingCost = (
+  mode: KlingVideoMode,
+  duration: KlingDuration,
+  withSound: boolean,
+  mcQuality: KlingMCQuality = '720p',
+  videoDurationSeconds: number = 0
+): number => {
+  if (mode === 'motion-control') {
+    const pricePerSec = KLING_MC_PRICES[mcQuality]
+    const effectiveDuration = Math.max(5, videoDurationSeconds)
+    return effectiveDuration * pricePerSec
+  }
+  const prices = KLING_VIDEO_PRICES[duration]
+  return withSound ? prices.audio : prices.base
 }
 
 const RATIO_EMOJIS: Record<AspectRatio, string> = {
@@ -162,6 +198,21 @@ export default function Studio() {
     setImageCount,
     generatedImages,
     setGeneratedImages,
+    // Kling AI параметры
+    klingVideoMode,
+    klingDuration,
+    klingSound,
+    klingMCQuality,
+    characterOrientation,
+    uploadedVideoUrl,
+    videoDurationSeconds,
+    setKlingVideoMode,
+    setKlingDuration,
+    setKlingSound,
+    setKlingMCQuality,
+    setCharacterOrientation,
+    setUploadedVideoUrl,
+    setVideoDurationSeconds,
   } = useGenerationStore()
 
   const { shareImage, saveToGallery, user, platform, tg } = useTelegram()
@@ -169,6 +220,7 @@ export default function Studio() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null) // Для загрузки видео (Motion Control)
   const [showBalancePopup, setShowBalancePopup] = useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [balance, setBalance] = useState<number | null>(null)
@@ -306,8 +358,9 @@ export default function Studio() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Limit check
-    const maxImages = 8
+    // Limit check - Kling модели поддерживают только 1 изображение
+    const isKlingModel = ['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel)
+    const maxImages = isKlingModel ? 1 : 8
     if (uploadedImages.length + files.length > maxImages) {
       setError(t('studio.upload.modelLimitError', { limit: maxImages }))
       notify('error')
@@ -344,7 +397,8 @@ export default function Studio() {
 
   // Process pasted files from clipboard event
   const processPastedFiles = async (files: FileList | File[]) => {
-    const maxImages = 8
+    const isKlingModel = ['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel)
+    const maxImages = isKlingModel ? 1 : 8
     const fileArray = Array.from(files)
 
     for (const file of fileArray) {
@@ -456,7 +510,14 @@ export default function Studio() {
       videoResolution,
       fixedLens,
       generateAudio,
-      gptImageQuality
+      gptImageQuality,
+      // Kling параметры
+      klingDuration,
+      klingSound,
+      klingMCQuality,
+      characterOrientation,
+      uploadedVideoUrl,
+      videoDurationSeconds
     }
 
       // Запустить генерацию асинхронно (не блокируя UI)
@@ -479,11 +540,25 @@ export default function Studio() {
           }
 
           // Добавить параметры видео для Seedance 1.5 Pro
-          if (currentParams.mediaType === 'video') {
+          if (currentParams.selectedModel === 'seedance-1.5-pro') {
             requestBody.video_duration = currentParams.videoDuration
             requestBody.video_resolution = currentParams.videoResolution
             requestBody.fixed_lens = currentParams.fixedLens
             requestBody.generate_audio = currentParams.generateAudio
+          }
+
+          // Добавить параметры для Kling T2V/I2V
+          if (currentParams.selectedModel === 'kling-t2v' || currentParams.selectedModel === 'kling-i2v') {
+            requestBody.kling_duration = currentParams.klingDuration
+            requestBody.kling_sound = currentParams.klingSound
+          }
+
+          // Добавить параметры для Kling Motion Control
+          if (currentParams.selectedModel === 'kling-mc') {
+            requestBody.kling_mc_quality = currentParams.klingMCQuality
+            requestBody.character_orientation = currentParams.characterOrientation
+            requestBody.video_url = currentParams.uploadedVideoUrl
+            requestBody.video_duration_seconds = currentParams.videoDurationSeconds
           }
 
           // Добавить параметр качества для GPT Image 1.5
@@ -938,16 +1013,45 @@ export default function Studio() {
           </button>
         )}
 
-        {/* 1.5 Video Model Info (показываем когда выбрано видео) */}
+        {/* 1.5 Video Model Selector (Grid) */}
         {mediaType === 'video' && (
-          <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-xl">
-            <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
-              <img src="/models/optimized/seedream.png" alt="Seedance Pro" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Seedance Pro</div>
-              <div className="text-xs text-zinc-400">{t('studio.video.modelDesc')}</div>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            {VIDEO_MODELS.map(m => {
+              // Kling модели группируются под одной карточкой
+              const isKlingModel = m.id === 'kling-t2v'
+              const isSelected = isKlingModel
+                ? ['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel)
+                : selectedModel === m.id
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    if (isKlingModel) {
+                      // При выборе Kling устанавливаем модель по режиму
+                      const klingModel = klingVideoMode === 'motion-control' ? 'kling-mc' : klingVideoMode === 'i2v' ? 'kling-i2v' : 'kling-t2v'
+                      setSelectedModel(klingModel)
+                      if (klingVideoMode === 't2v') setGenerationMode('text')
+                      else setGenerationMode('image')
+                    } else {
+                      setSelectedModel(m.id as ModelType)
+                    }
+                    impact('light')
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${isSelected
+                    ? `bg-gradient-to-r ${m.color} shadow-lg`
+                    : 'bg-zinc-900/50 border border-white/5 hover:bg-zinc-800/60'
+                    }`}
+                >
+                  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md">
+                    <img src={m.icon} alt={m.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-zinc-300'}`}>{m.name}</div>
+                    <div className={`text-xs ${isSelected ? 'text-white/70' : 'text-zinc-500'}`}>{m.desc}</div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -971,8 +1075,8 @@ export default function Studio() {
           </div>
         )}
 
-        {/* 2.5 Video Mode Toggle (T2V/I2V) — только для видео */}
-        {mediaType === 'video' && (
+        {/* 2.5 Video Mode Toggle — для Seedance: T2V/I2V */}
+        {mediaType === 'video' && selectedModel === 'seedance-1.5-pro' && (
           <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
             <button
               onClick={() => { setGenerationMode('text'); setUploadedImages([]); impact('light') }}
@@ -987,6 +1091,51 @@ export default function Studio() {
             >
               <ImageIcon size={14} />
               <span>{t('studio.mode.imageToVideo')}</span>
+            </button>
+          </div>
+        )}
+
+        {/* 2.6 Kling Mode Toggle — T2V / I2V / Motion Control */}
+        {mediaType === 'video' && ['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) && (
+          <div className="bg-zinc-900/50 p-1 rounded-xl flex border border-white/5">
+            <button
+              onClick={() => {
+                setKlingVideoMode('t2v')
+                setSelectedModel('kling-t2v')
+                setGenerationMode('text')
+                setUploadedImages([])
+                setUploadedVideoUrl(null)
+                impact('light')
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${klingVideoMode === 't2v' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <Type size={14} />
+              <span>{t('studio.kling.t2v', 'T2V')}</span>
+            </button>
+            <button
+              onClick={() => {
+                setKlingVideoMode('i2v')
+                setSelectedModel('kling-i2v')
+                setGenerationMode('image')
+                setUploadedVideoUrl(null)
+                impact('light')
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${klingVideoMode === 'i2v' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <ImageIcon size={14} />
+              <span>{t('studio.kling.i2v', 'I2V')}</span>
+            </button>
+            <button
+              onClick={() => {
+                setKlingVideoMode('motion-control')
+                setSelectedModel('kling-mc')
+                setGenerationMode('image')
+                impact('light')
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${klingVideoMode === 'motion-control' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              <Zap size={14} />
+              <span>{t('studio.kling.motionControl', 'Motion Control')}</span>
             </button>
           </div>
         )}
@@ -1038,6 +1187,14 @@ export default function Studio() {
               </>
             )}
           </div>
+
+          {/* Hint for Motion Control - prompt is optional */}
+          {selectedModel === 'kling-mc' && (
+            <div className="flex items-start gap-2 mt-2 p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-300 text-[10px]">
+              <Info size={12} className="mt-0.5 shrink-0" />
+              <span>{t('studio.kling.mc.promptHint', 'Промпт опционален. Используйте для изменения деталей: одежды, фона, стиля и т.д.')}</span>
+            </div>
+          )}
         </div>
 
 
@@ -1065,7 +1222,7 @@ export default function Studio() {
                   </div>
 
                   {/* Add more buttons */}
-                  {uploadedImages.length < maxImages && (
+                  {uploadedImages.length < (['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) ? 1 : 8) && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => fileInputRef.current?.click()}
@@ -1181,10 +1338,12 @@ export default function Studio() {
         {/* 4.1 Reference Frames for VIDEO mode (Start/End frames for I2V) */}
         {generationMode === 'image' && mediaType === 'video' && (
           <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Start Frame */}
+            <div className={`grid gap-3 ${['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {/* Start Frame / Reference Image */}
               <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.startFrame')}</label>
+                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">
+                  {['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) ? t('studio.kling.referenceImage', 'Референс фото') : t('studio.video.startFrame')}
+                </label>
                 {uploadedImages[0] ? (
                   <div className="border-2 border-dashed border-white/10 rounded-xl aspect-[4/3] bg-zinc-900/20 relative overflow-hidden">
                     <img src={uploadedImages[0]} alt="start-frame" className="w-full h-full object-cover" />
@@ -1263,63 +1422,34 @@ export default function Studio() {
                 )}
               </div>
 
-              {/* End Frame */}
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.endFrame')}</label>
-                {uploadedImages[1] ? (
-                  <div className="border-2 border-dashed border-white/10 rounded-xl aspect-[4/3] bg-zinc-900/20 relative overflow-hidden">
-                    <img src={uploadedImages[1]} alt="end-frame" className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => {
-                        const newImages = [...uploadedImages]
-                        newImages.splice(1, 1)
-                        setUploadedImages(newImages.filter(Boolean))
-                      }}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {/* Select file button */}
-                    <button
-                      onClick={() => {
-                        const input = document.createElement('input')
-                        input.type = 'file'
-                        input.accept = 'image/*'
-                        input.onchange = async (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0]
-                          if (file) {
-                            const base64 = await new Promise<string>((resolve) => {
-                              const reader = new FileReader()
-                              reader.onloadend = () => resolve(reader.result as string)
-                              reader.readAsDataURL(file)
-                            })
-                            const newImages = [...uploadedImages]
-                            if (!newImages[0]) newImages[0] = ''
-                            newImages[1] = base64
-                            setUploadedImages(newImages.filter(Boolean))
-                          }
-                        }
-                        input.click()
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
-                    >
-                      <ImageIcon size={14} />
-                      <span className="text-[10px] font-medium">{t('studio.upload.selectPhoto')}</span>
-                    </button>
-                    {/* Paste zone */}
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      onPaste={async (e) => {
-                        e.preventDefault()
-                        const items = e.clipboardData?.items
-                        if (!items) return
-                        for (const item of Array.from(items)) {
-                          if (item.type.startsWith('image/')) {
-                            const file = item.getAsFile()
+              {/* End Frame - только для Seedance, Kling не поддерживает */}
+              {!['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) && (
+                <div className="space-y-2">
+                  <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.video.endFrame')}</label>
+                  {uploadedImages[1] ? (
+                    <div className="border-2 border-dashed border-white/10 rounded-xl aspect-[4/3] bg-zinc-900/20 relative overflow-hidden">
+                      <img src={uploadedImages[1]} alt="end-frame" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => {
+                          const newImages = [...uploadedImages]
+                          newImages.splice(1, 1)
+                          setUploadedImages(newImages.filter(Boolean))
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Select file button */}
+                      <button
+                        onClick={() => {
+                          const input = document.createElement('input')
+                          input.type = 'file'
+                          input.accept = 'image/*'
+                          input.onchange = async (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0]
                             if (file) {
                               const base64 = await new Promise<string>((resolve) => {
                                 const reader = new FileReader()
@@ -1330,23 +1460,56 @@ export default function Studio() {
                               if (!newImages[0]) newImages[0] = ''
                               newImages[1] = base64
                               setUploadedImages(newImages.filter(Boolean))
-                              break
                             }
                           }
-                        }
-                        e.currentTarget.innerHTML = ''
-                      }}
-                      onInput={(e) => { e.currentTarget.innerHTML = '' }}
-                      className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-[10px] font-medium cursor-text select-none focus:outline-none focus:border-violet-500/50"
-                    >
-                      <Clipboard size={14} />
-                      <span>{t('studio.upload.paste')}</span>
+                          input.click()
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                      >
+                        <ImageIcon size={14} />
+                        <span className="text-[10px] font-medium">{t('studio.upload.selectPhoto')}</span>
+                      </button>
+                      {/* Paste zone */}
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        onPaste={async (e) => {
+                          e.preventDefault()
+                          const items = e.clipboardData?.items
+                          if (!items) return
+                          for (const item of Array.from(items)) {
+                            if (item.type.startsWith('image/')) {
+                              const file = item.getAsFile()
+                              if (file) {
+                                const base64 = await new Promise<string>((resolve) => {
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => resolve(reader.result as string)
+                                  reader.readAsDataURL(file)
+                                })
+                                const newImages = [...uploadedImages]
+                                if (!newImages[0]) newImages[0] = ''
+                                newImages[1] = base64
+                                setUploadedImages(newImages.filter(Boolean))
+                                break
+                              }
+                            }
+                          }
+                          e.currentTarget.innerHTML = ''
+                        }}
+                        onInput={(e) => { e.currentTarget.innerHTML = '' }}
+                        className="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5 flex items-center justify-center gap-2 text-violet-300 text-[10px] font-medium cursor-text select-none focus:outline-none focus:border-violet-500/50"
+                      >
+                        <Clipboard size={14} />
+                        <span>{t('studio.upload.paste')}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
-            <p className="text-[10px] text-zinc-500 mt-2 px-1">{t('studio.video.framesHint')}</p>
+            {!['kling-t2v', 'kling-i2v', 'kling-mc'].includes(selectedModel) && (
+              <p className="text-[10px] text-zinc-500 mt-2 px-1">{t('studio.video.framesHint')}</p>
+            )}
           </div>
         )}
 
@@ -1412,7 +1575,7 @@ export default function Studio() {
         )}
 
         {/* 5.2 Video Parameters (Seedance 1.5 Pro only) — Compact Layout */}
-        {mediaType === 'video' && (
+        {mediaType === 'video' && selectedModel === 'seedance-1.5-pro' && (
           <div className="space-y-3 animate-in fade-in slide-in-from-top-4">
             {/* Row 1: Duration & Resolution */}
             <div className="grid grid-cols-2 gap-3">
@@ -1504,6 +1667,180 @@ export default function Studio() {
           </div>
         )}
 
+        {/* 5.3 Kling T2V/I2V Parameters */}
+        {mediaType === 'video' && (selectedModel === 'kling-t2v' || selectedModel === 'kling-i2v') && (
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-4">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Duration */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.kling.duration', 'Длительность')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-xl border border-white/5">
+                  {(['5', '10'] as KlingDuration[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => { setKlingDuration(d); impact('light') }}
+                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${klingDuration === d ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    >
+                      {d}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sound */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1">{t('studio.kling.sound', 'Звук')}</label>
+                <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-xl border border-white/5">
+                  <button
+                    onClick={() => { setKlingSound(false); impact('light') }}
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${!klingSound ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <VolumeX size={12} />
+                    {t('studio.video.audioOff')}
+                  </button>
+                  <button
+                    onClick={() => { setKlingSound(true); impact('light') }}
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${klingSound ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  >
+                    <Volume2 size={12} />
+                    {t('studio.video.audioOn')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5.4 Kling Motion Control Parameters */}
+        {mediaType === 'video' && selectedModel === 'kling-mc' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
+            {/* Step 1: Image — использует существующий image upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-cyan-500 text-white flex items-center justify-center text-[10px]">1</span>
+                {t('studio.kling.mc.uploadImage', 'Загрузите фото персонажа')}
+              </label>
+              <p className="text-[10px] text-zinc-500 pl-7">{t('studio.kling.mc.imageHint', 'Лицо должно быть видно (голова + плечи + торс)')}</p>
+            </div>
+
+            {/* Step 2: Character Orientation */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-cyan-500 text-white flex items-center justify-center text-[10px]">2</span>
+                {t('studio.kling.mc.orientation', 'Ориентация персонажа')}
+              </label>
+              <p className="text-[10px] text-zinc-500 pl-7">{t('studio.kling.mc.orientationHint', 'Выберите, откуда взять направление взгляда и положение тела персонажа')}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { setCharacterOrientation('image'); impact('light') }}
+                  className={`p-3 rounded-xl border transition-all ${characterOrientation === 'image' ? 'border-cyan-500 bg-cyan-500/10' : 'border-white/10 bg-zinc-900/50'}`}
+                >
+                  <ImageIcon size={20} className={`mx-auto mb-1 ${characterOrientation === 'image' ? 'text-cyan-400' : 'text-zinc-500'}`} />
+                  <div className={`text-xs font-bold ${characterOrientation === 'image' ? 'text-white' : 'text-zinc-400'}`}>🖼 {t('studio.kling.mc.asImage', 'Как на фото')}</div>
+                  <div className="text-[10px] text-zinc-500">{t('studio.kling.mc.asImageDesc1', 'Поза и направление с фото')}</div>
+                  <div className="text-[10px] text-cyan-400/70">• {t('studio.kling.mc.max10s', 'макс 10 сек')}</div>
+                </button>
+                <button
+                  onClick={() => { setCharacterOrientation('video'); impact('light') }}
+                  className={`p-3 rounded-xl border transition-all ${characterOrientation === 'video' ? 'border-cyan-500 bg-cyan-500/10' : 'border-white/10 bg-zinc-900/50'}`}
+                >
+                  <Video size={20} className={`mx-auto mb-1 ${characterOrientation === 'video' ? 'text-cyan-400' : 'text-zinc-500'}`} />
+                  <div className={`text-xs font-bold ${characterOrientation === 'video' ? 'text-white' : 'text-zinc-400'}`}>🎬 {t('studio.kling.mc.asVideo', 'Как в видео')}</div>
+                  <div className="text-[10px] text-zinc-500">{t('studio.kling.mc.asVideoDesc1', 'Поза и направление с видео')}</div>
+                  <div className="text-[10px] text-cyan-400/70">• {t('studio.kling.mc.max30s', 'макс 30 сек')}</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Step 3: Video Upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-cyan-500 text-white flex items-center justify-center text-[10px]">3</span>
+                {t('studio.kling.mc.uploadVideo', 'Загрузите видео с движением')}
+              </label>
+              <p className="text-[10px] text-zinc-500 pl-7">{t('studio.kling.mc.videoHint', 'MP4/MOV, 3-30 сек, мин. 720p')}</p>
+
+              <input
+                type="file"
+                accept="video/mp4,video/quicktime,video/mov"
+                ref={videoInputRef}
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+
+                  // Получить длительность видео
+                  const video = document.createElement('video')
+                  video.preload = 'metadata'
+                  video.onloadedmetadata = () => {
+                    const duration = Math.round(video.duration)
+                    setVideoDurationSeconds(duration)
+
+                    // Проверка ограничений по orientation
+                    const maxDuration = characterOrientation === 'image' ? 10 : 30
+                    if (duration > maxDuration) {
+                      setError(t('studio.kling.mc.durationError', `Видео слишком длинное. Максимум: ${maxDuration} сек`))
+                      return
+                    }
+
+                    // Конвертировать в base64 для отправки
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      setUploadedVideoUrl(reader.result as string)
+                      setError(null)
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                  video.src = URL.createObjectURL(file)
+                }}
+              />
+
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                className="w-full py-4 rounded-xl border-2 border-dashed border-white/10 bg-zinc-900/50 text-zinc-400 hover:border-cyan-500/50 hover:text-cyan-400 transition-all flex items-center justify-center gap-2"
+              >
+                <Video size={20} />
+                {uploadedVideoUrl ? t('studio.kling.mc.changeVideo', 'Изменить видео') : t('studio.kling.mc.selectVideo', 'Выбрать видео')}
+              </button>
+
+              {uploadedVideoUrl && (
+                <div className="flex items-center gap-2 p-2 bg-zinc-800 rounded-lg">
+                  <Video size={16} className="text-cyan-400" />
+                  <span className="text-xs text-white flex-1">{videoDurationSeconds}s видео</span>
+                  <button
+                    onClick={() => { setUploadedVideoUrl(null); setVideoDurationSeconds(0) }}
+                    className="text-zinc-500 hover:text-red-400"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Step 4: Quality */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-400 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-cyan-500 text-white flex items-center justify-center text-[10px]">4</span>
+                {t('studio.kling.mc.quality', 'Качество')}
+              </label>
+              <div className="flex gap-1 p-0.5 bg-zinc-900/50 rounded-xl border border-white/5">
+                <button
+                  onClick={() => { setKlingMCQuality('720p'); impact('light') }}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${klingMCQuality === '720p' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  720p · 6⚡/сек
+                </button>
+                <button
+                  onClick={() => { setKlingMCQuality('1080p'); impact('light') }}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${klingMCQuality === '1080p' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  1080p · 9⚡/сек
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className={`${error.includes('Время ожидания') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'} border rounded-xl p-3 flex items-center gap-3 text-sm animate-in fade-in slide-in-from-bottom-2`}>
@@ -1586,11 +1923,20 @@ export default function Studio() {
                 <span>{t('studio.generate.button')}</span>
                 <span className="bg-black/20 px-2 py-0.5 rounded text-xs font-normal ml-1">
                   {(() => {
-                    const basePrice = mediaType === 'video'
-                      ? calculateVideoCost(videoResolution, videoDuration, generateAudio)
-                      : selectedModel === 'nanobanana-pro' && resolution === '2K' ? 10
-                        : selectedModel === 'gpt-image-1.5' ? GPT_IMAGE_PRICES[gptImageQuality]
-                          : MODEL_PRICES[selectedModel]
+                    let basePrice: number
+                    if (selectedModel === 'seedance-1.5-pro') {
+                      basePrice = calculateVideoCost(videoResolution, videoDuration, generateAudio)
+                    } else if (['kling-t2v', 'kling-i2v'].includes(selectedModel)) {
+                      basePrice = calculateKlingCost(klingVideoMode, klingDuration, klingSound)
+                    } else if (selectedModel === 'kling-mc') {
+                      basePrice = calculateKlingCost('motion-control', '5', false, klingMCQuality, videoDurationSeconds)
+                    } else if (selectedModel === 'nanobanana-pro' && resolution === '2K') {
+                      basePrice = 10
+                    } else if (selectedModel === 'gpt-image-1.5') {
+                      basePrice = GPT_IMAGE_PRICES[gptImageQuality]
+                    } else {
+                      basePrice = MODEL_PRICES[selectedModel]
+                    }
                     const totalPrice = mediaType === 'video' ? basePrice : basePrice * imageCount
                     return `${totalPrice} ${t('studio.tokens')}`
                   })()}
