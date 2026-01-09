@@ -248,6 +248,21 @@ export default function Studio() {
     if (!isFullScreen) setScale(1)
   }, [isFullScreen])
 
+  // Kling Motion Control validation
+  useEffect(() => {
+    if (selectedModel === 'kling-mc' && uploadedVideoUrl && videoDurationSeconds > 0) {
+      const maxDuration = characterOrientation === 'image' ? 10 : 30
+      if (videoDurationSeconds > maxDuration) {
+        setError(t('studio.kling.mc.durationError', `Видео слишком длинное. Максимум: ${maxDuration} сек`))
+      } else {
+        // Clear specific duration error if valid
+        if (error?.includes('Видео слишком длинное')) {
+          setError(null)
+        }
+      }
+    }
+  }, [selectedModel, uploadedVideoUrl, videoDurationSeconds, characterOrientation, t, error, setError])
+
   // Handle iOS Face ID / app resume: re-mount the file input
   useEffect(() => {
     const handleActivated = () => {
@@ -1776,18 +1791,11 @@ export default function Studio() {
                     const duration = Math.round(video.duration)
                     setVideoDurationSeconds(duration)
 
-                    // Проверка ограничений по orientation
-                    const maxDuration = characterOrientation === 'image' ? 10 : 30
-                    if (duration > maxDuration) {
-                      setError(t('studio.kling.mc.durationError', `Видео слишком длинное. Максимум: ${maxDuration} сек`))
-                      return
-                    }
-
                     // Конвертировать в base64 для отправки
                     const reader = new FileReader()
                     reader.onload = () => {
                       setUploadedVideoUrl(reader.result as string)
-                      setError(null)
+                      // Валидация происходит в useEffect
                     }
                     reader.readAsDataURL(file)
                   }
@@ -1804,12 +1812,24 @@ export default function Studio() {
               </button>
 
               {uploadedVideoUrl && (
-                <div className="flex items-center gap-2 p-2 bg-zinc-800 rounded-lg">
-                  <Video size={16} className="text-cyan-400" />
-                  <span className="text-xs text-white flex-1">{videoDurationSeconds}s видео</span>
+                <div className={`flex items-center gap-2 p-2 rounded-lg border ${(characterOrientation === 'image' ? videoDurationSeconds <= 10 : videoDurationSeconds <= 30)
+                  ? 'bg-green-500/10 border-green-500/30'
+                  : 'bg-rose-500/10 border-rose-500/30'
+                  }`}>
+                  <Video size={16} className={(characterOrientation === 'image' ? videoDurationSeconds <= 10 : videoDurationSeconds <= 30) ? 'text-green-400' : 'text-rose-400'} />
+                  <div className="flex-1 flex flex-col">
+                    <span className={`text-xs ${(characterOrientation === 'image' ? videoDurationSeconds <= 10 : videoDurationSeconds <= 30) ? 'text-green-200' : 'text-rose-200'}`}>
+                      {videoDurationSeconds}s видео
+                    </span>
+                    <span className="text-[10px] text-white/50">
+                      {(characterOrientation === 'image' ? videoDurationSeconds <= 10 : videoDurationSeconds <= 30)
+                        ? t('studio.kling.mc.validDuration', '✓ Подходит')
+                        : t('studio.kling.mc.invalidDuration', '✕ Слишком длинное')}
+                    </span>
+                  </div>
                   <button
-                    onClick={() => { setUploadedVideoUrl(null); setVideoDurationSeconds(0) }}
-                    className="text-zinc-500 hover:text-red-400"
+                    onClick={() => { setUploadedVideoUrl(null); setVideoDurationSeconds(0); setError(null) }}
+                    className="text-white/50 hover:text-white"
                   >
                     <X size={14} />
                   </button>
@@ -1914,7 +1934,7 @@ export default function Studio() {
             {/* Generate Button */}
             <Button
               onClick={handleGenerate}
-              disabled={(!prompt.trim() && !(isPromptPrivate && parentGenerationId)) || aspectRatio === 'Auto' || (generationMode === 'image' && uploadedImages.length === 0)}
+              disabled={(!prompt.trim() && !(isPromptPrivate && parentGenerationId)) || aspectRatio === 'Auto' || (generationMode === 'image' && uploadedImages.length === 0) || (selectedModel === 'kling-mc' && (!uploadedVideoUrl || (characterOrientation === 'image' && videoDurationSeconds > 10) || (characterOrientation === 'video' && videoDurationSeconds > 30)))}
               className="flex-1 py-6 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-[0.98] relative overflow-hidden group bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:shadow-violet-500/25 border border-white/10"
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
