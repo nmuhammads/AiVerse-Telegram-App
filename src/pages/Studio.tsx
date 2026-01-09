@@ -406,6 +406,10 @@ export default function Studio() {
       }
 
       newImages.forEach(img => addUploadedImage(img))
+      // Сразу переключить режим на image, чтобы UI отобразил загруженные фото
+      if (newImages.length > 0) {
+        setGenerationMode('image')
+      }
       impact('light')
       setIsUploadingImage(false)
       // Reset input
@@ -1799,9 +1803,8 @@ export default function Studio() {
                             reader.onloadend = () => resolve(reader.result as string)
                             reader.readAsDataURL(file)
                           })
-                          const newImages = [...uploadedImages]
-                          newImages[0] = base64
-                          setUploadedImages(newImages)
+                          // Напрямую устанавливаем массив с фото (для MC нужно только 1 фото)
+                          setUploadedImages([base64])
                         }
                       }
                       input.click()
@@ -1829,9 +1832,8 @@ export default function Studio() {
                               reader.onloadend = () => resolve(reader.result as string)
                               reader.readAsDataURL(file)
                             })
-                            const newImages = [...uploadedImages]
-                            newImages[0] = base64
-                            setUploadedImages(newImages)
+                            // Напрямую устанавливаем массив (для MC нужно только 1 фото)
+                            setUploadedImages([base64])
                             break
                           }
                         }
