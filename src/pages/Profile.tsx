@@ -1150,362 +1150,391 @@ export default function Profile() {
               </div>
               {preview && (
                 <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={(e) => { if (e.target === e.currentTarget) { setPreview(null); setCurrentGenerationIndex(null) } }}>
-                  <div className={`relative w-full max-w-3xl bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden ${platform === 'ios' ? 'mt-16' : ''}`}>
-                    <div className="relative w-full aspect-square bg-black">
-                      {/* Top buttons with better contrast */}
-                      <div className="absolute top-0 left-0 right-0 px-2 pt-2 flex justify-between items-start z-20 pointer-events-none">
+                  <div className={`relative w-full max-w-3xl ${platform === 'ios' ? 'mt-16' : ''}`}>
+                    {/* Top buttons outside modal for video - positioned above the modal */}
+                    {preview.media_type === 'video' && (
+                      <div className="flex justify-between items-center px-2 pb-3">
                         <button
                           onClick={() => {
                             impact('light')
-                            const shareUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
+                            const shareUrl = preview.video_url || preview.image_url
                             if (navigator.share) {
                               navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: shareUrl }).catch(() => { })
                             } else {
                               shareImage(shareUrl, cleanPrompt(preview.prompt))
                             }
                           }}
-                          className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
+                          className="w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-white shadow-lg border border-white/10"
                         >
                           <Share2 size={20} />
                         </button>
                         <button
-                          onClick={() => {
-                            impact('light')
-                            setIsFullScreen(true)
-                          }}
-                          className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
-                        >
-                          <Maximize2 size={20} />
-                        </button>
-                        <button
                           onClick={() => { setPreview(null); setCurrentGenerationIndex(null) }}
-                          className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
+                          className="w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-white shadow-lg border border-white/10"
                         >
                           <X size={20} />
                         </button>
                       </div>
-                      {/* Bottom left - Delete variant button */}
-                      {preview.edit_variants && preview.edit_variants.length > 0 && previewIndex > 0 && (
-                        <div className="absolute bottom-2 left-2 z-20">
-                          <button
-                            onClick={() => {
-                              impact('light')
-                              setShowVariantDeleteConfirm(true)
-                            }}
-                            className="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-red-400/30"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      )}
-                      {/* Bottom center - Variant switcher */}
-                      {preview.edit_variants && preview.edit_variants.length > 0 && (
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 py-1.5 px-2 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              impact('light')
-                              const allImages = [preview.image_url, ...preview.edit_variants!]
-                              setPreviewIndex(prev => prev === 0 ? allImages.length - 1 : prev - 1)
-                            }}
-                            className="w-5 h-5 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
-                          >
-                            <ChevronLeft size={14} />
-                          </button>
-                          <span className="text-xs text-white/80 min-w-[28px] text-center font-medium">
-                            {previewIndex + 1}/{[preview.image_url, ...preview.edit_variants].length}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              impact('light')
-                              const allImages = [preview.image_url, ...preview.edit_variants!]
-                              setPreviewIndex(prev => prev === allImages.length - 1 ? 0 : prev + 1)
-                            }}
-                            className="w-5 h-5 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
-                          >
-                            <ChevronRight size={14} />
-                          </button>
-                        </div>
-                      )}
-                      {/* Bottom right - Edit button */}
-                      {preview.media_type !== 'video' && (
-                        <div className="absolute bottom-2 right-2 z-20">
-                          <button
-                            onClick={() => {
-                              impact('light')
-                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                                : preview.image_url
-                              setPreview(null)
-                              setCurrentGenerationIndex(null)
-                              navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
-                            }}
-                            className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md shadow-lg border border-white/10 text-xs font-medium"
-                          >
-                            <Pencil size={14} />
-                            {t('editor.edit')}
-                          </button>
-                        </div>
-                      )}
-                      {/* Navigation between generations */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          goToPrevGeneration()
-                        }}
-                        disabled={currentGenerationIndex === null || currentGenerationIndex <= 0}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft size={24} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          goToNextGeneration()
-                        }}
-                        disabled={currentGenerationIndex === null || (currentGenerationIndex >= items.filter(h => !!(h.image_url || h.video_url || (h.media_type === 'video' && h.input_images && h.input_images.length > 0))).length - 1 && (total === undefined || items.length >= total))}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight size={24} />
-                      </button>
-                      {/* Media content - video or image */}
-                      {preview.media_type === 'video' && preview.video_url ? (
-                        <>
-                          {console.log('[Profile Video]', { media_type: preview.media_type, video_url: preview.video_url })}
-                          <video
-                            src={preview.video_url}
-                            controls
-                            loop
-                            muted={isVideoMuted}
-                            playsInline
-                            className="w-full h-full object-contain"
-                            onLoadStart={() => console.log('[Profile Video] Load started, url:', preview.video_url)}
-                            onLoadedData={() => console.log('[Profile Video] Data loaded successfully')}
-                            onCanPlay={() => console.log('[Profile Video] Can play now')}
-                            onError={(e) => {
-                              const video = e.currentTarget
-                              console.error('[Profile Video] Error:', {
-                                url: preview.video_url,
-                                errorCode: video.error?.code,
-                                errorMsg: video.error?.message,
-                                networkState: video.networkState,
-                                readyState: video.readyState
-                              })
-                            }}
-                          />
-                        </>
-                      ) : (
-                        <img
-                          src={preview.edit_variants && preview.edit_variants.length > 0
-                            ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                            : preview.image_url
-                          }
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                        />
-                      )}
-                    </div>
-                    <div className="p-4 flex flex-col gap-3">
-                      {/* Send to Chat Section */}
-                      <div className="border border-white/10 rounded-xl p-3 space-y-2">
-                        <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wide">{t('profile.preview.sendToSection')}</h4>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={async () => {
-                              if (!user?.id) return
-                              impact('light')
-                              try {
-                                const fileUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
-                                const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: fileUrl, caption: cleanPrompt(preview.prompt) }) })
-                                const j = await r.json().catch(() => null)
-                                if (r.ok && j?.ok) { notify('success') }
-                                else {
-                                  notify('error')
-                                  shareImage(fileUrl, cleanPrompt(preview.prompt))
-                                }
-                              } catch {
-                                notify('error')
-                              }
-                            }}
-                            className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98]"
-                          >
-                            <span className="flex items-center gap-2"><Send size={16} />{t('profile.preview.sendToChat')}</span>
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (!user?.id || !preview) return
-                              setSendWithPromptLoading(true)
-                              impact('medium')
-                              try {
-                                const r = await fetch('/api/telegram/sendWithPrompt', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    chat_id: user.id,
-                                    photo_url: preview.image_url,
-                                    video_url: preview.video_url || null,
-                                    prompt: cleanPrompt(preview.prompt),
-                                    model: preview.model || '',
-                                    username: user.username || null,
-                                    user_id: user.id
-                                  })
-                                })
-                                if (r.ok) {
-                                  notify('success')
+                    )}
+                    <div className="bg-zinc-900 rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="relative w-full aspect-square bg-black">
+                        {/* Top buttons with better contrast - only for images */}
+                        {preview.media_type !== 'video' && (
+                          <div className="absolute top-0 left-0 right-0 px-2 pt-2 flex justify-between items-start z-20 pointer-events-none">
+                            <button
+                              onClick={() => {
+                                impact('light')
+                                const shareUrl = preview.image_url
+                                if (navigator.share) {
+                                  navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: shareUrl }).catch(() => { })
                                 } else {
-                                  notify('error')
+                                  shareImage(shareUrl, cleanPrompt(preview.prompt))
                                 }
-                              } catch {
-                                notify('error')
-                              } finally {
-                                setSendWithPromptLoading(false)
-                              }
-                            }}
-                            disabled={sendWithPromptLoading || !preview.prompt}
-                            className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98] disabled:opacity-50"
-                            title={t('profile.preview.sendWithPromptHint')}
-                          >
-                            <span className="flex items-center gap-2">{sendWithPromptLoading ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}{t('profile.preview.sendWithPrompt')}</span>
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (!user?.id || !preview) return
-                              setSendWithWatermarkLoading(true)
-                              impact('medium')
-                              try {
-                                const r = await fetch('/api/telegram/sendWithWatermark', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    chat_id: user.id,
-                                    photo_url: preview.image_url,
-                                    prompt: cleanPrompt(preview.prompt),
-                                    model: preview.model || '',
-                                    username: user.username || null,
-                                    user_id: user.id
-                                  })
-                                })
-                                const data = await r.json()
-                                if (r.ok) {
-                                  notify('success')
-                                } else if (data.error === 'no_watermark_settings') {
-                                  toast.error(t('profile.preview.noWatermarkSettings'))
-                                } else {
-                                  notify('error')
-                                }
-                              } catch {
-                                notify('error')
-                              } finally {
-                                setSendWithWatermarkLoading(false)
-                              }
-                            }}
-                            disabled={sendWithWatermarkLoading || preview.media_type === 'video'}
-                            className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98] disabled:opacity-50"
-                            title={t('profile.preview.sendWithWatermarkHint')}
-                          >
-                            <span className="flex items-center gap-2">{sendWithWatermarkLoading ? <Loader2 size={16} className="animate-spin" /> : <Droplets size={16} />}{t('profile.preview.sendWithWatermark')}</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Row 2: Save + Remix */}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            impact('light')
-                            if (preview.media_type === 'video' && preview.video_url) {
-                              saveToGallery(preview.video_url, `ai-video-${Date.now()}.mp4`)
-                            } else {
-                              const currentImage = preview.edit_variants && preview.edit_variants.length > 0
-                                ? [preview.image_url, ...preview.edit_variants][previewIndex]
-                                : preview.image_url
-                              saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
-                            }
-                          }}
-                          className="flex-1 min-h-[44px] py-2 px-2 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-xs flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
-                        >
-                          <DownloadIcon size={16} />
-                          {t('profile.preview.saveToGallery')}
-                        </button>
-                        <button
-                          onClick={() => setShowRemixShareConfirm(true)}
-                          disabled={remixShareLoading}
-                          className="flex-1 min-h-[44px] py-2 px-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] disabled:opacity-50"
-                        >
-                          {remixShareLoading ? <Loader2 size={14} className="flex-shrink-0 animate-spin" /> : <Repeat size={14} className="flex-shrink-0" />}
-                          <span className="text-center leading-tight">{t('profile.preview.shareRemix')}</span>
-                        </button>
-                      </div>
-
-                      {/* Row 3: Publish + Privacy */}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (preview.is_published) {
-                              handlePublish()
-                            } else {
-                              setShowPublishConfirm(true)
-                            }
-                          }}
-                          className={`flex-1 min-h-[44px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-colors ${preview.is_published ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
-                        >
-                          {preview.is_published ? <EyeOff size={14} className="flex-shrink-0" /> : <Globe size={14} className="flex-shrink-0" />}
-                          <span className="text-center leading-tight">{preview.is_published ? t('profile.preview.unpublish') : t('profile.preview.publish')}</span>
-                        </button>
-                        <button
-                          onClick={handlePrivacyToggle}
-                          className={`flex-1 min-h-[44px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-colors border ${preview.is_prompt_private ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30' : 'bg-zinc-800 text-zinc-400 border-white/5 hover:bg-zinc-700'}`}
-                          title={preview.is_prompt_private ? t('profile.preview.promptPrivate') : t('profile.preview.promptPublic')}
-                        >
-                          {preview.is_prompt_private ? <Lock size={14} /> : <Unlock size={14} />}
-                          <span className="text-center leading-tight">{preview.is_prompt_private ? t('profile.preview.buttonPrivate') : t('profile.preview.buttonPublic')}</span>
-                        </button>
-                      </div>
-
-                      {/* Prompt Actions */}
-                      <div className="w-full flex gap-2">
-                        <button
-                          onClick={() => {
-                            impact('light')
-                            navigator.clipboard.writeText(cleanPrompt(preview.prompt))
-                            notify('success')
-                            setIsCopied(true)
-                            setShowPrompt(true)
-                            setTimeout(() => setIsCopied(false), 2000)
-                          }}
-                          className={`flex-1 py-2 rounded-xl border border-white/5 flex items-center justify-center gap-2 transition-all text-xs font-bold ${isCopied ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 hover:text-white'}`}
-                        >
-                          {isCopied ? <Check size={14} /> : <Copy size={14} />}
-                          {isCopied ? t('profile.preview.copied') : t('profile.preview.showPrompt')}
-                        </button>
-                        {showPrompt && (
-                          <button
-                            onClick={() => {
-                              impact('light')
-                              setShowPrompt(false)
-                            }}
-                            className="px-3 py-2 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
-                          >
-                            <EyeOff size={14} />
-                          </button>
+                              }}
+                              className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
+                            >
+                              <Share2 size={20} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                impact('light')
+                                setIsFullScreen(true)
+                              }}
+                              className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
+                            >
+                              <Maximize2 size={20} />
+                            </button>
+                            <button
+                              onClick={() => { setPreview(null); setCurrentGenerationIndex(null) }}
+                              className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
+                            >
+                              <X size={20} />
+                            </button>
+                          </div>
                         )}
+                        {/* Bottom left - Delete variant button */}
+                        {preview.edit_variants && preview.edit_variants.length > 0 && previewIndex > 0 && (
+                          <div className="absolute bottom-2 left-2 z-20">
+                            <button
+                              onClick={() => {
+                                impact('light')
+                                setShowVariantDeleteConfirm(true)
+                              }}
+                              className="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-500 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-red-400/30"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                        {/* Bottom center - Variant switcher */}
+                        {preview.edit_variants && preview.edit_variants.length > 0 && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 py-1.5 px-2 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                impact('light')
+                                const allImages = [preview.image_url, ...preview.edit_variants!]
+                                setPreviewIndex(prev => prev === 0 ? allImages.length - 1 : prev - 1)
+                              }}
+                              className="w-5 h-5 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                            <span className="text-xs text-white/80 min-w-[28px] text-center font-medium">
+                              {previewIndex + 1}/{[preview.image_url, ...preview.edit_variants].length}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                impact('light')
+                                const allImages = [preview.image_url, ...preview.edit_variants!]
+                                setPreviewIndex(prev => prev === allImages.length - 1 ? 0 : prev + 1)
+                              }}
+                              className="w-5 h-5 rounded-md bg-white/10 hover:bg-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        )}
+                        {/* Bottom right - Edit button */}
+                        {preview.media_type !== 'video' && (
+                          <div className="absolute bottom-2 right-2 z-20">
+                            <button
+                              onClick={() => {
+                                impact('light')
+                                const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                  ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                  : preview.image_url
+                                setPreview(null)
+                                setCurrentGenerationIndex(null)
+                                navigate(`/editor?image=${encodeURIComponent(currentImage)}&generation_id=${preview.id}`)
+                              }}
+                              className="px-3 py-2 rounded-lg bg-black/50 hover:bg-black/70 flex items-center justify-center gap-1.5 text-white backdrop-blur-md shadow-lg border border-white/10 text-xs font-medium"
+                            >
+                              <Pencil size={14} />
+                              {t('editor.edit')}
+                            </button>
+                          </div>
+                        )}
+                        {/* Navigation between generations */}
                         <button
-                          onClick={() => {
-                            impact('light')
-                            setShowDeleteConfirm(true)
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            goToPrevGeneration()
                           }}
-                          className="w-10 h-10 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 flex items-center justify-center text-red-400 hover:text-red-300 transition-colors"
+                          disabled={currentGenerationIndex === null || currentGenerationIndex <= 0}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
                         >
-                          <Trash2 size={16} />
+                          <ChevronLeft size={24} />
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            goToNextGeneration()
+                          }}
+                          disabled={currentGenerationIndex === null || (currentGenerationIndex >= items.filter(h => !!(h.image_url || h.video_url || (h.media_type === 'video' && h.input_images && h.input_images.length > 0))).length - 1 && (total === undefined || items.length >= total))}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md shadow-lg border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight size={24} />
+                        </button>
+                        {/* Media content - video or image */}
+                        {preview.media_type === 'video' && preview.video_url ? (
+                          <>
+                            {console.log('[Profile Video]', { media_type: preview.media_type, video_url: preview.video_url })}
+                            <video
+                              src={preview.video_url}
+                              controls
+                              loop
+                              muted={isVideoMuted}
+                              playsInline
+                              className="w-full h-full object-contain"
+                              onLoadStart={() => console.log('[Profile Video] Load started, url:', preview.video_url)}
+                              onLoadedData={() => console.log('[Profile Video] Data loaded successfully')}
+                              onCanPlay={() => console.log('[Profile Video] Can play now')}
+                              onError={(e) => {
+                                const video = e.currentTarget
+                                console.error('[Profile Video] Error:', {
+                                  url: preview.video_url,
+                                  errorCode: video.error?.code,
+                                  errorMsg: video.error?.message,
+                                  networkState: video.networkState,
+                                  readyState: video.readyState
+                                })
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <img
+                            src={preview.edit_variants && preview.edit_variants.length > 0
+                              ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                              : preview.image_url
+                            }
+                            alt="Preview"
+                            className="w-full h-full object-contain"
+                          />
+                        )}
                       </div>
-
-                      {showPrompt && (
-                        <div className="w-full p-3 bg-zinc-900/80 rounded-xl border border-white/10 text-xs text-zinc-300 break-words animate-in fade-in slide-in-from-top-2 duration-200 max-h-32 overflow-y-auto custom-scrollbar">
-                          {cleanPrompt(preview.prompt)}
+                      <div className="p-4 flex flex-col gap-3">
+                        {/* Send to Chat Section */}
+                        <div className="border border-white/10 rounded-xl p-3 space-y-2">
+                          <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wide">{t('profile.preview.sendToSection')}</h4>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                if (!user?.id) return
+                                impact('light')
+                                try {
+                                  const fileUrl = (preview.media_type === 'video' && preview.video_url) ? preview.video_url : preview.image_url
+                                  const r = await fetch('/api/telegram/sendDocument', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: user.id, file_url: fileUrl, caption: cleanPrompt(preview.prompt) }) })
+                                  const j = await r.json().catch(() => null)
+                                  if (r.ok && j?.ok) { notify('success') }
+                                  else {
+                                    notify('error')
+                                    shareImage(fileUrl, cleanPrompt(preview.prompt))
+                                  }
+                                } catch {
+                                  notify('error')
+                                }
+                              }}
+                              className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98]"
+                            >
+                              <span className="flex items-center gap-2"><Send size={16} />{t('profile.preview.sendToChat')}</span>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!user?.id || !preview) return
+                                setSendWithPromptLoading(true)
+                                impact('medium')
+                                try {
+                                  const r = await fetch('/api/telegram/sendWithPrompt', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      chat_id: user.id,
+                                      photo_url: preview.image_url,
+                                      video_url: preview.video_url || null,
+                                      prompt: cleanPrompt(preview.prompt),
+                                      model: preview.model || '',
+                                      username: user.username || null,
+                                      user_id: user.id
+                                    })
+                                  })
+                                  if (r.ok) {
+                                    notify('success')
+                                  } else {
+                                    notify('error')
+                                  }
+                                } catch {
+                                  notify('error')
+                                } finally {
+                                  setSendWithPromptLoading(false)
+                                }
+                              }}
+                              disabled={sendWithPromptLoading || !preview.prompt}
+                              className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98] disabled:opacity-50"
+                              title={t('profile.preview.sendWithPromptHint')}
+                            >
+                              <span className="flex items-center gap-2">{sendWithPromptLoading ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}{t('profile.preview.sendWithPrompt')}</span>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!user?.id || !preview) return
+                                setSendWithWatermarkLoading(true)
+                                impact('medium')
+                                try {
+                                  const r = await fetch('/api/telegram/sendWithWatermark', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      chat_id: user.id,
+                                      photo_url: preview.image_url,
+                                      prompt: cleanPrompt(preview.prompt),
+                                      model: preview.model || '',
+                                      username: user.username || null,
+                                      user_id: user.id
+                                    })
+                                  })
+                                  const data = await r.json()
+                                  if (r.ok) {
+                                    notify('success')
+                                  } else if (data.error === 'no_watermark_settings') {
+                                    toast.error(t('profile.preview.noWatermarkSettings'))
+                                  } else {
+                                    notify('error')
+                                  }
+                                } catch {
+                                  notify('error')
+                                } finally {
+                                  setSendWithWatermarkLoading(false)
+                                }
+                              }}
+                              disabled={sendWithWatermarkLoading || preview.media_type === 'video'}
+                              className="flex-1 min-h-[48px] h-auto py-3 px-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 font-bold text-sm flex items-center justify-center shadow-lg active:scale-[0.98] disabled:opacity-50"
+                              title={t('profile.preview.sendWithWatermarkHint')}
+                            >
+                              <span className="flex items-center gap-2">{sendWithWatermarkLoading ? <Loader2 size={16} className="animate-spin" /> : <Droplets size={16} />}{t('profile.preview.sendWithWatermark')}</span>
+                            </button>
+                          </div>
                         </div>
-                      )}
+
+                        {/* Row 2: Save + Remix */}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              impact('light')
+                              if (preview.media_type === 'video' && preview.video_url) {
+                                saveToGallery(preview.video_url, `ai-video-${Date.now()}.mp4`)
+                              } else {
+                                const currentImage = preview.edit_variants && preview.edit_variants.length > 0
+                                  ? [preview.image_url, ...preview.edit_variants][previewIndex]
+                                  : preview.image_url
+                                saveToGallery(currentImage, `ai-${Date.now()}.jpg`)
+                              }
+                            }}
+                            className="flex-1 min-h-[44px] py-2 px-2 rounded-xl bg-white text-black hover:bg-zinc-100 font-bold text-xs flex items-center justify-center gap-2 shadow-lg active:scale-[0.98]"
+                          >
+                            <DownloadIcon size={16} />
+                            {t('profile.preview.saveToGallery')}
+                          </button>
+                          <button
+                            onClick={() => setShowRemixShareConfirm(true)}
+                            disabled={remixShareLoading}
+                            className="flex-1 min-h-[44px] py-2 px-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-600 text-white hover:from-fuchsia-700 hover:to-violet-700 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] disabled:opacity-50"
+                          >
+                            {remixShareLoading ? <Loader2 size={14} className="flex-shrink-0 animate-spin" /> : <Repeat size={14} className="flex-shrink-0" />}
+                            <span className="text-center leading-tight">{t('profile.preview.shareRemix')}</span>
+                          </button>
+                        </div>
+
+                        {/* Row 3: Publish + Privacy */}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              if (preview.is_published) {
+                                handlePublish()
+                              } else {
+                                setShowPublishConfirm(true)
+                              }
+                            }}
+                            className={`flex-1 min-h-[44px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-colors ${preview.is_published ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                          >
+                            {preview.is_published ? <EyeOff size={14} className="flex-shrink-0" /> : <Globe size={14} className="flex-shrink-0" />}
+                            <span className="text-center leading-tight">{preview.is_published ? t('profile.preview.unpublish') : t('profile.preview.publish')}</span>
+                          </button>
+                          <button
+                            onClick={handlePrivacyToggle}
+                            className={`flex-1 min-h-[44px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg active:scale-[0.98] transition-colors border ${preview.is_prompt_private ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30' : 'bg-zinc-800 text-zinc-400 border-white/5 hover:bg-zinc-700'}`}
+                            title={preview.is_prompt_private ? t('profile.preview.promptPrivate') : t('profile.preview.promptPublic')}
+                          >
+                            {preview.is_prompt_private ? <Lock size={14} /> : <Unlock size={14} />}
+                            <span className="text-center leading-tight">{preview.is_prompt_private ? t('profile.preview.buttonPrivate') : t('profile.preview.buttonPublic')}</span>
+                          </button>
+                        </div>
+
+                        {/* Prompt Actions */}
+                        <div className="w-full flex gap-2">
+                          <button
+                            onClick={() => {
+                              impact('light')
+                              navigator.clipboard.writeText(cleanPrompt(preview.prompt))
+                              notify('success')
+                              setIsCopied(true)
+                              setShowPrompt(true)
+                              setTimeout(() => setIsCopied(false), 2000)
+                            }}
+                            className={`flex-1 py-2 rounded-xl border border-white/5 flex items-center justify-center gap-2 transition-all text-xs font-bold ${isCopied ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-300 hover:text-white'}`}
+                          >
+                            {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                            {isCopied ? t('profile.preview.copied') : t('profile.preview.showPrompt')}
+                          </button>
+                          {showPrompt && (
+                            <button
+                              onClick={() => {
+                                impact('light')
+                                setShowPrompt(false)
+                              }}
+                              className="px-3 py-2 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                            >
+                              <EyeOff size={14} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              impact('light')
+                              setShowDeleteConfirm(true)
+                            }}
+                            className="w-10 h-10 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 flex items-center justify-center text-red-400 hover:text-red-300 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+
+                        {showPrompt && (
+                          <div className="w-full p-3 bg-zinc-900/80 rounded-xl border border-white/10 text-xs text-zinc-300 break-words animate-in fade-in slide-in-from-top-2 duration-200 max-h-32 overflow-y-auto custom-scrollbar">
+                            {cleanPrompt(preview.prompt)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
