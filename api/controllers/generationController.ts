@@ -59,6 +59,29 @@ const MODEL_CONFIGS = {
   'kling-mc': { kind: 'jobs' as const, model: 'kling-2.6/motion-control', mediaType: 'video' as const },
 }
 
+// Маппинг внешних API имён моделей (от Kie.ai) к внутренним именам
+// Используется для генераций созданных другими ботами
+const EXTERNAL_MODEL_MAP: Record<string, string> = {
+  'kling-2.6/motion-control': 'kling-mc',
+  'kling-2.6/text-to-video': 'kling-t2v',
+  'kling-2.6/image-to-video': 'kling-i2v',
+  'bytedance/seedance-1.5-pro': 'seedance-1.5-pro',
+  'nano-banana-pro': 'nanobanana-pro',
+  'google/nano-banana-edit': 'nanobanana',
+  'gpt-image/1.5-text-to-image': 'gpt-image-1.5',
+}
+
+// Список video моделей — включает оба формата (внутренний и внешний API)
+const VIDEO_MODELS = [
+  'seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc',
+  'bytedance/seedance-1.5-pro', 'kling-2.6/motion-control', 'kling-2.6/text-to-video', 'kling-2.6/image-to-video'
+]
+
+// Определить media type по имени модели (поддерживает оба формата имён)
+function getMediaType(model: string): 'video' | 'image' {
+  return VIDEO_MODELS.includes(model) ? 'video' : 'image'
+}
+
 function mapSeedreamImageSize(ratio?: string): string | undefined {
   switch (ratio) {
     case '1:1': return 'square_hd'
@@ -436,11 +459,10 @@ async function completeGeneration(
     return
   }
 
-  console.log(`[DB] Completing generation ${generationId} for user ${userId}`)
+  console.log(`[DB] Completing generation ${generationId} for user ${userId}, model: ${model}`)
   try {
-    // Determine media type from model
-    const videoModels = ['seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc']
-    const mediaType = videoModels.includes(model) ? 'video' : 'image'
+    // Determine media type from model (supports both internal and external API model names)
+    const mediaType = getMediaType(model)
 
     // 1. Update generation status - save video to video_url, image to image_url
     const updatePayload: Record<string, unknown> = {
@@ -921,8 +943,8 @@ export async function handleGenerateImage(req: Request, res: Response) {
     } = req.body
 
     // Ограничить image_count до 1-4, и только для изображений (не для видео)
-    const videoModels = ['seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc']
-    const imageCount = videoModels.includes(model) ? 1 : Math.max(1, Math.min(4, Number(image_count) || 1))
+    // Video models support only 1 image at a time
+    const imageCount = VIDEO_MODELS.includes(model) ? 1 : Math.max(1, Math.min(4, Number(image_count) || 1))
 
     const parent_id = req.body.parent_id
 
@@ -1407,7 +1429,8 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   }
 
   // Get pending generations (all of them, to handle missing task_id too)
-  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=eq.pending&select=*,input_images`)
+  // Note: use 'ilike' pattern to catch statuses with leading/trailing spaces from other bots' data
+  const q = await supaSelect('generations', `?user_id=eq.${user_id}&status=ilike.*pending*&select=*,input_images`)
   if (!q.ok || !Array.isArray(q.data)) {
     return res.json({ checked: 0, updated: 0 })
   }
@@ -1415,6 +1438,12 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
   const pending = q.data
   let updated = 0
   const apiKey = process.env.KIE_API_KEY || ''
+
+  // Расширенное логирование
+  console.log(`[CheckStatus] Found ${pending.length} pending generation(s):`)
+  for (const gen of pending) {
+    console.log(`  - ID: ${gen.id}, model: ${gen.model}, task_id: ${gen.task_id || 'MISSING'}, cost: ${gen.cost || 0}`)
+  }
 
   for (const gen of pending) {
     // Handle missing model AND task_id - mark as failed
@@ -1464,12 +1493,10 @@ export async function handleCheckPendingGenerations(req: Request, res: Response)
     let result = { status: 'pending', imageUrl: '', error: '' }
 
     try {
-      // Check API status (use checkJobsTask as default if no model)
-      if (gen.model === 'flux') {
-        result = await checkFluxTask(apiKey, gen.task_id)
-      } else {
-        result = await checkJobsTask(apiKey, gen.task_id)
-      }
+      // Check API status via Kie.ai Jobs API (universal for all models)
+      console.log(`[CheckStatus] Checking gen ${gen.id} with task_id ${gen.task_id}...`)
+      result = await checkJobsTask(apiKey, gen.task_id)
+      console.log(`[CheckStatus] Gen ${gen.id} API result: status=${result.status}, hasUrl=${!!result.imageUrl}, error=${result.error || 'none'}`)
 
       if (result.status === 'success' && result.imageUrl) {
         let cost = gen.cost
