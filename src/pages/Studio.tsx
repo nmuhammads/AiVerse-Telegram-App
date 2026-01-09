@@ -486,8 +486,8 @@ export default function Studio() {
       return
     }
 
-    // Пропустить проверку промпта для слепого ремикса с приватным промптом
-    if (!prompt.trim() && !(isPromptPrivate && parentGenerationId)) {
+    // Пропустить проверку промпта для слепого ремикса с приватным промптом или для Kling Motion Control
+    if (!prompt.trim() && !(isPromptPrivate && parentGenerationId) && selectedModel !== 'kling-mc') {
       setError(t('studio.errors.promptRequired'))
       notify('error')
       return
