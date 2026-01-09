@@ -326,7 +326,8 @@
         },
         "button": {
             "pay": "Оплатить {{amount}} {{symbol}} через {{method}}",
-            "processing": "Обработка..."
+            "processing": "Обработка...",
+            "bonus": "Купить с бонусом +15% к токенам"
         },
         "messages": {
             "description": "Покупка {{count}} токенов AiVerse",
@@ -334,7 +335,8 @@
             "status": "Статус оплаты: {{status}}",
             "errorInvoice": "Ошибка создания счета: {{error}}",
             "errorNetwork": "Ошибка соединения с сервером",
-            "sbpCommission": "При оплате через СБП взимается комиссия сервиса"
+            "sbpCommission": "При оплате через СБП взимается комиссия сервиса",
+            "minPurchase": "Минимальная покупка через администратора с бонусом — 200 токенов"
         }
     },
     "generationSelector": {
