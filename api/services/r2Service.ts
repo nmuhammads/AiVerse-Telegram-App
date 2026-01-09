@@ -312,13 +312,19 @@ export async function uploadVideoFromBase64(
             throw new Error('Invalid Video Base64 string format')
         }
 
-        const contentType = matches[1]
+        const rawContentType = matches[1]
+        // Normalize content-type: Kling API only supports video/mp4
+        // MOV files may come as video/quicktime, treat them as MP4
+        const contentType = rawContentType === 'video/quicktime' || rawContentType === 'video/mov'
+            ? 'video/mp4'
+            : rawContentType
         const data = matches[2]
         const buffer = Buffer.from(data, 'base64')
 
         // 2. Generate filename
         let fileName: string
-        const ext = contentType.split('/')[1] || 'mp4'
+        // Always use mp4 extension for compatibility
+        const ext = 'mp4'
 
         if (customFileName) {
             // If custom name provided, ensure extension is correct or append it if missing?

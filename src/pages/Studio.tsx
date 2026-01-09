@@ -236,6 +236,8 @@ export default function Studio() {
   const [showTimeoutModal, setShowTimeoutModal] = useState(false)
   const [showCountSelector, setShowCountSelector] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
 
   // Реактивно отслеживаем доступные слоты для генерации
   const availableSlots = useActiveGenerationsStore(
@@ -385,6 +387,7 @@ export default function Studio() {
 
     // Process files with compression
     const processFiles = async () => {
+      setIsUploadingImage(true)
       const newImages: string[] = []
 
       for (const file of Array.from(files)) {
@@ -404,11 +407,12 @@ export default function Studio() {
 
       newImages.forEach(img => addUploadedImage(img))
       impact('light')
+      setIsUploadingImage(false)
       // Reset input
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
-    processFiles()
+    processFiles().catch(() => setIsUploadingImage(false))
   }
 
   // Process pasted files from clipboard event
@@ -499,6 +503,10 @@ export default function Studio() {
     }
 
     setError(null)
+    // Reset previous result data to prevent stale state rendering black screen
+    setGeneratedImage(null)
+    setGeneratedVideo(null)
+    setGeneratedImages([])
     impact('medium')
 
     // Добавить генерацию в очередь с количеством изображений
@@ -1305,10 +1313,20 @@ export default function Studio() {
                   <div className="space-y-2">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95"
+                      disabled={isUploadingImage}
+                      className="w-full py-2.5 px-3 rounded-xl border border-white/10 flex items-center justify-center gap-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors active:scale-95 disabled:opacity-50"
                     >
-                      <ImageIcon size={16} />
-                      <span className="text-xs font-medium">{t('studio.upload.selectPhoto')}</span>
+                      {isUploadingImage ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span className="text-xs font-medium">{t('studio.upload.loading', 'Загрузка...')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={16} />
+                          <span className="text-xs font-medium">{t('studio.upload.selectPhoto')}</span>
+                        </>
+                      )}
                     </button>
 
                     {/* Paste zone - contenteditable for iOS long-press paste */}
@@ -1875,6 +1893,7 @@ export default function Studio() {
                   const file = e.target.files?.[0]
                   if (!file) return
 
+                  setIsUploadingVideo(true)
                   // Получить длительность видео
                   const video = document.createElement('video')
                   video.preload = 'metadata'
@@ -1886,20 +1905,33 @@ export default function Studio() {
                     const reader = new FileReader()
                     reader.onload = () => {
                       setUploadedVideoUrl(reader.result as string)
+                      setIsUploadingVideo(false)
                       // Валидация происходит в useEffect
                     }
+                    reader.onerror = () => setIsUploadingVideo(false)
                     reader.readAsDataURL(file)
                   }
+                  video.onerror = () => setIsUploadingVideo(false)
                   video.src = URL.createObjectURL(file)
                 }}
               />
 
               <button
                 onClick={() => videoInputRef.current?.click()}
-                className="w-full py-4 rounded-xl border-2 border-dashed border-white/10 bg-zinc-900/50 text-zinc-400 hover:border-cyan-500/50 hover:text-cyan-400 transition-all flex items-center justify-center gap-2"
+                disabled={isUploadingVideo}
+                className="w-full py-4 rounded-xl border-2 border-dashed border-white/10 bg-zinc-900/50 text-zinc-400 hover:border-cyan-500/50 hover:text-cyan-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <Video size={20} />
-                {uploadedVideoUrl ? t('studio.kling.mc.changeVideo', 'Изменить видео') : t('studio.kling.mc.selectVideo', 'Выбрать видео')}
+                {isUploadingVideo ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    {t('studio.upload.loading', 'Загрузка...')}
+                  </>
+                ) : (
+                  <>
+                    <Video size={20} />
+                    {uploadedVideoUrl ? t('studio.kling.mc.changeVideo', 'Изменить видео') : t('studio.kling.mc.selectVideo', 'Выбрать видео')}
+                  </>
+                )}
               </button>
 
               {uploadedVideoUrl && (
