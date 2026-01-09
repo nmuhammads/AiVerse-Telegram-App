@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useTranslation, Trans } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -602,7 +603,8 @@ export default function Studio() {
           if (data.status === 'pending') {
             // Генерация ушла в фон — оставляем статус processing
             // updateGeneration(generationId, { status: 'processing' }) // Already processing
-            notify('success', t('studio.generation.backgroundStarted', 'Запущено в фоне'))
+            notify('success')
+            toast.success(t('studio.generation.backgroundStarted', 'Запущено в фоне'))
             return
           }
 
