@@ -103,7 +103,7 @@ export async function uploadImageFromBase64(
     try {
         // 1. Parse Base64
         // Format: "data:image/png;base64,iVBORw0KGgo..."
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+        const matches = base64Data.match(/^data:([A-Za-z0-9-+\/]+);base64,(.+)$/)
 
         if (!matches || matches.length !== 3) {
             throw new Error('Invalid Base64 string format')
@@ -306,7 +306,7 @@ export async function uploadVideoFromBase64(
         // 1. Parse Base64
         // Format: "data:video/mp4;base64,AAAA..." or just base64? 
         // Typically data URL format.
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/)
+        const matches = base64Data.match(/^data:([A-Za-z0-9-+\/]+);base64,(.+)$/)
 
         if (!matches || matches.length !== 3) {
             throw new Error('Invalid Video Base64 string format')

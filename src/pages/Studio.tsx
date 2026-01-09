@@ -698,7 +698,6 @@ export default function Studio() {
 
   // Показать результат для изображения ИЛИ видео
   const hasMultipleImages = generatedImages.length > 1
-  const hasResult = currentScreen === 'result' && (generatedImage || generatedVideo || hasMultipleImages)
   const isVideoResult = !!generatedVideo
   // Для видео используем generatedVideo, для изображений - проверяем множественные или одиночные
   const resultUrl = isVideoResult
@@ -707,19 +706,21 @@ export default function Studio() {
       ? generatedImages[currentImageIndex] || generatedImages[0]
       : (generatedImage || '')
 
+  // Safety: если экран result, но данных нет — принудительно вернуть на форму (через useEffect, чтобы избежать side-effects в рендере)
+  useEffect(() => {
+    if (currentScreen === 'result' && !generatedImage && !generatedVideo && generatedImages.length === 0) {
+      console.warn('[Studio] Screen is "result" but no data present, resetting to form')
+      setCurrentScreen('form')
+    }
+  }, [currentScreen, generatedImage, generatedVideo, generatedImages, setCurrentScreen])
+
+  // Вычислить hasResult ПОСЛЕ safety-check
+  const hasResult = currentScreen === 'result' && !!resultUrl
+
   // Debug log
-  console.log('[Studio Result]', { generatedImage, generatedImages, generatedVideo, isVideoResult, hasMultipleImages, currentImageIndex, resultUrl })
+  console.log('[Studio Result]', { currentScreen, generatedImage, generatedImages, generatedVideo, isVideoResult, hasMultipleImages, currentImageIndex, resultUrl, hasResult })
 
   if (hasResult) {
-    // Safety: если hasResult=true но resultUrl пустой, вернуть на форму
-    if (!resultUrl) {
-      console.warn('[Studio] hasResult=true but resultUrl is empty, resetting to form')
-      setCurrentScreen('form')
-      setGeneratedImage(null)
-      setGeneratedVideo(null)
-      setGeneratedImages([])
-      return null
-    }
 
     const paddingTopResult = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 10px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
