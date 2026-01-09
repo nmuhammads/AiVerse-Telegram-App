@@ -1192,6 +1192,34 @@ export async function handleGenerateImage(req: Request, res: Response) {
             console.log(`[DB] Balance debited at start for user ${user_id}: ${currBal} -> ${nextBal}`)
           }
         }
+
+        // === KLING MOTION CONTROL VIDEO UPLOAD LOGIC ===
+        // Now that we have generationId, we upload the video with custom filename
+        if (model === 'kling-mc' && req.body.video_url && req.body.video_url.startsWith('data:video')) {
+          const { uploadVideoFromBase64 } = await import('../services/r2Service.js')
+          console.log(`[API] Uploading reference video for Gen ${generationId}...`)
+          try {
+            const r2VideoUrl = await uploadVideoFromBase64(req.body.video_url, '', {
+              customFileName: `${generationId}.mp4`
+            })
+            console.log(`[API] Reference video uploaded: ${r2VideoUrl}`)
+
+            // 1. Update local variable for API call
+            video_url = r2VideoUrl
+
+            // 2. Update DB record
+            await supaPatch('generations', `?id=eq.${generationId}`, { video_input: r2VideoUrl })
+            console.log(`[DB] Updated generation ${generationId} with video_input`)
+
+          } catch (e) {
+            console.error(`[API] Failed to upload video for Gen ${generationId}`, e)
+            // Determine what to do on failure? 
+            // For now proceed, API might fail or use base64 if logic allows (which we removed from var but body still has it?)
+            // Actually we updated `video_url` var only on success.
+          }
+        }
+        // === END KLING MC UPLOAD ===
+
       } else {
         console.error('Failed to create pending generation record', genRes)
         // We continue, but generationId will be 0, so meta won't be sent
