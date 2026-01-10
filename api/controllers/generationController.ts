@@ -5,6 +5,7 @@ import { Request, Response } from 'express'
 
 // Типы для запросов к Kie.ai
 import { uploadImageFromBase64, uploadImageFromUrl, createThumbnail } from '../services/r2Service.js'
+import { processVideoForKling, deleteFromR2, isBase64Video } from '../services/videoProcessingService.js'
 import { tg } from './telegramController.js'
 import { createNotification, getUserNotificationSettings } from './notificationController.js'
 
@@ -894,7 +895,7 @@ async function generateImageWithKieAI(
       const input: Record<string, unknown> = {
         prompt,
         input_urls: imageUrls,
-        video_urls: [video_url],
+        video_urls: [video_url],  // video_url is already processed and uploaded to R2
         character_orientation: character_orientation || 'video',
         mode: kling_mc_quality || '720p',
       }
@@ -907,7 +908,7 @@ async function generateImageWithKieAI(
       const url = await pollJobsTask(apiKey, taskId, KLING_MC_TIMEOUT_MS)
 
       if (url === 'TIMEOUT') {
-        console.log('[Kling MC] Generation timed out after 15 minutes')
+        console.log('[Kling MC] Generation timed out after 30 minutes')
         return { timeout: true, inputImages: imageUrls }
       }
 
@@ -1195,29 +1196,24 @@ export async function handleGenerateImage(req: Request, res: Response) {
           }
         }
 
-        // === KLING MOTION CONTROL VIDEO UPLOAD LOGIC ===
-        // Now that we have generationId, we upload the video with custom filename
+        // === KLING MOTION CONTROL VIDEO UPLOAD LOGIC (with upscaling) ===
+        // Process video: check resolution, upscale if needed, then upload to R2
         if (model === 'kling-mc' && req.body.video_url && req.body.video_url.startsWith('data:video')) {
-          const { uploadVideoFromBase64 } = await import('../services/r2Service.js')
-          console.log(`[API] Uploading reference video for Gen ${generationId}...`)
+          const { processVideoForKling } = await import('../services/videoProcessingService.js')
+          console.log(`[API] Processing reference video for Gen ${generationId}...`)
           try {
-            const r2VideoUrl = await uploadVideoFromBase64(req.body.video_url, '', {
-              customFileName: `${generationId}.mp4`
-            })
-            console.log(`[API] Reference video uploaded: ${r2VideoUrl}`)
+            const processed = await processVideoForKling(req.body.video_url)
+            video_url = processed.url
+            console.log(`[API] Reference video processed: ${processed.originalResolution} -> ${processed.newResolution}, upscaled: ${processed.upscaled}`)
+            console.log(`[API] Reference video uploaded: ${video_url}`)
 
-            // 1. Update local variable for API call
-            video_url = r2VideoUrl
-
-            // 2. Update DB record
-            await supaPatch('generations', `?id=eq.${generationId}`, { video_input: r2VideoUrl })
+            // Update DB record with video input
+            await supaPatch('generations', `?id=eq.${generationId}`, { video_input: video_url })
             console.log(`[DB] Updated generation ${generationId} with video_input`)
 
           } catch (e) {
-            console.error(`[API] Failed to upload video for Gen ${generationId}`, e)
-            // Determine what to do on failure? 
-            // For now proceed, API might fail or use base64 if logic allows (which we removed from var but body still has it?)
-            // Actually we updated `video_url` var only on success.
+            console.error(`[API] Failed to process/upload video for Gen ${generationId}`, e)
+            throw new Error(`Video processing failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
           }
         }
         // === END KLING MC UPLOAD ===
