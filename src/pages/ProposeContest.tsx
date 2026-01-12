@@ -35,7 +35,7 @@ export default function ProposeContest() {
     };
 
     const headerStyle = {
-        paddingTop: platform === 'ios' ? 'calc(env(safe-area-inset-top) + 44px)' : platform === 'android' ? '40px' : '10px'
+        paddingTop: platform === 'ios' ? 'calc(env(safe-area-inset-top) + 60px)' : platform === 'android' ? '40px' : '10px'
     };
 
     const [form, setForm] = useState({
@@ -231,26 +231,31 @@ export default function ProposeContest() {
                         />
                     </div>
 
-                    <div className="flex flex-col gap-4">
-                        <div>
-                            <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider mb-1 block">{t('events.proposeContest.form.startDate')}</label>
-                            <input
-                                type="date"
-                                required
-                                className="w-full max-w-full min-w-0 bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
-                                value={form.start_date}
-                                onChange={e => setForm({ ...form, start_date: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider mb-1 block">{t('events.proposeContest.form.endDate')}</label>
-                            <input
-                                type="date"
-                                required
-                                className="w-full max-w-full min-w-0 bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
-                                value={form.end_date}
-                                onChange={e => setForm({ ...form, end_date: e.target.value })}
-                            />
+                    <div className="space-y-1">
+                        <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider mb-1 block">{t('events.proposeContest.form.dates')}</label>
+                        <div className="flex overflow-hidden bg-zinc-900 border border-white/10 rounded-xl divide-x divide-white/5">
+                            <div className="flex-1 p-3">
+                                <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">{t('events.proposeContest.form.startDate')}</label>
+                                <input
+                                    type="date"
+                                    required
+                                    style={{ colorScheme: 'dark' }}
+                                    className="w-full bg-transparent text-white text-sm focus:outline-none appearance-none"
+                                    value={form.start_date}
+                                    onChange={e => setForm({ ...form, start_date: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex-1 p-3">
+                                <label className="text-[10px] uppercase text-zinc-600 font-bold block mb-1">{t('events.proposeContest.form.endDate')}</label>
+                                <input
+                                    type="date"
+                                    required
+                                    style={{ colorScheme: 'dark' }}
+                                    className="w-full bg-transparent text-white text-sm focus:outline-none appearance-none"
+                                    value={form.end_date}
+                                    onChange={e => setForm({ ...form, end_date: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
 
