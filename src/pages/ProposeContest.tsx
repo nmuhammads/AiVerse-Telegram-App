@@ -35,7 +35,7 @@ export default function ProposeContest() {
     };
 
     const headerStyle = {
-        paddingTop: platform === 'ios' ? 'calc(env(safe-area-inset-top) + 24px)' : platform === 'android' ? '40px' : '10px'
+        paddingTop: platform === 'ios' ? 'calc(env(safe-area-inset-top) + 44px)' : platform === 'android' ? '40px' : '10px'
     };
 
     const [form, setForm] = useState({
@@ -231,13 +231,13 @@ export default function ProposeContest() {
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="flex flex-col gap-4">
                         <div>
                             <label className="text-xs uppercase text-zinc-500 font-bold tracking-wider mb-1 block">{t('events.proposeContest.form.startDate')}</label>
                             <input
                                 type="date"
                                 required
-                                className="w-full max-w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
+                                className="w-full max-w-full min-w-0 bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
                                 value={form.start_date}
                                 onChange={e => setForm({ ...form, start_date: e.target.value })}
                             />
@@ -247,7 +247,7 @@ export default function ProposeContest() {
                             <input
                                 type="date"
                                 required
-                                className="w-full max-w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
+                                className="w-full max-w-full min-w-0 bg-zinc-900 border border-white/10 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-indigo-500 transition"
                                 value={form.end_date}
                                 onChange={e => setForm({ ...form, end_date: e.target.value })}
                             />
