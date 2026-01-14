@@ -481,7 +481,7 @@ export default function Studio() {
 
   const handleGenerate = async () => {
     // Получить store
-    const { addGeneration, updateGeneration, getAvailableSlots } = useActiveGenerationsStore.getState()
+    const { addGeneration, updateGeneration, removeGeneration, getAvailableSlots } = useActiveGenerationsStore.getState()
 
     // Определить количество изображений для этого запроса
     const requestImageCount = mediaType === 'video' ? 1 : imageCount
@@ -614,8 +614,9 @@ export default function Studio() {
           const data = await res.json()
 
           if (data.status === 'pending') {
-            // Генерация ушла в фон — оставляем статус processing
-            // updateGeneration(generationId, { status: 'processing' }) // Already processing
+            // Генерация ушла в фон — удаляем из локального store, т.к. сервер теперь отслеживает её
+            // Это предотвращает двойной подсчёт в PendingIndicator (serverCount + localActiveCount)
+            removeGeneration(generationId)
             notify('success')
             toast.success(t('studio.generation.backgroundStarted', 'Запущено в фоне'))
             return
