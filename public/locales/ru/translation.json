@@ -94,6 +94,13 @@
             "following": "Подписки"
         },
         "searchPlaceholder": "Найти промпт...",
+        "search": {
+            "posts": "Посты",
+            "users": "Пользователи",
+            "usersPlaceholder": "Поиск пользователей...",
+            "noUsersFound": "Пользователи не найдены",
+            "searching": "Поиск..."
+        },
         "feedTitle": "Лента за {{date}}",
         "models": {
             "all": "Все модели"

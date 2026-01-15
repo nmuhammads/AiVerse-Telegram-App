@@ -93,6 +93,13 @@
             "following": "Following"
         },
         "searchPlaceholder": "Find prompt...",
+        "search": {
+            "posts": "Posts",
+            "users": "Users",
+            "usersPlaceholder": "Search users...",
+            "noUsersFound": "No users found",
+            "searching": "Searching..."
+        },
         "feedTitle": "Feed for {{date}}",
         "models": {
             "all": "All Models"
