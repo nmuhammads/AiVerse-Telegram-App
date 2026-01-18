@@ -79,6 +79,14 @@ export async function describeImage(
 
     console.log('[PromptOptimizer] Describing image:', { imageUrl: imageUrl.slice(0, 50), style, mode })
 
+    // Инструкция для оптимизации промпта под i2i генерации с фото-референсом
+    const i2iInstruction = `Optimize this prompt for image-to-image generation with photo reference. 
+The generated prompt MUST include instructions to:
+1. Use the uploaded photo as a reference image
+2. Preserve the face identity from the reference photo exactly as it is
+3. Keep facial features, skin tone, and likeness unchanged
+4. Apply the style/scene changes while maintaining the person's appearance`
+
     const resp = await fetch(MOLMO2_API_URL, {
         method: 'POST',
         headers: {
@@ -87,6 +95,7 @@ export async function describeImage(
         },
         body: JSON.stringify({
             image: imageUrl,
+            text: i2iInstruction,
             style,
             mode,
             enable_sync_mode: true
