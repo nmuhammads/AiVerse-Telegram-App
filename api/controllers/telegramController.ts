@@ -251,6 +251,28 @@ export async function webhook(req: Request, res: Response) {
       }
       return res.json({ ok: true })
     }
+
+    // Admin command: /switch_api - Switch NanoBanana Pro API provider
+    const ADMIN_ID = 817308975
+    if (text.startsWith('/switch_api') && msg.from?.id === ADMIN_ID) {
+      try {
+        const { switchNanobananaApiProvider } = await import('./generationController.js')
+        const newProvider = await switchNanobananaApiProvider()
+        await tg('sendMessage', {
+          chat_id: chatId,
+          text: `✅ NanoBanana Pro API переключен на: *${newProvider.toUpperCase()}*\n\nТекущий провайдер будет использоваться для новых генераций.`,
+          parse_mode: 'Markdown'
+        })
+      } catch (e) {
+        console.error('[SwitchAPI] Error:', e)
+        await tg('sendMessage', {
+          chat_id: chatId,
+          text: `❌ Ошибка переключения API: ${(e as Error).message}`
+        })
+      }
+      return res.json({ ok: true })
+    }
+
     return res.json({ ok: true })
   } catch (e) {
     console.error('webhook error', e)

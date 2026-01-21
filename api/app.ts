@@ -59,6 +59,10 @@ app.use('/api/editor', editorRoutes)
 app.use('/api/watermarks', watermarkRoutes)
 app.use('/api/prompt', promptRoutes)
 
+// PiAPI Webhook (direct import to avoid circular dependency)
+import { handlePiapiWebhook } from './controllers/generationController.js'
+app.post('/api/webhook/piapi', handlePiapiWebhook)
+
 /**
  * Serve frontend build
  */
