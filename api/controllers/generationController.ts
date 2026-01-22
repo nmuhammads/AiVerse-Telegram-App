@@ -9,6 +9,8 @@ import { uploadImageFromBase64, uploadImageFromUrl, createThumbnail } from '../s
 import { processVideoForKling, deleteFromR2, isBase64Video } from '../services/videoProcessingService.js'
 import { tg } from './telegramController.js'
 import { createNotification, getUserNotificationSettings } from './notificationController.js'
+import { createPiapiTask, pollPiapiTask, checkPiapiTask } from '../services/piapiService.js'
+import { getAppConfig, setAppConfig } from '../services/supabaseService.js'
 
 interface KieAIRequest {
   model: string
@@ -380,8 +382,16 @@ async function pollJobsTask(apiKey: string, taskId: string, timeoutMs = DEFAULT_
         } catch { /* ignore */ }
       }
       if (state === 'fail') {
-        console.error(`[Jobs] Task ${taskId} failed:`, json.data.failMsg)
-        throw new Error(json.data.failMsg || 'Jobs task failed')
+        const errorMsg = json.data.failMsg || 'Jobs task failed'
+        console.error(`[Jobs] Task ${taskId} failed:`, errorMsg)
+
+        // Special handling for Gemini content policy error
+        if (errorMsg.toLowerCase().includes('gemini could not generate') ||
+          errorMsg.toLowerCase().includes('could not generate an image')) {
+          throw new Error('Gemini не смог сгенерировать изображение с этим промптом. Попробуйте другой промпт или используйте Seedream.')
+        }
+
+        throw new Error(errorMsg)
       }
     }
     await new Promise(r => setTimeout(r, 30000))
@@ -444,6 +454,51 @@ const MODEL_PRICES: Record<string, number> = {
   flux: 4,
   'gpt-image-1.5': 5, // Default: medium quality
   'test-model': 0, // Тестовая модель — бесплатно
+}
+
+// ============ NanoBanana Pro API Provider Functions ============
+
+type ApiProvider = 'kie' | 'piapi'
+
+/**
+ * Get current primary API provider for NanoBanana Pro from database
+ */
+async function getNanobananaApiProvider(): Promise<ApiProvider> {
+  const value = await getAppConfig('image_generation_primary_api')
+  return (value === 'piapi' ? 'piapi' : 'kie') as ApiProvider
+}
+
+/**
+ * Switch NanoBanana Pro API provider and persist to database
+ */
+export async function switchNanobananaApiProvider(): Promise<ApiProvider> {
+  const current = await getNanobananaApiProvider()
+  const next: ApiProvider = current === 'kie' ? 'piapi' : 'kie'
+  await setAppConfig('image_generation_primary_api', next)
+  console.log(`[API Switch] NanoBanana Pro API switched: ${current} -> ${next}`)
+  return next
+}
+
+/**
+ * Check if error indicates service unavailability (should trigger fallback)
+ */
+function isServiceUnavailableError(error: any): boolean {
+  const msg = String(error?.message || error || '').toLowerCase()
+  return (
+    msg.includes('503') ||
+    msg.includes('502') ||
+    msg.includes('524') ||
+    msg.includes('service unavailable') ||
+    msg.includes('429') ||
+    msg.includes('too many requests') ||
+    msg.includes('timeout') ||
+    msg.includes('econnrefused') ||
+    msg.includes('rate limit') ||
+    msg.includes('temporarily unavailable') ||
+    msg.includes('internal error') ||
+    msg.includes('please try again later') ||
+    msg.includes('ai studio api http error')
+  )
 }
 
 // Цены для GPT Image 1.5 по качеству
@@ -797,41 +852,92 @@ async function generateImageWithKieAI(
         image_size = mapNanoBananaImageSize(aspect_ratio)
       }
 
-      const input: Record<string, unknown> = {
-        prompt,
-        output_format: 'png'
-      }
-
-      // Old manual meta insertion removed, handled by metaPayload in createJobsTask
-
-      if (imageUrls.length > 0) {
-        if (isPro) {
-          input.image_input = imageUrls
-        } else {
-          input.image_urls = imageUrls
+      // Non-Pro NanoBanana uses only Kie
+      if (!isPro) {
+        const input: Record<string, unknown> = {
+          prompt,
+          output_format: 'png'
         }
-      }
-
-      if (image_size) input.image_size = image_size
-      if (aspect_ratio && aspect_ratio !== 'Auto') input.aspect_ratio = aspect_ratio
-
-      if (isPro) {
-        if (aspect_ratio && aspect_ratio !== 'Auto') {
-          input.aspect_ratio = aspect_ratio
-          delete input.image_size
-        }
-        if (res) input.resolution = res
-
-        const taskId = await createJobsTask(apiKey, 'nano-banana-pro', input, onTaskCreated, metaPayload)
-        const url = await pollJobsTask(apiKey, taskId)
-        if (url === 'TIMEOUT') return { timeout: true, inputImages: imageUrls }
-        return { images: [url], inputImages: imageUrls }
-      } else {
+        if (imageUrls.length > 0) input.image_urls = imageUrls
         if (image_size) input.image_size = image_size
+
         const taskId = await createJobsTask(apiKey, modelId, input, onTaskCreated, metaPayload)
         const url = await pollJobsTask(apiKey, taskId)
         if (url === 'TIMEOUT') return { timeout: true, inputImages: imageUrls }
         return { images: [url], inputImages: imageUrls }
+      }
+
+      // ============ NanoBanana Pro with Fallback ============
+      const primaryProvider = await getNanobananaApiProvider()
+      console.log(`[NanoBanana Pro] Using primary provider: ${primaryProvider}`)
+
+      // Helper to generate via specific provider
+      const generateWithProvider = async (provider: ApiProvider): Promise<{ url: string; taskId: string; provider: ApiProvider }> => {
+        if (provider === 'piapi') {
+          // PiAPI uses image_urls (not image_input)
+          const piapiInput = {
+            prompt,
+            output_format: 'png' as const,
+            resolution: (res || '4K') as '2K' | '4K',
+            safety_level: 'low' as const,
+            ...(imageUrls.length > 0 && { image_urls: imageUrls }),
+            ...(aspect_ratio && aspect_ratio !== 'Auto' && { aspect_ratio })
+          }
+
+          const result = await createPiapiTask(piapiInput, {
+            generationId: metaPayload?.meta?.generationId || 0,
+            userId: metaPayload?.meta?.userId || 0
+          })
+          if (onTaskCreated) onTaskCreated(result.taskId)
+          const url = await pollPiapiTask(result.taskId)
+          return { url, taskId: result.taskId, provider: 'piapi' }
+        } else {
+          // Kie.ai uses image_input for Pro
+          const input: Record<string, unknown> = {
+            prompt,
+            output_format: 'png'
+          }
+          if (imageUrls.length > 0) input.image_input = imageUrls
+          if (aspect_ratio && aspect_ratio !== 'Auto') input.aspect_ratio = aspect_ratio
+          if (res) input.resolution = res
+
+          const taskId = await createJobsTask(apiKey, 'nano-banana-pro', input, onTaskCreated, metaPayload)
+          const url = await pollJobsTask(apiKey, taskId)
+          return { url, taskId, provider: 'kie' }
+        }
+      }
+
+      // Helper to update api_provider in DB
+      const updateApiProvider = async (provider: ApiProvider) => {
+        const genId = metaPayload?.meta?.generationId
+        if (genId) {
+          await supaPatch('generations', `?id=eq.${genId}`, { api_provider: provider })
+          console.log(`[NanoBanana Pro] Updated api_provider to ${provider} for gen ${genId}`)
+        }
+      }
+
+      // Try primary, fallback to backup on service errors
+      try {
+        const result = await generateWithProvider(primaryProvider)
+        if (result.url === 'TIMEOUT') return { timeout: true, inputImages: imageUrls }
+        await updateApiProvider(result.provider)
+        return { images: [result.url], inputImages: imageUrls }
+      } catch (error) {
+        if (isServiceUnavailableError(error)) {
+          const backupProvider: ApiProvider = primaryProvider === 'kie' ? 'piapi' : 'kie'
+          console.log(`[NanoBanana Pro Fallback] ${primaryProvider} failed, trying ${backupProvider}:`, (error as Error).message)
+
+          try {
+            const result = await generateWithProvider(backupProvider)
+            if (result.url === 'TIMEOUT') return { timeout: true, inputImages: imageUrls }
+            await updateApiProvider(result.provider)
+            return { images: [result.url], inputImages: imageUrls }
+          } catch (backupError) {
+            console.error(`[NanoBanana Pro Fallback] Both providers failed:`, backupError)
+            throw backupError
+          }
+        }
+        throw error
       }
     }
 
@@ -2531,3 +2637,68 @@ export async function handleMultiGenerate(req: Request, res: Response) {
     })
   }
 }
+
+// ============ PiAPI Webhook Handler ============
+
+/**
+ * Handle webhook callbacks from PiAPI
+ * Called when PiAPI completes or fails a NanoBanana Pro generation
+ */
+export async function handlePiapiWebhook(req: Request, res: Response) {
+  try {
+    const generationId = Number(req.query.generationId)
+    const userId = Number(req.query.userId)
+    const { data } = req.body
+
+    console.log(`[PiAPI Webhook] Received for gen ${generationId}, status: ${data?.status}`)
+
+    if (!generationId || !data) {
+      return res.status(400).json({ error: 'Missing generationId or data' })
+    }
+
+    const status = data.status?.toLowerCase()
+
+    if (status === 'completed' || status === 'success') {
+      const imageUrl = data.output?.image_url ||
+        data.output?.image_urls?.[0] ||
+        data.result?.image_url ||
+        data.result?.image_urls?.[0]
+
+      if (imageUrl) {
+        await supaPatch('generations', `?id=eq.${generationId}`, { api_provider: 'piapi' })
+
+        const genData = await supaSelect('generations', `?id=eq.${generationId}&select=resolution`)
+        let cost = 15
+        if (genData.ok && Array.isArray(genData.data) && genData.data[0]?.resolution === '2K') {
+          cost = 10
+        }
+
+        await completeGeneration(generationId, userId, imageUrl, 'nanobanana-pro', cost)
+        console.log(`[PiAPI Webhook] Generation ${generationId} completed`)
+      }
+    } else if (status === 'failed' || status === 'error') {
+      const errorMsg = data.error?.message || 'PiAPI generation failed'
+
+      await supaPatch('generations', `?id=eq.${generationId}`, {
+        status: 'failed',
+        error_message: errorMsg,
+        api_provider: 'piapi'
+      })
+
+      const genData = await supaSelect('generations', `?id=eq.${generationId}&select=cost`)
+      const cost = genData.ok && Array.isArray(genData.data) ? (genData.data[0]?.cost || 15) : 15
+
+      const balQ = await supaSelect('users', `?user_id=eq.${userId}&select=balance`)
+      const currBal = Array.isArray(balQ.data) && balQ.data[0]?.balance != null ? Number(balQ.data[0].balance) : 0
+      await supaPatch('users', `?user_id=eq.${userId}`, { balance: currBal + cost })
+
+      console.log(`[PiAPI Webhook] Generation ${generationId} failed, refunded ${cost}`)
+    }
+
+    res.json({ received: true })
+  } catch (error) {
+    console.error('[PiAPI Webhook] Error:', error)
+    res.status(500).json({ error: 'Webhook processing failed' })
+  }
+}
+

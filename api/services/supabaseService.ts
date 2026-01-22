@@ -55,4 +55,29 @@ export async function supaDelete(table: string, filter: string) {
     return { ok: r.ok }
 }
 
+// ============ App Config Functions ============
+
+/**
+ * Get a config value from app_config table
+ */
+export async function getAppConfig(key: string): Promise<string | null> {
+    const result = await supaSelect('app_config', `?key=eq.${encodeURIComponent(key)}&select=value`)
+    if (result.ok && Array.isArray(result.data) && result.data.length > 0) {
+        return result.data[0].value
+    }
+    return null
+}
+
+/**
+ * Set a config value in app_config table
+ */
+export async function setAppConfig(key: string, value: string): Promise<boolean> {
+    const result = await supaPatch('app_config', `?key=eq.${encodeURIComponent(key)}`, {
+        value,
+        updated_at: new Date().toISOString()
+    })
+    return result.ok
+}
+
 export { SUPABASE_URL, SUPABASE_KEY, SUPABASE_BUCKET }
+
