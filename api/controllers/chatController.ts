@@ -1,0 +1,98 @@
+/**
+ * AI Chat Controller
+ * Обрабатывает запросы к AI чату
+ */
+
+import { Request, Response } from 'express'
+import { streamChatCompletion, getChatCompletion, type ChatMessage, type ChatModel } from '../services/chatService'
+
+const AVAILABLE_MODELS: ChatModel[] = [
+    'deepseek/deepseek-v3.2',
+    'zai-org/glm-4.7',
+    'minimax/minimax-m2.1',
+    'Qwen/Qwen3-235B-A22B',
+    'openai/gpt-oss-20b',
+    'openai/gpt-oss-120b'
+]
+
+/**
+ * POST /api/chat
+ * Обработка сообщений чата с AI
+ */
+export async function handleChat(req: Request, res: Response) {
+    try {
+        const { messages, model = 'openai/gpt-oss-120b', stream = true } = req.body
+
+        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+            return res.status(400).json({ error: 'Messages array is required' })
+        }
+
+        // Валидация модели
+        if (!AVAILABLE_MODELS.includes(model)) {
+            return res.status(400).json({
+                error: 'Invalid model',
+                available: AVAILABLE_MODELS
+            })
+        }
+
+        // Валидация формата сообщений
+        const validMessages: ChatMessage[] = messages.map((m: { role?: string; content?: string }) => ({
+            role: m.role === 'user' || m.role === 'assistant' ? m.role : 'user',
+            content: String(m.content || '')
+        }))
+
+        console.log('[ChatController] Request:', {
+            model,
+            stream,
+            messageCount: validMessages.length,
+            lastMessage: validMessages[validMessages.length - 1]?.content?.slice(0, 50)
+        })
+
+        if (stream) {
+            // Streaming response
+            res.setHeader('Content-Type', 'text/event-stream')
+            res.setHeader('Cache-Control', 'no-cache')
+            res.setHeader('Connection', 'keep-alive')
+            res.flushHeaders()
+
+            try {
+                for await (const chunk of streamChatCompletion(validMessages, model)) {
+                    res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+                }
+                res.write('data: [DONE]\n\n')
+            } catch (streamError) {
+                console.error('[ChatController] Stream error:', streamError)
+                res.write(`data: ${JSON.stringify({ error: streamError instanceof Error ? streamError.message : 'Stream error' })}\n\n`)
+            }
+
+            res.end()
+        } else {
+            // Non-streaming response
+            const content = await getChatCompletion(validMessages, model)
+            res.json({ content })
+        }
+
+    } catch (error) {
+        console.error('[ChatController] Error:', error)
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Internal server error'
+        })
+    }
+}
+
+/**
+ * GET /api/chat/models
+ * Получить список доступных моделей
+ */
+export function getAvailableModels(_req: Request, res: Response) {
+    res.json({
+        models: [
+            { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek v3.2' },
+            { id: 'zai-org/glm-4.7', name: 'GLM-4.7' },
+            { id: 'minimax/minimax-m2.1', name: 'MiniMax M2.1' },
+            { id: 'Qwen/Qwen3-235B-A22B', name: 'Qwen3 235B' },
+            { id: 'openai/gpt-oss-20b', name: 'GPT 4 mini' },
+            { id: 'openai/gpt-oss-120b', name: 'GPT 4', default: true }
+        ]
+    })
+}

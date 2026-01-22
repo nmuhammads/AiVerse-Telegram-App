@@ -731,5 +731,23 @@
         "error": "Error",
         "clearCompleted": "Clear",
         "maxReached": "Maximum 4 parallel generations reached"
+    },
+    "aiChat": {
+        "title": "AI Assistant",
+        "placeholder": "Type a message...",
+        "send": "Send",
+        "minimize": "Minimize",
+        "restore": "Open chat",
+        "clear": "Clear chat",
+        "selectModel": "Select model",
+        "welcome": "Hi! I'm the AiVerse AI assistant",
+        "welcomeHint": "Ask me about image generation or prompts",
+        "thinking": "Thinking...",
+        "error": "An error occurred. Please try again.",
+        "modelChangeTitle": "Change model?",
+        "modelChangeMessage": "You are switching to {{model}}. What would you like to do with the current chat history?",
+        "keepHistory": "Keep history",
+        "clearHistory": "Clear history",
+        "cancel": "Cancel"
     }
 }
