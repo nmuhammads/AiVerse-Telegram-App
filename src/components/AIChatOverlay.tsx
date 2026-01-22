@@ -20,8 +20,8 @@ const MODELS: { id: ChatModel; name: string }[] = [
 
 // Модели для генерации изображений
 const IMAGE_MODELS: { id: ImageModel; name: string; price: number }[] = [
-    { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 1 },
-    { id: 'qwen-image', name: 'Qwen Image', price: 1 }
+    { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 2 },
+    { id: 'qwen-image', name: 'Qwen Image', price: 2 }
 ]
 
 /**
@@ -154,6 +154,7 @@ export function AIChatOverlay() {
         isLoading,
         pendingGeneration,
         isGeneratingImage,
+        selectedImageModel,
         closeChat,
         minimizeChat,
         addMessage,
@@ -161,6 +162,7 @@ export function AIChatOverlay() {
         updateMessage,
         clearMessages,
         setModel,
+        setImageModel,
         setLoading,
         setPendingGeneration,
         setGeneratingImage
@@ -168,6 +170,7 @@ export function AIChatOverlay() {
 
     const [input, setInput] = useState('')
     const [showModelSelector, setShowModelSelector] = useState(false)
+    const [showImageModelSelector, setShowImageModelSelector] = useState(false)
     const [showModelConfirm, setShowModelConfirm] = useState(false)
     const [pendingModel, setPendingModel] = useState<ChatModel | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -276,12 +279,14 @@ export function AIChatOverlay() {
         setGeneratingImage(true)
 
         try {
+            // Используем выбранную пользователем модель вместо предложенной AI
+            const modelToUse = selectedImageModel
             const response = await fetch('/api/chat/generate-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: pendingGeneration.prompt,
-                    model: pendingGeneration.model,
+                    model: modelToUse,
                     size: pendingGeneration.size
                 })
             })
@@ -442,6 +447,49 @@ export function AIChatOverlay() {
                             )}
                         </div>
 
+                        {/* Image Model Selector */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowImageModelSelector(!showImageModelSelector)}
+                                className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/30 text-xs text-violet-300 hover:bg-violet-600/30 transition-colors"
+                            >
+                                <ImageIcon size={12} />
+                                <span className="max-w-[70px] truncate">
+                                    {IMAGE_MODELS.find(m => m.id === selectedImageModel)?.name || 'Image'}
+                                </span>
+                                <span className="text-[10px] text-violet-400/70">
+                                    {IMAGE_MODELS.find(m => m.id === selectedImageModel)?.price || 2}т
+                                </span>
+                                <ChevronDown size={12} />
+                            </button>
+
+                            {showImageModelSelector && (
+                                <div className="absolute right-0 top-full mt-1 w-44 bg-zinc-900 border border-violet-500/30 rounded-lg shadow-xl overflow-hidden z-10">
+                                    <div className="px-3 py-2 text-xs text-white/40 border-b border-white/10">
+                                        {t('aiChat.selectImageModel', 'Модель генерации')}
+                                    </div>
+                                    {IMAGE_MODELS.map(model => (
+                                        <button
+                                            key={model.id}
+                                            onClick={() => {
+                                                setImageModel(model.id)
+                                                setShowImageModelSelector(false)
+                                            }}
+                                            className={`w-full px-3 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${selectedImageModel === model.id
+                                                ? 'bg-violet-600 text-white'
+                                                : 'text-white/80 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            <span>{model.name}</span>
+                                            <span className={`text-xs ${selectedImageModel === model.id ? 'text-white/80' : 'text-white/50'}`}>
+                                                {model.price} {t('aiChat.tokens', 'токен')}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Clear Chat */}
                         {messages.length > 0 && (
                             <button
@@ -557,9 +605,9 @@ export function AIChatOverlay() {
                                     {pendingGeneration.prompt.slice(0, 100)}...
                                 </p>
                                 <div className="flex items-center gap-2 text-xs text-white/50">
-                                    <span className="px-2 py-0.5 rounded bg-white/10">{IMAGE_MODELS.find(m => m.id === pendingGeneration.model)?.name}</span>
+                                    <span className="px-2 py-0.5 rounded bg-white/10">{IMAGE_MODELS.find(m => m.id === selectedImageModel)?.name}</span>
                                     <span>•</span>
-                                    <span>{pendingGeneration.cost} {t('aiChat.tokens', 'токен(ов)')}</span>
+                                    <span>{IMAGE_MODELS.find(m => m.id === selectedImageModel)?.price || 1} {t('aiChat.tokens', 'токен(ов)')}</span>
                                 </div>
                             </div>
                         </div>

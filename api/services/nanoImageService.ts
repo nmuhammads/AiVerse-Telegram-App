@@ -24,14 +24,14 @@ export interface NanoImageResult {
 
 // Цены моделей (токены)
 export const NANO_IMAGE_PRICES: Record<NanoImageModel, number> = {
-    'z-image-turbo': 1,
-    'qwen-image': 1
+    'z-image-turbo': 2,
+    'qwen-image': 2
 }
 
 // Доступные модели для AI-агента
 export const NANO_IMAGE_MODELS: { id: NanoImageModel; name: string; price: number }[] = [
-    { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 1 },
-    { id: 'qwen-image', name: 'Qwen Image', price: 1 }
+    { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 2 },
+    { id: 'qwen-image', name: 'Qwen Image', price: 2 }
 ]
 
 /**

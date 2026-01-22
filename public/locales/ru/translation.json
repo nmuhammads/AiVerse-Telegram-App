@@ -770,7 +770,7 @@
         "maxReached": "Достигнут лимит в 4 параллельных генерации"
     },
     "aiChat": {
-        "title": "AI Ассистент",
+        "title": "AI Чат",
         "placeholder": "Напишите сообщение...",
         "send": "Отправить",
         "minimize": "Свернуть",
@@ -792,6 +792,7 @@
         "generating": "Генерация...",
         "cancelGeneration": "Отмена",
         "generationError": "❌ Ошибка генерации. Попробуйте ещё раз.",
-        "generationCancelled": "Генерация отменена."
+        "generationCancelled": "Генерация отменена.",
+        "selectImageModel": "Модель генерации"
     }
 }

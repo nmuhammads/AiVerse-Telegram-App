@@ -39,6 +39,7 @@ interface AIChatState {
     isMinimized: boolean
     messages: ChatMessage[]
     selectedModel: ChatModel
+    selectedImageModel: ImageModel
     isLoading: boolean
     // Для генерации изображений
     pendingGeneration: PendingImageGeneration | null
@@ -53,6 +54,7 @@ interface AIChatState {
     updateMessage: (id: string, content: string) => void
     clearMessages: () => void
     setModel: (model: ChatModel) => void
+    setImageModel: (model: ImageModel) => void
     setLoading: (loading: boolean) => void
     // Для генерации изображений
     setPendingGeneration: (pending: PendingImageGeneration | null) => void
@@ -66,6 +68,7 @@ export const useAIChatStore = create<AIChatState>()(
             isMinimized: false,
             messages: [],
             selectedModel: 'openai/gpt-oss-120b',
+            selectedImageModel: 'z-image-turbo' as ImageModel,
             isLoading: false,
             pendingGeneration: null,
             isGeneratingImage: false,
@@ -117,6 +120,8 @@ export const useAIChatStore = create<AIChatState>()(
             clearMessages: () => set({ messages: [], pendingGeneration: null }),
 
             setModel: (model) => set({ selectedModel: model }),
+
+            setImageModel: (model) => set({ selectedImageModel: model }),
 
             setLoading: (loading) => set({ isLoading: loading }),
 

@@ -733,7 +733,7 @@
         "maxReached": "Maximum 4 parallel generations reached"
     },
     "aiChat": {
-        "title": "AI Assistant",
+        "title": "AI Chat",
         "placeholder": "Type a message...",
         "send": "Send",
         "minimize": "Minimize",
@@ -755,6 +755,7 @@
         "generating": "Generating...",
         "cancelGeneration": "Cancel",
         "generationError": "❌ Generation failed. Please try again.",
-        "generationCancelled": "Generation cancelled."
+        "generationCancelled": "Generation cancelled.",
+        "selectImageModel": "Image model"
     }
 }
