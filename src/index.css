@@ -213,3 +213,31 @@ body {
     background-position: -200% 0;
   }
 }
+
+/* TabBar height variables - используется для позиционирования элементов над TabBar */
+:root {
+  /* TabBar высота: ~60px контент + padding */
+  --tabbar-height: 64px;
+  /* iOS: bottom-2 (8px) + safe-area */
+  --tabbar-offset-ios: calc(8px + var(--tabbar-height) + env(safe-area-inset-bottom));
+  /* Android: 2rem (32px) + safe-area + extra padding */
+  --tabbar-offset-android: calc(32px + var(--tabbar-height) + env(safe-area-inset-bottom) + 10px);
+}
+
+/* Utility classes for positioning above TabBar */
+.above-tabbar-ios {
+  bottom: var(--tabbar-offset-ios);
+}
+
+.above-tabbar-android {
+  bottom: var(--tabbar-offset-android);
+}
+
+/* Padding bottom for content above TabBar */
+.pb-tabbar-ios {
+  padding-bottom: var(--tabbar-offset-ios);
+}
+
+.pb-tabbar-android {
+  padding-bottom: var(--tabbar-offset-android);
+}

@@ -185,6 +185,10 @@ export default function Studio() {
   } = useStudio()
 
   const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
+  const isAndroid = platform === 'android'
+  // Используем CSS классы для позиционирования над TabBar
+  const tabbarOffsetClass = isAndroid ? 'pb-tabbar-android' : 'pb-tabbar-ios'
+  const aboveTabbarClass = isAndroid ? 'above-tabbar-android' : 'above-tabbar-ios'
 
   // Рендеринг Result View
   if (hasResult) {
@@ -218,7 +222,7 @@ export default function Studio() {
 
   return (
     <div
-      className={`bg-black flex flex-col min-h-0 ${studioMode === 'chat' ? 'h-dvh overflow-hidden pb-[84px]' : 'min-h-dvh pb-32'}`}
+      className={`bg-black flex flex-col min-h-0 ${studioMode === 'chat' ? `h-dvh overflow-hidden ${tabbarOffsetClass}` : `min-h-dvh ${tabbarOffsetClass}`}`}
       style={{ paddingTop }}
     >
       <div className={`mx-auto max-w-3xl w-full px-4 flex-1 min-h-0 flex flex-col ${studioMode === 'chat' ? 'gap-2 pt-4 pb-2' : 'gap-6 py-4'}`}>
@@ -363,7 +367,7 @@ export default function Studio() {
             />
 
             {/* Generate Button Fixed at Bottom */}
-            <div className={`fixed left-0 right-0 bottom-[84px] z-40 px-4 transition-all duration-300 ${isFullScreen ? 'translate-y-[150%]' : 'translate-y-0'}`}>
+            <div className={`fixed left-0 right-0 ${aboveTabbarClass} z-40 px-4 transition-all duration-300 ${isFullScreen ? 'translate-y-[150%]' : 'translate-y-0'}`}>
               {/* Error Message */}
               {error && (
                 <div className={`${error.includes('Время ожидания') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'} border rounded-xl p-3 flex items-center gap-3 text-sm animate-in fade-in slide-in-from-bottom-2`}>
