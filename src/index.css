@@ -222,6 +222,10 @@ body {
   --tabbar-offset-ios: calc(8px + var(--tabbar-height) + env(safe-area-inset-bottom));
   /* Android: 2rem (32px) + safe-area + extra padding */
   --tabbar-offset-android: calc(32px + var(--tabbar-height) + env(safe-area-inset-bottom) + 10px);
+  
+  /* Header offset for top positioning */
+  --header-offset-ios: calc(env(safe-area-inset-top) + 5px);
+  --header-offset-android: calc(env(safe-area-inset-top) + 50px);
 }
 
 /* Utility classes for positioning above TabBar */
@@ -240,4 +244,21 @@ body {
 
 .pb-tabbar-android {
   padding-bottom: var(--tabbar-offset-android);
+}
+
+/* Chat container - fills space between header and tabbar dynamically */
+.chat-container-ios {
+  position: fixed;
+  top: calc(var(--header-offset-ios) + 60px); /* header offset + StudioHeader height */
+  bottom: var(--tabbar-offset-ios);
+  left: 0;
+  right: 0;
+}
+
+.chat-container-android {
+  position: fixed;
+  top: calc(var(--header-offset-android) + 60px); /* header offset + StudioHeader height */
+  bottom: var(--tabbar-offset-android);
+  left: 0;
+  right: 0;
 }
