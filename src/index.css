@@ -223,8 +223,8 @@ body {
   /* Android: 2rem (32px) + safe-area + extra padding */
   --tabbar-offset-android: calc(32px + var(--tabbar-height) + env(safe-area-inset-bottom) + 10px);
   
-  /* Header offset for top positioning */
-  --header-offset-ios: calc(env(safe-area-inset-top) + 5px);
+  /* Header offset for top positioning - includes Telegram header */
+  --header-offset-ios: calc(env(safe-area-inset-top) + 55px);
   --header-offset-android: calc(env(safe-area-inset-top) + 50px);
 }
 
