@@ -355,7 +355,9 @@ export function AIChatOverlay({ variant = 'overlay' }: AIChatOverlayProps) {
     const platform = WebApp.platform
     // Оффсет для Header: safe-area + 60px для Header + небольшой отступ
     const headerOffset = isInline ? '0px' : (platform === 'ios' ? 'calc(env(safe-area-inset-top) + 65px)' : 'calc(env(safe-area-inset-top) + 90px)')
-    const bottomPadding = platform === 'ios' ? 'pb-[env(safe-area-inset-bottom)]' : 'pb-4'
+    // Для inline режима НЕ нужен дополнительный отступ - родитель (Studio.tsx) уже добавляет pb-[84px] для таб бара
+    // Для overlay режима нужен отступ safe-area
+    const bottomPadding = isInline ? '' : (platform === 'ios' ? 'pb-[env(safe-area-inset-bottom)]' : 'pb-4')
 
     // Обработчики для модального окна подтверждения смены модели
     const handleModelChangeKeepHistory = () => {
