@@ -218,10 +218,10 @@ body {
 :root {
   /* TabBar высота: ~60px контент + padding */
   --tabbar-height: 64px;
-  /* iOS: bottom-2 (8px) + safe-area */
-  --tabbar-offset-ios: calc(8px + var(--tabbar-height) + env(safe-area-inset-bottom));
+  /* iOS: bottom-2 (8px) + safe-area + extra space for generate button */
+  --tabbar-offset-ios: calc(18px + var(--tabbar-height) + env(safe-area-inset-bottom));
   /* Android: 2rem (32px) + safe-area + extra padding */
-  --tabbar-offset-android: calc(32px + var(--tabbar-height) + env(safe-area-inset-bottom) + 10px);
+  --tabbar-offset-android: calc(37px + var(--tabbar-height) + env(safe-area-inset-bottom) + 10px);
   
   /* Header offset for top positioning - includes Telegram header */
   --header-offset-ios: calc(env(safe-area-inset-top) + 55px);
