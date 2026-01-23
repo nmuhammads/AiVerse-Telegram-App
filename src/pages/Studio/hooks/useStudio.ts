@@ -34,6 +34,7 @@ export function useStudio() {
         parentAuthorUsername,
         parentGenerationId,
         isPromptPrivate,
+        studioMode,
         // Видео параметры
         videoDuration,
         videoResolution,
@@ -80,6 +81,7 @@ export function useStudio() {
         setCharacterOrientation,
         setUploadedVideoUrl,
         setVideoDurationSeconds,
+        setStudioMode,
     } = useGenerationStore()
 
     const { shareImage, saveToGallery, user, platform, tg } = useTelegram()
@@ -722,5 +724,7 @@ export function useStudio() {
         videoDurationSeconds,
         klingVideoMode,
         imageCount,
+        studioMode,
+        setStudioMode,
     }
 }

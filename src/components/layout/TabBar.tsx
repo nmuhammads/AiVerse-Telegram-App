@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Trophy, Settings2, User, Star, Clock } from 'lucide-react'
+import { Home, Trophy, Settings2, User, Star, Clock, MessageCircle } from 'lucide-react'
 import WebApp from '@twa-dev/sdk'
 import './TabBar.css'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useGenerationStore } from '@/store/generationStore'
 
 const StarSVG = ({ className }: { className: string }) => (
   <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -11,21 +12,11 @@ const StarSVG = ({ className }: { className: string }) => (
   </svg>
 )
 
-// Combined icon for Events tab - Trophy + Clock with diagonal separator
-const EventsIcon = () => (
-  <div className="relative w-5 h-5">
-    <Trophy size={12} className="absolute top-0 left-0" />
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="w-[1px] h-4 bg-current rotate-45 opacity-40" />
-    </div>
-    <Clock size={12} className="absolute bottom-0 right-0" />
-  </div>
-)
-
 export function TabBar() {
   const { t } = useTranslation()
   const isAndroid = WebApp.platform === 'android'
   const [eventCount, setEventCount] = useState(0)
+  const { studioMode } = useGenerationStore()
 
   // Fetch active events and contests count
   useEffect(() => {
@@ -60,11 +51,18 @@ export function TabBar() {
           {[
             { to: '/', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
             { to: '/events', label: t('nav.events'), icon: <Clock size={20} />, badge: eventCount },
-            { to: '/studio', label: t('nav.studio'), icon: <Settings2 size={20} />, badge: 0 },
+            {
+              to: '/studio',
+              label: studioMode === 'chat' ? t('nav.chat', 'Chat') : t('nav.studio'),
+              icon: studioMode === 'chat' ? <MessageCircle size={20} /> : <Settings2 size={20} />,
+              badge: 0
+            },
             { to: '/top', label: t('nav.top'), icon: <Star size={20} />, badge: 0 },
             { to: '/profile', label: t('nav.profile'), icon: <User size={20} />, badge: 0 },
           ].map((tab) => {
             const isStudio = tab.to === '/studio'
+            const isStudioActive = isStudio && studioMode !== 'chat'
+
             return (
               <NavLink
                 key={tab.to}
@@ -81,7 +79,7 @@ export function TabBar() {
                   }
                 `}
               >
-                {isStudio && (
+                {isStudioActive && (
                   <>
                     <StarSVG className="studio-star star-1" />
                     <StarSVG className="studio-star star-2" />

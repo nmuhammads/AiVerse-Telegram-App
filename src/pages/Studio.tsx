@@ -3,6 +3,7 @@ import { DevModeBanner } from '@/components/DevModeBanner'
 import { ActiveGenerationsPanel } from '@/components/ActiveGenerationsPanel'
 import { DescribeImageModal } from '@/components/DescribeImageModal'
 import { PaymentModal } from '@/components/PaymentModal'
+import { AIChatOverlay } from '@/components/AIChatOverlay'
 import { useTranslation } from 'react-i18next'
 import { Zap, Pencil } from 'lucide-react'
 
@@ -16,6 +17,7 @@ import { GenerateButton } from '@/pages/Studio/GenerateButton'
 import { ResultView } from '@/pages/Studio/ResultView'
 import { InsufficientBalanceModal } from '@/pages/Studio/InsufficientBalanceModal'
 import { TimeoutModal } from '@/pages/Studio/TimeoutModal'
+import { StudioModeToggle } from '@/pages/Studio/StudioModeToggle'
 
 // Hook & Constants
 import { useStudio } from '@/pages/Studio/hooks/useStudio'
@@ -40,7 +42,9 @@ type StudioHeaderProps = {
 function StudioHeader({ t, balance, onOpenEditor, onOpenPayment }: StudioHeaderProps) {
   return (
     <div className="flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400">{t('studio.title')}</h1>
+      <div className="flex items-center">
+        <StudioModeToggle />
+      </div>
       <div className="flex items-center gap-2">
         <button
           onClick={onOpenEditor}
@@ -96,6 +100,7 @@ export default function Studio() {
     priceLabel,
     isGenerateDisabled,
     inputKey,
+    studioMode,
 
     // Refs
     fileInputRef,
@@ -212,8 +217,11 @@ export default function Studio() {
   const maxImages = 8
 
   return (
-    <div className="min-h-dvh bg-black pb-32 flex flex-col" style={{ paddingTop }}>
-      <div className="mx-auto max-w-3xl w-full px-4 py-4 flex-1 flex flex-col gap-6">
+    <div
+      className={`bg-black flex flex-col min-h-0 ${studioMode === 'chat' ? 'h-dvh overflow-hidden pb-[84px]' : 'min-h-dvh pb-32'}`}
+      style={{ paddingTop }}
+    >
+      <div className={`mx-auto max-w-3xl w-full px-4 flex-1 min-h-0 flex flex-col ${studioMode === 'chat' ? 'gap-2 pt-4 pb-2' : 'gap-6 py-4'}`}>
         <StudioHeader
           t={t}
           balance={balance}
@@ -221,198 +229,225 @@ export default function Studio() {
           onOpenPayment={() => { impact('light'); setIsPaymentModalOpen(true) }}
         />
 
-        {/* Dev Mode Banner */}
-        <DevModeBanner />
-
-        {/* 0. Media Type Toggle: Фото / Видео */}
-        <ModelSelector
-          t={t}
-          mediaType={mediaType}
-          selectedModel={selectedModel}
-          generationMode={generationMode}
-          klingVideoMode={klingVideoMode}
-          impact={impact}
-          imageModels={IMAGE_MODELS.map(({ id, icon }) => ({ id, icon }))}
-          videoModels={VIDEO_MODELS}
-          setMediaType={setMediaType}
-          setSelectedModel={setSelectedModel}
-          setGenerationMode={setGenerationMode}
-          setUploadedImages={setUploadedImages}
-          setUploadedVideoUrl={setUploadedVideoUrl}
-          setKlingVideoMode={setKlingVideoMode}
-          onOpenMultiGeneration={() => { impact('light'); navigate('/multi-generation') }}
-        />
-
-        {/* 3. Prompt Input */}
-        {selectedModel !== 'kling-mc' && (
-          <PromptInput
-            t={t}
-            prompt={prompt}
-            isPromptPrivate={isPromptPrivate}
-            parentAuthorUsername={parentAuthorUsername}
-            isOptimizing={isOptimizing}
-            onPromptChange={setPrompt}
-            onClearPrompt={() => setPrompt('')}
-            onClearParent={() => {
-              setParentGeneration(null, null)
-              setPrompt('')
-              setUploadedImages([])
-            }}
-            onOptimize={handleOptimizePrompt}
-            onDescribe={() => { impact('light'); setIsDescribeModalOpen(true) }}
-          />
-        )}
-
-        {/* 4. Reference Image for IMAGES mode */}
-        <ImageUploader
-          t={t}
-          mediaType={mediaType}
-          generationMode={generationMode}
-          selectedModel={selectedModel}
-          uploadedImages={uploadedImages}
-          parentGenerationId={parentGenerationId} /** Hook needs to expose parentGenerationId too if used here. I exposed it in return. */
-          maxImages={maxImages}
-          isUploadingImage={isUploadingImage}
-          fileInputRef={fileInputRef}
-          onProcessPastedFiles={async (files) => {
-            await processPastedFiles(files)
-          }}
-          onRemoveUploadedImage={removeUploadedImage}
-          onSetUploadedImages={setUploadedImages}
-        />
-
-        <SettingsPanel
-          t={t}
-          selectedModel={selectedModel}
-          ratios={ratios}
-          aspectRatio={aspectRatio}
-          ratioEmojis={RATIO_EMOJIS}
-          ratioDisplayNames={RATIO_DISPLAY_NAMES}
-          gptImageQuality={gptImageQuality}
-          gptImagePrices={GPT_IMAGE_PRICES}
-          resolution={resolution}
-          onSetAspectRatio={setAspectRatio}
-          onSetResolution={setResolution}
-          onSetGptImageQuality={setGptImageQuality}
-          onImpact={impact}
-        />
-
-        <VideoSettings
-          t={t}
-          mediaType={mediaType}
-          selectedModel={selectedModel}
-          videoDuration={videoDuration}
-          videoResolution={videoResolution}
-          fixedLens={fixedLens}
-          generateAudio={generateAudio}
-          klingDuration={klingDuration}
-          klingSound={klingSound}
-          klingMCQuality={klingMCQuality}
-          characterOrientation={characterOrientation}
-          uploadedImages={uploadedImages}
-          uploadedVideoUrl={uploadedVideoUrl}
-          videoDurationSeconds={videoDurationSeconds}
-          isUploadingVideo={isUploadingVideo}
-          videoInputRef={videoInputRef}
-          prompt={prompt}
-          onSetVideoDuration={setVideoDuration}
-          onSetVideoResolution={setVideoResolution}
-          onSetFixedLens={setFixedLens}
-          onSetGenerateAudio={setGenerateAudio}
-          onSetKlingDuration={setKlingDuration}
-          onSetKlingSound={setKlingSound}
-          onSetKlingMCQuality={setKlingMCQuality}
-          onSetCharacterOrientation={setCharacterOrientation}
-          onSetUploadedImages={setUploadedImages}
-          onSetUploadedVideoUrl={setUploadedVideoUrl}
-          onSetVideoDurationSeconds={setVideoDurationSeconds}
-          onSetIsUploadingVideo={setIsUploadingVideo}
-          onSetPrompt={setPrompt}
-          onSetError={setError}
-          onImpact={impact}
-        />
-
-        {/* Error Message */}
-        {error && (
-          <div className={`${error.includes('Время ожидания') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'} border rounded-xl p-3 flex items-center gap-3 text-sm animate-in fade-in slide-in-from-bottom-2`}>
-            <div className={`w-1.5 h-1.5 rounded-full ${error.includes('Время ожидания') ? 'bg-amber-500' : 'bg-rose-500'}`} />
-            {error}
+        {studioMode === 'chat' ? (
+          <div className="flex-1 relative min-h-0 bg-black rounded-2xl border border-white/5 overflow-hidden">
+            <AIChatOverlay variant="inline" />
           </div>
+        ) : (
+          <>
+            {/* Dev Mode Banner */}
+            <DevModeBanner />
+
+            {/* 0. Media Type Toggle: Фото / Видео */}
+            <ModelSelector
+              t={t}
+              mediaType={mediaType}
+              selectedModel={selectedModel}
+              generationMode={generationMode}
+              klingVideoMode={klingVideoMode}
+              impact={impact}
+              imageModels={IMAGE_MODELS.map(({ id, icon }) => ({ id, icon }))}
+              videoModels={VIDEO_MODELS}
+              setMediaType={setMediaType}
+              setSelectedModel={setSelectedModel}
+              setGenerationMode={setGenerationMode}
+              setUploadedImages={setUploadedImages}
+              setUploadedVideoUrl={setUploadedVideoUrl}
+              setKlingVideoMode={setKlingVideoMode}
+              onOpenMultiGeneration={() => { impact('light'); navigate('/multi-generation') }}
+            />
+
+            {/* 3. Prompt Input */}
+            {selectedModel !== 'kling-mc' && (
+              <PromptInput
+                t={t}
+                prompt={prompt}
+                isPromptPrivate={isPromptPrivate}
+                parentAuthorUsername={parentAuthorUsername}
+                isOptimizing={isOptimizing}
+                onPromptChange={setPrompt}
+                onClearPrompt={() => setPrompt('')}
+                onClearParent={() => {
+                  setParentGeneration(null, null)
+                  setPrompt('')
+                  setUploadedImages([])
+                }}
+                onOptimize={handleOptimizePrompt}
+                onDescribe={() => { impact('light'); setIsDescribeModalOpen(true) }}
+
+              />
+            )}
+
+            {/* Checking PromptInput props in Step 1320:
+                isOptimizing={isOptimizing}
+                onPromptChange={setPrompt}
+                onClearPrompt={() => setPrompt('')}
+                onClearParent={...}
+                onOptimize={handleOptimizePrompt}
+                onDescribe={...}
+                
+                It DOES NOT have setIsPromptPrivate, setParentAuthorUsername, setParentGenerationId in Step 1320.
+                So I should NOT include them if they were removed/not there. 
+                I will stick to Step 1320 content for props.
+            */}
+
+            {/* 4. Reference Image for IMAGES mode */}
+            <ImageUploader
+              t={t}
+              mediaType={mediaType}
+              generationMode={generationMode}
+              selectedModel={selectedModel}
+              uploadedImages={uploadedImages}
+              parentGenerationId={parentGenerationId}
+              maxImages={maxImages}
+              isUploadingImage={isUploadingImage}
+              fileInputRef={fileInputRef}
+              onProcessPastedFiles={async (files) => {
+                await processPastedFiles(files)
+              }}
+              onRemoveUploadedImage={removeUploadedImage}
+              onSetUploadedImages={setUploadedImages}
+            // Step 1238 chunk had uploadedVideoUrl etc. But Step 1320 content is different.
+            // I assume Step 1320 is the source of truth for existing file state.
+            />
+
+            <SettingsPanel
+              t={t}
+              selectedModel={selectedModel}
+              ratios={ratios}
+              aspectRatio={aspectRatio}
+              ratioEmojis={RATIO_EMOJIS}
+              ratioDisplayNames={RATIO_DISPLAY_NAMES}
+              gptImageQuality={gptImageQuality}
+              gptImagePrices={GPT_IMAGE_PRICES}
+              resolution={resolution}
+              onSetAspectRatio={setAspectRatio}
+              onSetResolution={setResolution}
+              onSetGptImageQuality={setGptImageQuality}
+              onImpact={impact}
+            />
+
+            <VideoSettings
+              t={t}
+              mediaType={mediaType}
+              selectedModel={selectedModel}
+              videoDuration={videoDuration}
+              videoResolution={videoResolution}
+              fixedLens={fixedLens}
+              generateAudio={generateAudio}
+              klingDuration={klingDuration}
+              klingSound={klingSound}
+              klingMCQuality={klingMCQuality}
+              characterOrientation={characterOrientation}
+              uploadedImages={uploadedImages}
+              uploadedVideoUrl={uploadedVideoUrl}
+              videoDurationSeconds={videoDurationSeconds}
+              isUploadingVideo={isUploadingVideo}
+              videoInputRef={videoInputRef}
+              prompt={prompt}
+              onSetVideoDuration={setVideoDuration}
+              onSetVideoResolution={setVideoResolution}
+              onSetFixedLens={setFixedLens}
+              onSetGenerateAudio={setGenerateAudio}
+              onSetKlingDuration={setKlingDuration}
+              onSetKlingSound={setKlingSound}
+              onSetKlingMCQuality={setKlingMCQuality}
+              onSetCharacterOrientation={setCharacterOrientation}
+              onSetUploadedImages={setUploadedImages}
+              onSetUploadedVideoUrl={setUploadedVideoUrl}
+              onSetVideoDurationSeconds={setVideoDurationSeconds}
+              onSetIsUploadingVideo={setIsUploadingVideo}
+              onSetPrompt={setPrompt}
+              onSetError={setError}
+              onImpact={impact}
+            />
+
+            {/* Generate Button Fixed at Bottom */}
+            <div className={`fixed left-0 right-0 bottom-[84px] z-40 px-4 transition-all duration-300 ${isFullScreen ? 'translate-y-[150%]' : 'translate-y-0'}`}>
+              {/* Error Message */}
+              {error && (
+                <div className={`${error.includes('Время ожидания') ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'} border rounded-xl p-3 flex items-center gap-3 text-sm animate-in fade-in slide-in-from-bottom-2`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${error.includes('Время ожидания') ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                  {error}
+                </div>
+              )}
+
+              {/* Active Generations Panel */}
+              <ActiveGenerationsPanel onViewResult={handleViewGenerationResult} />
+
+              <GenerateButton
+                t={t}
+                mediaType={mediaType}
+                imageCount={imageCount}
+                availableSlots={availableSlots}
+                showCountSelector={showCountSelector}
+                isDisabled={isGenerateDisabled}
+                priceLabel={priceLabel}
+                onToggleCountSelector={() => setShowCountSelector(prev => !prev)}
+                onCloseCountSelector={() => setShowCountSelector(false)}
+                onSelectImageCount={setImageCount}
+                onImpact={impact}
+                onGenerate={handleGenerate}
+              />
+            </div>
+          </>
         )}
 
-        {/* Active Generations Panel */}
-        <ActiveGenerationsPanel onViewResult={handleViewGenerationResult} />
+        <InsufficientBalanceModal
+          isOpen={showBalancePopup}
+          onClose={() => setShowBalancePopup(false)}
+          onBuyTokens={() => {
+            impact('medium')
+            setShowBalancePopup(false)
+            setIsPaymentModalOpen(true)
+          }}
+        />
 
-        <GenerateButton
-          t={t}
-          mediaType={mediaType}
-          imageCount={imageCount}
-          availableSlots={availableSlots}
-          showCountSelector={showCountSelector}
-          isDisabled={isGenerateDisabled}
-          priceLabel={priceLabel}
-          onToggleCountSelector={() => setShowCountSelector(prev => !prev)}
-          onCloseCountSelector={() => setShowCountSelector(false)}
-          onSelectImageCount={setImageCount}
-          onImpact={impact}
-          onGenerate={handleGenerate}
+        <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
+        <DescribeImageModal
+          isOpen={isDescribeModalOpen}
+          onClose={() => setIsDescribeModalOpen(false)}
+          onPromptGenerated={(generatedPrompt) => {
+            setPrompt(generatedPrompt)
+          }}
+        />
+
+        <TimeoutModal
+          isOpen={showTimeoutModal}
+          onClose={() => setShowTimeoutModal(false)}
+        />
+
+        {/* Persistent File Input */}
+        <input
+          key={inputKey}
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageUpload}
+          className="hidden"
+          onClick={(e) => {
+            e.stopPropagation();
+            (e.target as HTMLInputElement).value = '';
+          }}
+        />
+
+        {/* Camera Input */}
+        <input
+          key={`camera-${inputKey}`}
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          className="hidden"
+          onClick={(e) => {
+            e.stopPropagation();
+            (e.target as HTMLInputElement).value = '';
+          }}
         />
 
       </div>
-
-      <InsufficientBalanceModal
-        isOpen={showBalancePopup}
-        onClose={() => setShowBalancePopup(false)}
-        onBuyTokens={() => {
-          impact('medium')
-          setShowBalancePopup(false)
-          setIsPaymentModalOpen(true)
-        }}
-      />
-
-      <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} />
-      <DescribeImageModal
-        isOpen={isDescribeModalOpen}
-        onClose={() => setIsDescribeModalOpen(false)}
-        onPromptGenerated={(generatedPrompt) => {
-          setPrompt(generatedPrompt)
-        }}
-      />
-
-      <TimeoutModal
-        isOpen={showTimeoutModal}
-        onClose={() => setShowTimeoutModal(false)}
-      />
-
-      {/* Persistent File Input */}
-      <input
-        key={inputKey}
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleImageUpload}
-        className="hidden"
-        onClick={(e) => {
-          e.stopPropagation();
-          (e.target as HTMLInputElement).value = '';
-        }}
-      />
-
-      {/* Camera Input */}
-      <input
-        key={`camera-${inputKey}`}
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleImageUpload}
-        className="hidden"
-        onClick={(e) => {
-          e.stopPropagation();
-          (e.target as HTMLInputElement).value = '';
-        }}
-      />
     </div>
   )
 }

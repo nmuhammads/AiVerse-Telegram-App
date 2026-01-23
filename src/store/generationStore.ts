@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type ModelType = 'nanobanana-pro' | 'seedream4' | 'nanobanana' | 'seedream4-5' | 'p-image-edit' | 'seedance-1.5-pro' | 'gpt-image-1.5' | 'test-model' | 'kling-t2v' | 'kling-i2v' | 'kling-mc'
 
@@ -85,6 +86,8 @@ export interface GenerationState {
   uploadedVideoUrl: string | null
   // Длительность загруженного видео в секундах
   videoDurationSeconds: number
+  // Режим экрана Студии
+  studioMode: 'studio' | 'chat'
 }
 
 export interface GenerationActions {
@@ -155,6 +158,8 @@ export interface GenerationActions {
 
   // Сбросить состояние
   reset: () => void
+  // Установить режим студии
+  setStudioMode: (mode: 'studio' | 'chat') => void
 }
 
 const initialState: GenerationState = {
@@ -189,78 +194,88 @@ const initialState: GenerationState = {
   klingMCQuality: '720p',
   characterOrientation: 'video',
   uploadedVideoUrl: null,
-  videoDurationSeconds: 0
+  videoDurationSeconds: 0,
+  studioMode: 'studio'
 }
 
 export const useGenerationStore = create<GenerationState & GenerationActions>()(
-  (set) => ({
-    ...initialState,
+  persist(
+    (set) => ({
+      ...initialState,
 
-    setSelectedModel: (model) => set({ selectedModel: model }),
-    setMediaType: (type) => set({ mediaType: type }),
-    setPrompt: (prompt) => set({ prompt }),
-    setNegativePrompt: (negativePrompt) => set({ negativePrompt }),
-    setUploadedImages: (images) => set({ uploadedImages: images }),
-    addUploadedImage: (image) => set((state) => ({ uploadedImages: [...state.uploadedImages, image] })),
-    removeUploadedImage: (index) => set((state) => ({ uploadedImages: state.uploadedImages.filter((_, i) => i !== index) })),
-    setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
-    setGenerationMode: (mode) => set({ generationMode: mode }),
-    setGeneratedImage: (image) => set({ generatedImage: image }),
-    setGeneratedVideo: (video) => set({ generatedVideo: video }),
-    setIsGenerating: (isGenerating) => set({ isGenerating }),
-    setError: (error) => set({ error }),
-    setImageCount: (count) => set({ imageCount: count }),
-    setGeneratedImages: (images) => set({ generatedImages: images }),
-    setCurrentScreen: (screen) => set({ currentScreen: screen }),
-    setParentGeneration: (id, username, isPrivate = false) => set({ parentGenerationId: id, parentAuthorUsername: username, isPromptPrivate: isPrivate }),
+      setSelectedModel: (model) => set({ selectedModel: model }),
+      setMediaType: (type) => set({ mediaType: type }),
+      setPrompt: (prompt) => set({ prompt }),
+      setNegativePrompt: (negativePrompt) => set({ negativePrompt }),
+      setUploadedImages: (images) => set({ uploadedImages: images }),
+      addUploadedImage: (image) => set((state) => ({ uploadedImages: [...state.uploadedImages, image] })),
+      removeUploadedImage: (index) => set((state) => ({ uploadedImages: state.uploadedImages.filter((_, i) => i !== index) })),
+      setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
+      setGenerationMode: (mode) => set({ generationMode: mode }),
+      setGeneratedImage: (image) => set({ generatedImage: image }),
+      setGeneratedVideo: (video) => set({ generatedVideo: video }),
+      setIsGenerating: (isGenerating) => set({ isGenerating }),
+      setError: (error) => set({ error }),
+      setImageCount: (count) => set({ imageCount: count }),
+      setGeneratedImages: (images) => set({ generatedImages: images }),
+      setCurrentScreen: (screen) => set({ currentScreen: screen }),
+      setParentGeneration: (id, username, isPrivate = false) => set({ parentGenerationId: id, parentAuthorUsername: username, isPromptPrivate: isPrivate }),
 
-    // Видео actions
-    setVideoDuration: (duration) => set({ videoDuration: duration }),
-    setVideoResolution: (resolution) => set({ videoResolution: resolution }),
-    setFixedLens: (fixed) => set({ fixedLens: fixed }),
-    setGenerateAudio: (generate) => set({ generateAudio: generate }),
+      // Видео actions
+      setVideoDuration: (duration) => set({ videoDuration: duration }),
+      setVideoResolution: (resolution) => set({ videoResolution: resolution }),
+      setFixedLens: (fixed) => set({ fixedLens: fixed }),
+      setGenerateAudio: (generate) => set({ generateAudio: generate }),
 
-    // GPT Image 1.5 actions
-    setGptImageQuality: (quality) => set({ gptImageQuality: quality }),
+      // GPT Image 1.5 actions
+      setGptImageQuality: (quality) => set({ gptImageQuality: quality }),
 
-    // Kling AI actions
-    setKlingVideoMode: (mode) => set({ klingVideoMode: mode }),
-    setKlingDuration: (duration) => set({ klingDuration: duration }),
-    setKlingSound: (sound) => set({ klingSound: sound }),
-    setKlingMCQuality: (quality) => set({ klingMCQuality: quality }),
-    setCharacterOrientation: (orientation) => set({ characterOrientation: orientation }),
-    setUploadedVideoUrl: (url) => set({ uploadedVideoUrl: url }),
-    setVideoDurationSeconds: (seconds) => set({ videoDurationSeconds: seconds }),
+      // Kling AI actions
+      setKlingVideoMode: (mode) => set({ klingVideoMode: mode }),
+      setKlingDuration: (duration) => set({ klingDuration: duration }),
+      setKlingSound: (sound) => set({ klingSound: sound }),
+      setKlingMCQuality: (quality) => set({ klingMCQuality: quality }),
+      setCharacterOrientation: (orientation) => set({ characterOrientation: orientation }),
+      setUploadedVideoUrl: (url) => set({ uploadedVideoUrl: url }),
+      setVideoDurationSeconds: (seconds) => set({ videoDurationSeconds: seconds }),
+      setStudioMode: (mode) => set({ studioMode: mode }),
 
-    reset: () => set({
-      prompt: '',
-      negativePrompt: '',
-      uploadedImages: [],
-      generationMode: 'text',
-      generatedImage: null,
-      generatedVideo: null,
-      isGenerating: false,
-      error: null,
-      currentScreen: 'form',
-      parentGenerationId: null,
-      parentAuthorUsername: null,
-      isPromptPrivate: false,
-      imageCount: 1,
-      generatedImages: [],
-      videoDuration: '8',
-      videoResolution: '720p',
-      fixedLens: false,
-      generateAudio: false,
-      gptImageQuality: 'medium',
-      // Kling reset
-      klingVideoMode: 't2v',
-      klingDuration: '5',
-      klingSound: false,
-      klingMCQuality: '720p',
-      characterOrientation: 'video',
-      uploadedVideoUrl: null,
-      videoDurationSeconds: 0
-    })
-  })
+      reset: () => set({
+        prompt: '',
+        negativePrompt: '',
+        uploadedImages: [],
+        generationMode: 'text',
+        generatedImage: null,
+        generatedVideo: null,
+        isGenerating: false,
+        error: null,
+        currentScreen: 'form',
+        parentGenerationId: null,
+        parentAuthorUsername: null,
+        isPromptPrivate: false,
+        imageCount: 1,
+        generatedImages: [],
+        videoDuration: '8',
+        videoResolution: '720p',
+        fixedLens: false,
+        generateAudio: false,
+        gptImageQuality: 'medium',
+        // Kling reset
+        klingVideoMode: 't2v',
+        klingDuration: '5',
+        klingSound: false,
+        klingMCQuality: '720p',
+        characterOrientation: 'video',
+        uploadedVideoUrl: null,
+        videoDurationSeconds: 0
+      })
+    }),
+    {
+      name: 'generation-storage',
+      partialize: (state) => ({
+        studioMode: state.studioMode
+      }),
+    }
+  )
 )
 

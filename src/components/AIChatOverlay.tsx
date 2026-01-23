@@ -145,7 +145,11 @@ function parseInline(text: string): React.ReactNode {
     return parts.length === 1 ? parts[0] : <>{parts}</>
 }
 
-export function AIChatOverlay() {
+interface AIChatOverlayProps {
+    variant?: 'overlay' | 'inline'
+}
+
+export function AIChatOverlay({ variant = 'overlay' }: AIChatOverlayProps) {
     const { t } = useTranslation()
     const {
         isOpen,
@@ -173,13 +177,25 @@ export function AIChatOverlay() {
     const [showImageModelSelector, setShowImageModelSelector] = useState(false)
     const [showModelConfirm, setShowModelConfirm] = useState(false)
     const [pendingModel, setPendingModel] = useState<ChatModel | null>(null)
+    const isInline = variant === 'inline'
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const messagesContainerRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLTextAreaElement>(null)
 
-    // Автопрокрутка к последнему сообщению
+    const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+        const container = messagesContainerRef.current
+        if (!container) return
+        container.scrollTo({ top: container.scrollHeight, behavior })
+    }
+
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+        scrollToBottom('smooth')
+    }, [messages.length])
+
+    useEffect(() => {
+        const id = requestAnimationFrame(() => scrollToBottom('auto'))
+        return () => cancelAnimationFrame(id)
+    }, [isInline])
 
     // Фокус на input при открытии
     useEffect(() => {
@@ -188,7 +204,10 @@ export function AIChatOverlay() {
         }
     }, [isOpen])
 
-    if (!isOpen) return null
+    if (!isOpen && variant !== 'inline') return null
+    const containerClasses = isInline
+        ? 'relative w-full h-full flex flex-col bg-black'
+        : 'fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-xl'
 
     const handleSend = async () => {
         const text = input.trim()
@@ -335,7 +354,7 @@ export function AIChatOverlay() {
 
     const platform = WebApp.platform
     // Оффсет для Header: safe-area + 60px для Header + небольшой отступ
-    const headerOffset = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 65px)' : 'calc(env(safe-area-inset-top) + 90px)'
+    const headerOffset = isInline ? '0px' : (platform === 'ios' ? 'calc(env(safe-area-inset-top) + 65px)' : 'calc(env(safe-area-inset-top) + 90px)')
     const bottomPadding = platform === 'ios' ? 'pb-[env(safe-area-inset-bottom)]' : 'pb-4'
 
     // Обработчики для модального окна подтверждения смены модели
@@ -401,13 +420,16 @@ export function AIChatOverlay() {
                 </div>
             )}
 
-            {/* Full-screen black backdrop to hide content behind chat (below Header z-50) */}
-            <div className="fixed inset-0 z-[45] bg-black" />
+            {/* Full-screen black backdrop - only for overlay */}
+            {!isInline && <div className="fixed inset-0 z-[45] bg-black" />}
 
-            {/* Chat Overlay - positioned below Header */}
+            {/* Chat Overlay */}
             <div
-                className="fixed left-0 right-0 bottom-0 z-[60] bg-black flex flex-col border-t border-white/10 rounded-t-2xl"
-                style={{ top: headerOffset }}
+                className={isInline
+                    ? "relative flex flex-col w-full h-full min-h-0 bg-black border-t-0"
+                    : "fixed left-0 right-0 bottom-0 z-[60] bg-black flex flex-col min-h-0 border-t border-white/10 rounded-t-2xl"
+                }
+                style={isInline ? {} : { top: headerOffset }}
             >
                 {/* Chat Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -511,25 +533,33 @@ export function AIChatOverlay() {
                         )}
 
                         {/* Minimize */}
-                        <button
-                            onClick={minimizeChat}
-                            className="p-2 rounded-lg bg-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-colors"
-                        >
-                            <Minimize2 size={18} />
-                        </button>
+                        {!isInline && (
+                            <button
+                                onClick={minimizeChat}
+                                className="p-2 rounded-lg bg-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-colors"
+                            >
+                                <Minimize2 size={18} />
+                            </button>
+                        )}
 
                         {/* Close */}
-                        <button
-                            onClick={closeChat}
-                            className="p-2 rounded-lg bg-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
+                        {!isInline && (
+                            <button
+                                onClick={closeChat}
+                                className="p-2 rounded-lg bg-white/10 text-white/60 hover:text-white hover:bg-white/15 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                <div
+                    ref={messagesContainerRef}
+                    className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4"
+                    style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
+                >
                     {messages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center text-white/40">
                             <Bot className="w-12 h-12 mb-4 opacity-50" />
@@ -682,6 +712,7 @@ export function AIChatOverlay() {
                     </div>
                 </div>
             </div>
+
         </>
     )
 }
