@@ -249,7 +249,7 @@ export default function Studio() {
     return (
       <div className="bg-black fixed inset-0 overflow-hidden z-0" style={{ paddingTop: chatPaddingTop }}>
         {/* Header - prevent touch scrolling on background */}
-        <div className="mx-auto max-w-3xl w-full px-4 pt-4 pb-1 touch-none select-none">
+        <div className="relative z-40 mx-auto max-w-3xl w-full px-4 pt-4 pb-1 touch-none select-none">
           <StudioHeader
             t={t}
             balance={balance}
