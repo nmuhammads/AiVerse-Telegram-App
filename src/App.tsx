@@ -25,6 +25,8 @@ import WebApp from "@twa-dev/sdk";
 import { AnnouncementModal } from "@/components/AnnouncementModal";
 import { CloudflareProxyProvider } from "@/contexts/CloudflareProxyContext";
 import { DebugOverlay } from "@/components/DebugOverlay";
+import { AIChatOverlay } from "@/components/AIChatOverlay";
+import { AIFloatingButton } from "@/components/AIFloatingButton";
 
 function StartParamRouter() {
   const navigate = useNavigate();
@@ -47,6 +49,10 @@ function StartParamRouter() {
       // Handle legacy/simple params
       if (p === "generate" || p === "studio") {
         navigate("/studio", { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
+      if (p === "chat") {
+        navigate("/studio?mode=chat", { replace: true, state: { fromDeepLink: true } });
         return;
       }
       if (p === "home") {
@@ -166,6 +172,7 @@ export default function App() {
           <div className="flex-1">
             <Routes>
               <Route path="/" element={<PageErrorBoundary pageName="Лента"><Home /></PageErrorBoundary>} />
+              <Route path="/chat" element={<Navigate to="/studio?mode=chat" replace />} />
               <Route path="/studio" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
               <Route path="/top" element={<PageErrorBoundary pageName="Рейтинг"><Leaderboard /></PageErrorBoundary>} />
               <Route path="/profile" element={<PageErrorBoundary pageName="Профиль"><Profile /></PageErrorBoundary>} />
@@ -188,6 +195,8 @@ export default function App() {
           <PendingIndicator />
           <AnnouncementModal />
           <DebugOverlay />
+          <AIChatOverlay />
+          <AIFloatingButton />
         </div>
       </Router>
       <Toaster />
