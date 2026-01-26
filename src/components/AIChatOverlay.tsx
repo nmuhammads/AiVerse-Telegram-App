@@ -26,7 +26,7 @@ const MODELS: { id: ChatModel; name: string; shortName: string }[] = [
 const IMAGE_MODELS: { id: ImageModel; name: string; price: number; shortName: string }[] = [
     { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 2, shortName: 'Z-Image' },
     { id: 'qwen-image', name: 'Qwen Image', price: 2, shortName: 'Qwen' },
-    { id: 'qwen-image-plus', name: 'Qwen Image +', price: 4, shortName: 'Qwen +' }
+    { id: 'qwen-image-plus', name: 'Qwen Image +', price: 3, shortName: 'Qwen +' }
 ]
 
 // Модели поддерживающие i2i
@@ -58,7 +58,7 @@ function parseImageCommand(text: string): PendingImageGeneration | null {
         return {
             prompt: json.prompt,
             model: json.model as ImageModel,
-            size: json.size || '1024x1024',
+            size: json.size || json.resolution || '1024x1024',
             cost: validModel.price,
             image: json.image
         }

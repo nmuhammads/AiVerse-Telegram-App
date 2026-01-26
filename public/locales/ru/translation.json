@@ -132,6 +132,10 @@
                 "name": "GPT image 1.5",
                 "desc": "от 5 токенов"
             },
+            "qwen-image": {
+                "name": "Qwen Image",
+                "desc": "3 токена"
+            },
             "test-model": {
                 "name": "🧪 Test Model",
                 "desc": "0 токенов"

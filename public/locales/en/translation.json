@@ -131,6 +131,10 @@
                 "name": "GPT image 1.5",
                 "desc": "from 5 tokens"
             },
+            "qwen-image": {
+                "name": "Qwen Image",
+                "desc": "3 tokens"
+            },
             "test-model": {
                 "name": "🧪 Test Model",
                 "desc": "0 tokens"

@@ -28,14 +28,14 @@ export interface NanoImageResult {
 export const NANO_IMAGE_PRICES: Record<NanoImageModel, number> = {
     'z-image-turbo': 2,
     'qwen-image': 2,
-    'qwen-image-plus': 4
+    'qwen-image-plus': 3
 }
 
 // Доступные модели для AI-агента
 export const NANO_IMAGE_MODELS: { id: NanoImageModel; name: string; price: number }[] = [
     { id: 'z-image-turbo', name: 'Z-Image Turbo', price: 2 },
     { id: 'qwen-image', name: 'Qwen Image', price: 2 },
-    { id: 'qwen-image-plus', name: 'Qwen Image +', price: 4 }
+    { id: 'qwen-image-plus', name: 'Qwen Image +', price: 3 }
 ]
 
 /**
@@ -143,8 +143,8 @@ export async function generateNanoGPTImage(params: NanoImageParams): Promise<Nan
     let totalCost = data.cost || 0
 
     // --- NSFW CHECK ---
-    // Skip NSFW check for 'plus' models (unrestricted)
-    if (model !== 'qwen-image-plus') {
+    // Skip NSFW check for qwen models and Z-Image (unrestricted)
+    if (model !== 'qwen-image-plus' && model !== 'qwen-image' && model !== 'z-image-turbo') {
         try {
             const checkImage = resultUrl || (resultB64 ? `data:image/jpeg;base64,${resultB64}` : null)
             if (checkImage) {
