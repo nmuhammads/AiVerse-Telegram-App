@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, MessageSquare, ArrowUpRight } from 'lucide-react'
+import { useTranslation, Trans } from 'react-i18next'
 
 const STORAGE_KEY = 'has_seen_chat_onboarding_v1'
 
 export function ChatOnboardingOverlay() {
+    const { t } = useTranslation()
     const [isVisible, setIsVisible] = useState(false)
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
     const [retryCount, setRetryCount] = useState(0)
@@ -103,11 +105,14 @@ export function ChatOnboardingOverlay() {
                         <div className="w-10 h-10 rounded-full bg-violet-600/20 flex items-center justify-center text-violet-400">
                             <MessageSquare size={20} />
                         </div>
-                        <h3 className="font-bold text-white text-lg">Режим Чата</h3>
+                        <h3 className="font-bold text-white text-lg">{t('chatOnboarding.title')}</h3>
                     </div>
 
                     <p className="text-white/80 text-sm leading-relaxed mb-4">
-                        Нажмите на выделенную кнопку <b>Chat</b>, чтобы переключиться в режим общения с AI-ассистентом.
+                        <Trans
+                            i18nKey="chatOnboarding.description"
+                            components={{ 1: <b /> }}
+                        />
                     </p>
 
                     <div className="flex justify-end">
@@ -115,7 +120,7 @@ export function ChatOnboardingOverlay() {
                             onClick={handleClose}
                             className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-xl text-sm transition-colors flex items-center gap-2"
                         >
-                            <span>Понятно</span>
+                            <span>{t('chatOnboarding.button')}</span>
                             <ArrowUpRight size={16} />
                         </button>
                     </div>

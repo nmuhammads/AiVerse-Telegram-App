@@ -405,6 +405,19 @@ export function useStudio() {
                         image_count: currentParams.imageCount
                     }
 
+                    if (currentParams.selectedModel === 'qwen-image') {
+                        const resolutionMap: Record<string, string> = {
+                            '1:1': '1024x1024',
+                            '3:4': '768x1024',
+                            '9:16': '576x1024',
+                            '4:3': '1024x768',
+                            '16:9': '1024x576',
+                            'Auto': 'auto'
+                        }
+                        requestBody.resolution = resolutionMap[currentParams.aspectRatio] || '1024x1024'
+                        delete requestBody.aspect_ratio
+                    }
+
                     if (currentParams.selectedModel === 'seedance-1.5-pro') {
                         requestBody.video_duration = currentParams.videoDuration
                         requestBody.video_resolution = currentParams.videoResolution
@@ -615,7 +628,7 @@ export function useStudio() {
     })()
 
     const isGenerateDisabled = (!prompt.trim() && selectedModel !== 'kling-mc' && !(isPromptPrivate && parentGenerationId))
-        || (aspectRatio === 'Auto' && selectedModel !== 'kling-mc')
+        || (aspectRatio === 'Auto' && !['kling-mc', 'qwen-image'].includes(selectedModel))
         || (generationMode === 'image' && uploadedImages.length === 0)
         || (selectedModel === 'kling-mc' && (!uploadedVideoUrl || (characterOrientation === 'image' && videoDurationSeconds > 10) || (characterOrientation === 'video' && videoDurationSeconds > 30)))
 

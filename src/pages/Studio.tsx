@@ -360,6 +360,7 @@ export default function Studio() {
               }}
               onOptimize={handleOptimizePrompt}
               onDescribe={() => { impact('light'); setIsDescribeModalOpen(true) }}
+              selectedModel={selectedModel}
 
             />
           )}
@@ -463,7 +464,7 @@ export default function Studio() {
           </div>
 
           {/* Spacer to push content above fixed panel */}
-          <div className={hasActiveGens ? 'h-[200px]' : 'h-24'} />
+          <div className={hasActiveGens ? 'h-[160px]' : 'h-24'} />
         </>
 
         <InsufficientBalanceModal

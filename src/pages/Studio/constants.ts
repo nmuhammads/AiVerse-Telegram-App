@@ -7,6 +7,7 @@ const ALL_IMAGE_MODELS: { id: ModelType; color: string; icon: string; devOnly?: 
     { id: 'seedream4', color: 'from-purple-400 to-fuchsia-500', icon: '/models/optimized/seedream.png' },
     { id: 'seedream4-5', color: 'from-blue-400 to-indigo-500', icon: '/models/optimized/seedream-4-5.png' },
     { id: 'gpt-image-1.5', color: 'from-cyan-400 to-blue-500', icon: '/models/optimized/gpt-image.png' },
+    { id: 'qwen-image', color: 'from-violet-500 to-fuchsia-500', icon: '/models/optimized/qwen.png' },
     { id: 'test-model', color: 'from-green-400 to-emerald-500', icon: '/models/optimized/nanobanana.png', devOnly: true },
 ]
 
@@ -28,6 +29,7 @@ export const MODEL_PRICES: Record<ModelType, number> = {
     'p-image-edit': 2,
     'seedance-1.5-pro': 42,
     'gpt-image-1.5': 5,
+    'qwen-image': 2,
     'test-model': 0,
     'kling-t2v': 55,
     'kling-i2v': 55,
@@ -48,6 +50,7 @@ export const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
     'p-image-edit': ['Auto', '1:1', '16:9', '9:16', '4:3', '3:4'],
     'seedance-1.5-pro': ['1:1', '16:9', '9:16', '4:3', '3:4', '21:9'],
     'gpt-image-1.5': ['1:1', '2:3', '3:2'],
+    'qwen-image': ['Auto', '1:1', '3:4', '9:16', '4:3', '16:9'],
     'test-model': ['1:1', '16:9', '9:16'],
     'kling-t2v': ['1:1', '16:9', '9:16'],
     'kling-i2v': ['1:1', '16:9', '9:16'],

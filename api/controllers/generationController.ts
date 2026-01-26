@@ -11,6 +11,7 @@ import { tg } from './telegramController.js'
 import { createNotification, getUserNotificationSettings } from './notificationController.js'
 import { createPiapiTask, pollPiapiTask, checkPiapiTask } from '../services/piapiService.js'
 import { getAppConfig, setAppConfig } from '../services/supabaseService.js'
+import { generateNanoGPTImage } from '../services/nanoImageService.js'
 
 interface KieAIRequest {
   model: string
@@ -61,6 +62,7 @@ const MODEL_CONFIGS = {
   'kling-t2v': { kind: 'jobs' as const, model: 'kling-2.6/text-to-video', mediaType: 'video' as const },
   'kling-i2v': { kind: 'jobs' as const, model: 'kling-2.6/image-to-video', mediaType: 'video' as const },
   'kling-mc': { kind: 'jobs' as const, model: 'kling-2.6/motion-control', mediaType: 'video' as const },
+  'qwen-image': { kind: 'nanogpt' as const, model: 'qwen-image' },
 }
 
 // Маппинг внешних API имён моделей (от Kie.ai) к внутренним именам
@@ -787,6 +789,28 @@ async function generateImageWithKieAI(
       const testImage = `https://placehold.co/1024x1024/8b5cf6/ffffff/png?text=Test+${Date.now()}`
       console.log('[Test Model] Returning test image:', testImage)
       return { images: [testImage], inputImages: imageUrls }
+    }
+
+    // NanoGPT Models (Qwen Image)
+    if (cfg.kind === 'nanogpt') {
+      console.log(`[NanoGPT] Generating using model: ${model}`)
+
+      const result = await generateNanoGPTImage({
+        prompt,
+        model: 'qwen-image', // Explicitly cast to known model type if needed, or use model as is if matches
+        size: resolution || '1024x1024', // Use explicit resolution or default
+        image: imageUrls.length > 0 ? imageUrls[0] : undefined // Use first image for i2i
+      })
+
+      if (result.url) {
+        return { images: [result.url], inputImages: imageUrls }
+      } else if (result.b64_json) {
+        // Handle base64 response by saving it
+        const saved = saveBase64Image(result.b64_json)
+        return { images: [saved.publicUrl], inputImages: imageUrls }
+      }
+
+      throw new Error('NanoGPT did not return an image URL or base64')
     }
 
     if (cfg.kind === 'flux-kontext') {
