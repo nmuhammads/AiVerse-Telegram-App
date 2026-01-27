@@ -39,7 +39,7 @@ export function PromptInput({
     setTimeout(() => {
       textareaRef.current?.scrollIntoView({
         behavior: 'smooth',
-        block: 'nearest',
+        block: 'center',
       })
     }, 300)
   }
