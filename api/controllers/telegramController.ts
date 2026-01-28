@@ -915,9 +915,43 @@ export async function sendWithPrompt(req: Request, res: Response) {
         const ab = await mediaResp.arrayBuffer()
         const ct = mediaResp.headers.get('content-type') || (video ? 'video/mp4' : 'image/jpeg')
         const isVideoContent = ct.includes('video/')
-        const ext = isVideoContent ? 'mp4' : 'jpg' // simplified
+
+        // Compress image if too large for Telegram (10MB limit for photos)
+        const MAX_PHOTO_SIZE = 10 * 1024 * 1024 // 10MB
+        const originalBuffer = Buffer.from(new Uint8Array(ab))
+        let finalBuffer: Buffer<ArrayBufferLike> = originalBuffer
+        let finalContentType = ct
+
+        if (!isVideoContent && finalBuffer.length > MAX_PHOTO_SIZE) {
+          console.info('sendWithPrompt:compressing', { originalSize: finalBuffer.length })
+          // Compress to JPEG with reduced quality
+          finalBuffer = await sharp(originalBuffer)
+            .jpeg({ quality: 85 })
+            .toBuffer()
+          finalContentType = 'image/jpeg'
+          console.info('sendWithPrompt:compressed', { newSize: finalBuffer.length })
+
+          // If still too large, compress more aggressively
+          if (finalBuffer.length > MAX_PHOTO_SIZE) {
+            finalBuffer = await sharp(originalBuffer)
+              .jpeg({ quality: 70 })
+              .toBuffer()
+            console.info('sendWithPrompt:compressed_more', { newSize: finalBuffer.length })
+          }
+
+          // If still too large after aggressive compression, resize the image
+          if (finalBuffer.length > MAX_PHOTO_SIZE) {
+            finalBuffer = await sharp(originalBuffer)
+              .resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true })
+              .jpeg({ quality: 75 })
+              .toBuffer()
+            console.info('sendWithPrompt:resized', { newSize: finalBuffer.length })
+          }
+        }
+
+        const ext = isVideoContent ? 'mp4' : 'jpg'
         const filename = `ai-${Date.now()}.${ext}`
-        const blob = new Blob([ab], { type: ct })
+        const blob = new Blob([new Uint8Array(finalBuffer)], { type: finalContentType })
 
         const form = new FormData()
         form.append('chat_id', String(chat_id))

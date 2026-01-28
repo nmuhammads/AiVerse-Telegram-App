@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Image as ImageIcon, Loader2, Sparkles, Wand2, X, Info } from 'lucide-react'
 import { type ModelType } from '@/store/generationStore'
@@ -31,6 +32,26 @@ export function PromptInput({
   onDescribe,
   selectedModel,
 }: PromptInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const handleFocus = () => {
+    // Небольшая задержка для корректной работы с виртуальной клавиатурой
+    setTimeout(() => {
+      if (!textareaRef.current) return
+
+      const rect = textareaRef.current.getBoundingClientRect()
+      const viewportHeight = window.visualViewport?.height || window.innerHeight
+      // Позиционируем поле в верхней трети видимой области (примерно 30% от верха)
+      const targetPosition = viewportHeight * 0.25
+      const scrollOffset = rect.top - targetPosition
+
+      window.scrollBy({
+        top: scrollOffset,
+        behavior: 'smooth'
+      })
+    }, 300)
+  }
+
   return (
     <div className="relative mt-1">
       {parentAuthorUsername && (
@@ -56,9 +77,12 @@ export function PromptInput({
         ) : (
           <>
             <textarea
+              ref={textareaRef}
               value={prompt}
               onChange={(e) => onPromptChange(e.target.value)}
+              onFocus={handleFocus}
               placeholder={t('studio.prompt.placeholder')}
+              style={{ scrollMarginTop: '100px' }}
               className={`prompt-input min-h-[120px] bg-zinc-900/30 backdrop-blur-sm no-scrollbar ${parentAuthorUsername ? 'border-violet-500/30 focus:border-violet-500/50' : ''}`}
             />
             {prompt && (
