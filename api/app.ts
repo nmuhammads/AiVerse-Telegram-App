@@ -65,26 +65,14 @@ app.use('/api/chat', chatRoutes)
 import { handlePiapiWebhook } from './controllers/generationController.js'
 app.post('/api/webhook/piapi', handlePiapiWebhook)
 
-/**
- * Serve frontend build
- */
-const appRoot = process.cwd()
-const clientDistPath = path.resolve(appRoot, 'dist')
-const uploadsPath = path.resolve(appRoot, 'uploads')
-app.use(express.static(clientDistPath))
-app.use('/uploads', express.static(uploadsPath))
-
+// Note: Frontend (Telegram Mini App) is deployed separately
+// This is now a pure API server
 
 /**
  * health
  */
 app.use('/api/health', (req: Request, res: Response): void => {
   res.status(200).json({ success: true, message: 'ok' })
-})
-
-// SPA fallback to index.html (after API routes and health)
-app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'))
 })
 
 /**
