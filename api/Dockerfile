@@ -15,9 +15,6 @@ RUN npm install
 # Копируем остальные файлы
 COPY . .
 
-# Компилируем TypeScript
-RUN npm run build
-
 # Открываем порт
 EXPOSE 3000
 
