@@ -2,24 +2,41 @@
   "name": "@aiverse/mobile",
   "version": "1.0.0",
   "private": true,
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aiverse/shared": "file:../../packages/shared",
+    "@expo/vector-icons": "^15.0.3",
     "expo": "~54.0.32",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.11",
+    "expo-router": "~6.0.22",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "~4.16.0",
     "zustand": "^5.0.3"
   },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
   "devDependencies": {
+    "@babel/plugin-transform-class-static-block": "^7.28.6",
+    "@babel/plugin-transform-parameters": "^7.27.7",
+    "@react-native/babel-preset": "^0.81.5",
+    "@react-native/gradle-plugin": "^0.81.5",
     "@types/react": "~19.1.0",
+    "babel-preset-expo": "^54.0.10",
     "typescript": "~5.9.2"
   }
 }

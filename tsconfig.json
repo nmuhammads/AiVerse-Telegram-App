@@ -8,15 +8,10 @@
     "allowSyntheticDefaultImports": true,
     "strict": false
   },
-  "references": [
-    {
-      "path": "./apps/telegram"
-    },
-    {
-      "path": "./packages/shared"
-    },
-    {
-      "path": "./api"
-    }
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "apps/mobile/android",
+    "apps/mobile/ios"
   ]
 }

@@ -15,7 +15,7 @@
     },
     "peerDependencies": {
         "zustand": "^5.0.0",
-        "react": ">=18.0.0"
+        "react": ">=19.0.0"
     },
     "devDependencies": {
         "typescript": "~5.8.0"
