@@ -1,133 +1,255 @@
-# AI Image Generator - Telegram Mini App
+# AiVerse — AI Image & Video Generator
 
-Telegram Mini App для генерации и редактирования изображений с использованием AI моделей через Kie.ai API.
+Монорепо проект для AI генерации изображений и видео. Telegram Mini App + React Native Mobile App с общим бэкендом.
 
-## Особенности
+## 🚀 Особенности
 
-- 🎨 **Множество AI моделей**: NanoBanana, NanoBanana Pro, SeeDream 4, SeeDream 4.5
+- 🎨 **Множество AI моделей**: NanoBanana, NanoBanana Pro, SeeDream 4/4.5, GPT Image 1.5, Qwen Image, Kling AI
 - 📱 **Telegram Mini App**: Полная интеграция с Telegram SDK
-- 🖼 **Лента работ (Feed)**: Просмотр работ сообщества, сортировка, лайки и ремиксы
-- 🛠 **Студия (Studio)**:
-  - Text-to-Image и Image-to-Image генерация
-  - Поддержка референсов и множественная загрузка
-  - Гибкие пропорции (1:1, 16:9, 9:16, 4:3 и др.)
-  - Выбор разрешения (2K/4K для Pro моделей)
-- 🎡 **Рулетка с бонусами (Wheel of Fortune)**: Ежедневная возможность выиграть токены и рейтинг
-- 🏆 **Конкурсы (Contests)**: Тематические соревнования, голосование и таблица лидеров
-- 👥 **Партнерская программа**: Реферальная система и бонусы
-- 🌓 **Адаптивный дизайн**: Современный UI с поддержкой темной темы
+- 📲 **Mobile App**: React Native (Expo) для iOS и Android
+- 🎬 **Генерация видео**: Text-to-Video и Image-to-Video через Kling AI
+- 🖼 **Лента работ**: Просмотр работ сообщества, лайки и ремиксы
+- 🤖 **AI Chat**: Встроенный чат-ассистент для помощи с промптами
+- 🏆 **Конкурсы**: Тематические соревнования и таблицы лидеров
+- 🌓 **Адаптивный дизайн**: Современный UI с поддержкой тёмной темы
 
-## Технологический стек
+---
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Backend**: Node.js, Express, TypeScript
-- **UI компоненты**: shadcn/ui (кастомная реализация)
-- **State Management**: Zustand
-- **Telegram SDK**: @twa-dev/sdk
-- **AI API**: Kie.ai (OpenAI-compatible)
+## 📁 Структура проекта
 
-## Установка и запуск
+```
+AiVerse-Telegram-App/
+├── apps/
+│   ├── telegram/           # React Web (Vite) — Telegram Mini App
+│   │   ├── src/
+│   │   │   ├── components/ # UI компоненты
+│   │   │   ├── pages/      # Страницы (Studio, Feed, Profile, etc)
+│   │   │   └── store/      # Zustand stores
+│   │   └── public/         # Статика, локализации
+│   │
+│   └── mobile/             # React Native (Expo) — Mobile App
+│       ├── App.tsx
+│       └── package.json
+│
+├── packages/
+│   └── shared/             # Общий код для обоих приложений
+│       ├── stores/         # Zustand stores
+│       ├── types/          # TypeScript типы
+│       └── i18n/           # Локализации (ru, en)
+│
+├── api/                    # Express backend
+│   ├── controllers/        # API контроллеры
+│   ├── routes/             # Роуты
+│   ├── services/           # Бизнес-логика (PIAPI, Supabase)
+│   └── server.ts           # Entry point
+│
+├── pnpm-workspace.yaml     # Workspaces config
+├── Dockerfile              # Production build
+└── railway.json            # Railway deploy config
+```
 
-### 1. Клонирование репозитория
+---
+
+## 🛠 Технологический стек
+
+### Frontend (Telegram Mini App)
+- **Framework**: React 18, TypeScript
+- **Build**: Vite
+- **Styling**: Tailwind CSS
+- **State**: Zustand
+- **i18n**: i18next
+- **SDK**: @twa-dev/sdk, @telegram-apps/sdk
+
+### Frontend (Mobile)
+- **Framework**: React Native 0.81, Expo 54
+- **Navigation**: Expo Router (в разработке)
+- **State**: Zustand (shared)
+
+### Backend
+- **Runtime**: Node.js 22
+- **Framework**: Express 4
+- **Language**: TypeScript
+- **Database**: PostgreSQL (Supabase)
+- **AI APIs**: PIAPI (NanoBanana, SeeDream, Kling)
+
+### Infrastructure
+- **Deploy**: Railway (unified service)
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Supabase Storage
+- **CDN**: Cloudflare
+
+---
+
+## 🏗 Установка и запуск
+
+### Требования
+
+- Node.js 22+
+- pnpm (npm или yarn тоже работают)
+- Для Mobile: Expo CLI, Android Studio / Xcode
+
+### 1. Клонирование
 
 ```bash
-git clone <repository-url>
-cd ai-image-generator-tma
+git clone https://github.com/your-username/AiVerse-Telegram-App.git
+cd AiVerse-Telegram-App
 ```
 
 ### 2. Установка зависимостей
 
 ```bash
-pnpm install
+# Корневые зависимости
+npm install
+
+# Telegram Mini App
+cd apps/telegram && npm install && cd ../..
+
+# Mobile App
+cd apps/mobile && npm install && cd ../..
 ```
 
-### 3. Настройка переменных окружения
-
-Скопируйте `.env.example` в `.env` и заполните необходимые переменные:
+### 3. Настройка окружения
 
 ```bash
 cp .env.example .env
 ```
 
-**Необходимые переменные:**
-- `KIE_API_KEY` - API ключ от Kie.ai
-- `NODE_ENV` - окружение (development/production)
-- `PORT` - порт для сервера (по умолчанию 3000)
+**Основные переменные:**
+```env
+# AI API
+PIAPI_KEY=your_piapi_key
 
-### 4. Запуск в режиме разработки
+# Supabase
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_KEY=your_service_key
+SUPABASE_ANON_KEY=your_anon_key
+
+# Telegram
+TELEGRAM_BOT_TOKEN=your_bot_token
+WEBAPP_URL=https://your-app.railway.app
+
+# Server
+PORT=3000
+NODE_ENV=development
+```
+
+### 4. Запуск
 
 ```bash
-pnpm run dev
+# Backend + Frontend (unified)
+npm run dev
+
+# Только Telegram Mini App
+cd apps/telegram && npm run dev
+
+# Только Mobile App (Expo)
+cd apps/mobile && npx expo start
 ```
 
-Приложение будет доступно по адресу `http://localhost:3000`
+---
 
-## Использование
+## 📱 Сборка
 
-### 🖥 Лента (Feed)
-- Просматривайте генерации других пользователей
-- Фильтруйте по моделям и сортируйте (Новое/Популярное)
-- Используйте кнопку **Use** для ремикса (копирования промпта и настроек)
+### Telegram Mini App (Production)
 
-### 🎨 Студия (Studio)
-1. **Выбор модели**: NanoBanana (быстро), SeeDream (качественно) и их Pro версии.
-2. **Режим**: Text-to-Image или Image-to-Image.
-3. **Настройки**: Выберите соотношение сторон, загрузите референсы (drag & drop или paste).
-4. **Генерация**: Нажмите кнопку генерации. Результат можно скачать или отправить в чат.
-
-### 🎡 Рулетка и Конкурсы
-- Испытывайте удачу в рулетке раз в день.
-- Участвуйте в конкурсах через вкладку "Contests", загружая свои лучшие работы по теме.
-
-## API Endpoints
-
-### POST /api/generation/generate
-
-Генерация изображения через Kie.ai API
-
-**Тело запроса:**
-```json
-{
-  "prompt": "a beautiful sunset over mountains",
-  "model": "seedream4",
-  "aspect_ratio": "16:9",
-  "user_id": 123456789,
-  "images": ["base64_string"] // опционально для img2img
-}
+```bash
+cd apps/telegram
+npm run build
+# Output: apps/telegram/dist/
 ```
 
-### GET /api/feed
+### Mobile App (Development Build)
 
-Получение ленты генераций
+```bash
+cd apps/mobile
 
-**Параметры:**
-- `limit`: количество элементов
-- `offset`: смещение
-- `sort`: 'new' или 'popular'
-- `model`: фильтр по модели
+# Android
+npx expo run:android
 
-## Структура проекта
-
-```
-src/
-├── components/          # React компоненты
-├── pages/              # Страницы (Home, Studio, SpinPage, Contests и др.)
-├── hooks/              # Custom hooks (useTelegram, useGenerationStore)
-├── store/              # Zustand state stores
-└── api/                # API controllers & routes
+# iOS (требуется Mac + Xcode)
+npx expo run:ios
 ```
 
-## Деплой
+### Docker (Backend + Frontend)
+
+```bash
+docker build -t aiverse .
+docker run -p 3000:3000 --env-file .env aiverse
+```
+
+---
+
+## 🚀 Деплой
 
 ### Railway (рекомендуется)
 
-1. Установите Railway CLI и авторизуйтесь.
-2. `railway init`
-3. Установите переменные окружения (`KIE_API_KEY`, `NODE_ENV=production`).
-4. `railway up`
+Проект настроен для деплоя на Railway одним сервисом:
+- Используется `Dockerfile` в корне
+- Backend раздаёт статику фронтенда
+- Настройки в `railway.json`
 
-Также поддерживается деплой на Vercel или любой Node.js хостинг.
+```bash
+railway up
+```
 
-## Лицензия
+### Переменные окружения Railway
+
+Добавьте в Railway Dashboard:
+- `PIAPI_KEY`
+- `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_ANON_KEY`
+- `TELEGRAM_BOT_TOKEN`
+- `WEBAPP_URL`
+- `NODE_ENV=production`
+
+---
+
+## 📖 API Документация
+
+### Основные эндпоинты
+
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| POST | `/api/generation/generate` | Генерация изображения |
+| POST | `/api/generation/video` | Генерация видео |
+| GET | `/api/feed` | Лента публикаций |
+| GET | `/api/user/:userId` | Профиль пользователя |
+| POST | `/api/ai-chat` | AI Chat сообщение |
+
+### Пример генерации
+
+```bash
+curl -X POST https://your-app.railway.app/api/generation/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "a beautiful sunset over mountains",
+    "model": "seedream4",
+    "aspect_ratio": "16:9",
+    "user_id": 123456789
+  }'
+```
+
+---
+
+## 🗂 Roadmap
+
+- [x] Фаза 0: Монорепо структура
+- [x] Фаза 1: Shared packages + Mobile init
+- [ ] Фаза 2: Mobile UI (Studio, Profile, Feed)
+- [ ] Фаза 3: Supabase Auth
+- [ ] Фаза 4: Backend адаптация
+- [ ] Фаза 5: Push-уведомления
+- [ ] Фаза 6: Публикация в App Store / Play Store
+
+---
+
+## 📄 Лицензия
 
 MIT License
+
+---
+
+## 🔗 Ссылки
+
+- [Telegram Mini App](https://t.me/aiverse_bot)
+- [Railway Dashboard](https://railway.app)
+- [Supabase Project](https://supabase.com)

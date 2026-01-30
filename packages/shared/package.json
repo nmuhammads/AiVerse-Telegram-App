@@ -6,9 +6,18 @@
     "types": "./index.ts",
     "exports": {
         ".": "./index.ts",
+        "./stores": "./stores/index.ts",
         "./stores/*": "./stores/*",
+        "./types": "./types/index.ts",
         "./types/*": "./types/*",
         "./utils/*": "./utils/*",
         "./i18n/*": "./i18n/*"
+    },
+    "peerDependencies": {
+        "zustand": "^5.0.0",
+        "react": ">=18.0.0"
+    },
+    "devDependencies": {
+        "typescript": "~5.8.0"
     }
 }
