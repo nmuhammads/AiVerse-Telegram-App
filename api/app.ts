@@ -52,25 +52,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 })
 
 /**
- * Root endpoint - API info
- */
-app.get('/', (req: Request, res: Response) => {
-  res.json({
-    name: 'AiVerse API',
-    version: '1.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/api/health',
-      auth: '/api/auth',
-      generation: '/api/generation',
-      feed: '/api/feed',
-      user: '/api/user',
-      telegram: '/api/telegram'
-    }
-  })
-})
-
-/**
  * API Routes
  */
 app.use('/api/auth', authRoutes)
@@ -103,16 +84,27 @@ app.use('/api/health', (req: Request, res: Response): void => {
 })
 
 /**
- * 404 handler - must be after all routes
+ * Serve frontend static files
  */
-app.use((req: Request, res: Response) => {
-  console.log(`[404] Route not found: ${req.method} ${req.path}`)
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-    path: req.path,
-    method: req.method
-  })
+import path from 'path'
+const distPath = path.resolve(process.cwd(), 'dist')
+app.use(express.static(distPath))
+
+/**
+ * SPA fallback - serve index.html for all non-API routes
+ */
+app.get('*', (req: Request, res: Response) => {
+  // Don't serve index.html for API routes that weren't matched
+  if (req.path.startsWith('/api/')) {
+    console.log(`[404] API route not found: ${req.method} ${req.path}`)
+    return res.status(404).json({
+      success: false,
+      error: 'API route not found',
+      path: req.path
+    })
+  }
+  // Serve index.html for SPA routes
+  res.sendFile(path.join(distPath, 'index.html'))
 })
 
 /**
