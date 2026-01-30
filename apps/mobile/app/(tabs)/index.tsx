@@ -1,55 +1,343 @@
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-// Placeholder data
-const PLACEHOLDER_DATA = Array.from({ length: 10 }, (_, i) => ({
-    id: String(i + 1),
-    title: `Generation #${i + 1}`,
-    model: ['NanoBanana', 'SeeDream 4', 'GPT Image'][i % 3],
-    likes: Math.floor(Math.random() * 100),
-}));
+import { FeedHeader, FeedFilters, FeedCard, FeedDetailModal, SearchBar, FeedItem } from '../../components/feed';
+import { FeedSkeletonGrid } from '../../components/ui';
+import { colors, spacing } from '../../theme';
+
+// API Base URL - configure based on environment
+const API_BASE_URL = 'https://aiverse-telegram-app-production.up.railway.app/api';
 
 export default function FeedScreen() {
+    const insets = useSafeAreaInsets();
+    const router = useRouter();
+
+    // State
+    const [items, setItems] = useState<FeedItem[]>([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [sort, setSort] = useState<'new' | 'popular'>('new');
+    const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
+    const [viewMode, setViewMode] = useState<'standard' | 'compact'>('standard');
+    const [modelFilter, setModelFilter] = useState('all');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
+
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    // Fetch feed from API
+    const fetchFeed = useCallback(async (isRefresh = false) => {
+        if (!hasMore && !isRefresh) return;
+        if (loadingMore && !isRefresh) return;
+
+        try {
+            if (isRefresh) {
+                setRefreshing(true);
+                setPage(1);
+            } else if (items.length === 0) {
+                setLoading(true);
+            } else {
+                setLoadingMore(true);
+            }
+
+            const currentPage = isRefresh ? 1 : page;
+            const params = new URLSearchParams({
+                sort: sort === 'new' ? 'created_at' : 'likes',
+                limit: '20',
+                page: String(currentPage),
+            });
+
+            if (modelFilter !== 'all') {
+                params.append('model', modelFilter);
+            }
+
+            console.log(`Fetching feed from: ${API_BASE_URL}/feed?${params}`);
+            const response = await fetch(`${API_BASE_URL}/feed?${params}`);
+
+            if (!response.ok) {
+                console.error(`Feed fetch failed: ${response.status} ${response.statusText}`);
+                const text = await response.text();
+                console.error('Error body:', text);
+                throw new Error(`Failed to fetch feed: ${response.status}`);
+            }
+
+            const data = await response.json() as {
+                items: Array<{
+                    id: number;
+                    image_url?: string;
+                    thumbnail_url?: string;
+                    prompt?: string;
+                    model?: string;
+                    likes_count?: number;
+                    is_liked?: boolean;
+                    author?: {
+                        id: number;
+                        username?: string;
+                        first_name?: string;
+                        avatar_url?: string;
+                    };
+                    created_at?: string;
+                }>
+            };
+
+            const feedData = data.items || [];
+
+            if (feedData.length < 20) {
+                setHasMore(false);
+            }
+
+            // Transform API response to FeedItem format
+            const feedItems: FeedItem[] = feedData.map((item) => ({
+                id: String(item.id),
+                image_url: item.image_url || item.thumbnail_url || '',
+                prompt: item.prompt,
+                model: item.model,
+                likes_count: item.likes_count || 0,
+                is_liked: item.is_liked || false,
+                author: item.author ? {
+                    id: item.author.id,
+                    username: item.author.username || item.author.first_name,
+                    avatar_url: item.author.avatar_url,
+                } : undefined,
+                created_at: item.created_at,
+            }));
+
+            if (isRefresh) {
+                setItems(feedItems);
+                setHasMore(true);
+            } else {
+                setItems(prev => {
+                    const existingIds = new Set(prev.map(i => i.id));
+                    const newItems = feedItems.filter(i => !existingIds.has(i.id));
+
+                    if (newItems.length === 0 && feedItems.length > 0) {
+                        console.log('Duplicate items received, stopping pagination');
+                        setHasMore(false);
+                        return prev;
+                    }
+
+                    return [...prev, ...newItems];
+                });
+            }
+
+            if (!isRefresh) {
+                setPage(prev => prev + 1);
+            }
+
+        } catch (error) {
+            console.error('Error fetching feed:', error);
+            if (isRefresh && items.length === 0) {
+                setItems(generatePlaceholderData());
+            }
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+            setLoadingMore(false);
+        }
+    }, [sort, modelFilter, page, hasMore, loadingMore, items.length]);
+
+    // Generate placeholder data for offline/error state
+    const generatePlaceholderData = (): FeedItem[] => {
+        return Array.from({ length: 10 }, (_, i) => ({
+            id: String(i + 1),
+            image_url: '',
+            prompt: `Beautiful ${['sunset', 'landscape', 'portrait', 'abstract', 'space'][i % 5]} generated with AI`,
+            model: ['NanoBanana', 'SeeDream 4', 'GPT Image', 'Flux'][i % 4],
+            likes_count: Math.floor(Math.random() * 500),
+            is_liked: Math.random() > 0.7,
+            author: {
+                id: i + 100,
+                username: `user_${i + 1}`,
+            },
+        }));
+    };
+
+    useEffect(() => {
+        fetchFeed();
+    }, [fetchFeed]);
 
     const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 1000);
+        fetchFeed(true);
+    }, [fetchFeed]);
+
+    const handleLike = useCallback(async (item: FeedItem) => {
+        // Optimistic update
+        setItems(prev =>
+            prev.map(i =>
+                i.id === item.id
+                    ? {
+                        ...i,
+                        is_liked: !i.is_liked,
+                        likes_count: i.is_liked ? i.likes_count - 1 : i.likes_count + 1,
+                    }
+                    : i
+            )
+        );
+
+        // Update selected item if open
+        if (selectedItem?.id === item.id) {
+            setSelectedItem(prev => prev ? {
+                ...prev,
+                is_liked: !prev.is_liked,
+                likes_count: prev.is_liked ? prev.likes_count - 1 : prev.likes_count + 1,
+            } : null);
+        }
+
+        // TODO: API call for like
+        // try {
+        //     await fetch(`${API_BASE_URL}/feed/like`, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify({ generationId: item.id, userId: currentUserId }),
+        //     });
+        // } catch (error) {
+        //     // Revert on error
+        // }
+    }, [selectedItem]);
+
+    const handleItemPress = useCallback((item: FeedItem) => {
+        setSelectedItem(item);
     }, []);
 
-    const renderItem = ({ item }: { item: typeof PLACEHOLDER_DATA[0] }) => (
-        <View style={styles.card}>
-            <View style={styles.imagePlaceholder}>
-                <Text style={styles.placeholderText}>🖼️</Text>
-            </View>
-            <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardModel}>{item.model}</Text>
-                <Text style={styles.cardLikes}>❤️ {item.likes}</Text>
-            </View>
-        </View>
+    const handleRemix = useCallback((item: FeedItem) => {
+        setSelectedItem(null);
+        // Navigate to studio with remix data
+        router.push({
+            pathname: '/studio',
+            params: {
+                remixId: item.id,
+                prompt: item.prompt || '',
+            },
+        });
+    }, [router]);
+
+    const handleSearchClose = useCallback(() => {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+    }, []);
+
+    // Filter items by search and model
+    const filteredItems = items.filter(item => {
+        // Model filter
+        if (modelFilter !== 'all') {
+            const itemModel = item.model?.toLowerCase() || '';
+            if (!itemModel.includes(modelFilter.toLowerCase())) {
+                return false;
+            }
+        }
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            const matchesPrompt = (item.prompt || '').toLowerCase().includes(query);
+            const matchesUser = (item.author?.username || '').toLowerCase().includes(query);
+            return matchesPrompt || matchesUser;
+        }
+
+        return true;
+    });
+
+    const renderItem = useCallback(
+        ({ item }: { item: FeedItem }) => (
+            <FeedCard
+                item={item}
+                variant={viewMode}
+                onPress={() => handleItemPress(item)}
+                onLike={() => handleLike(item)}
+                onRemix={() => handleRemix(item)}
+            />
+        ),
+        [viewMode, handleItemPress, handleLike, handleRemix]
     );
 
+    const numColumns = viewMode === 'compact' ? 2 : 1;
+
+    const ListHeaderComponent = useCallback(() => (
+        <View style={styles.header}>
+            {isSearchOpen ? (
+                <SearchBar
+                    query={searchQuery}
+                    onQueryChange={setSearchQuery}
+                    onClose={handleSearchClose}
+                />
+            ) : (
+                <FeedHeader
+                    sort={sort}
+                    feedFilter={feedFilter}
+                    onSortChange={setSort}
+                    onFeedFilterChange={setFeedFilter}
+                    onSearchOpen={() => setIsSearchOpen(true)}
+                />
+            )}
+            <FeedFilters
+                viewMode={viewMode}
+                modelFilter={modelFilter}
+                onViewModeChange={setViewMode}
+                onModelFilterChange={setModelFilter}
+            />
+        </View>
+    ), [isSearchOpen, searchQuery, sort, feedFilter, viewMode, modelFilter, handleSearchClose]);
+
+    const ListEmptyComponent = useCallback(() => {
+        if (loading) {
+            return <FeedSkeletonGrid count={6} />;
+        }
+        return (
+            <View style={styles.empty}>
+                <Text style={styles.emptyText}>No posts found</Text>
+            </View>
+        );
+    }, [loading]);
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
             <FlatList
-                data={PLACEHOLDER_DATA}
+                data={filteredItems}
                 renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.list}
+                keyExtractor={(item, index) => item.id ? String(item.id) : String(index)}
+                numColumns={numColumns}
+                key={viewMode}
+                contentContainerStyle={[
+                    styles.list,
+                    viewMode === 'compact' && styles.listCompact,
+                ]}
+                columnWrapperStyle={viewMode === 'compact' ? styles.columnWrapper : undefined}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor="#a855f7"
+                        tintColor={colors.primary}
+                        colors={[colors.primary]}
                     />
                 }
-                ListHeaderComponent={
-                    <View style={styles.header}>
-                        <Text style={styles.headerTitle}>🎨 AiVerse Feed</Text>
-                        <Text style={styles.headerSubtitle}>Discover AI-generated art</Text>
+                ListHeaderComponent={ListHeaderComponent}
+                ListFooterComponent={
+                    <View style={styles.footer}>
+                        {loadingMore && <ActivityIndicator size="small" color={colors.primary} />}
                     </View>
                 }
+                ListEmptyComponent={ListEmptyComponent}
+                showsVerticalScrollIndicator={false}
+                onEndReached={() => {
+                    if (!loadingMore && hasMore) {
+                        fetchFeed(false);
+                    }
+                }}
+                onEndReachedThreshold={0.2}
+            />
+
+            {/* Detail Modal */}
+            <FeedDetailModal
+                item={selectedItem}
+                visible={selectedItem !== null}
+                onClose={() => setSelectedItem(null)}
+                onLike={handleLike}
+                onRemix={handleRemix}
             />
         </View>
     );
@@ -58,56 +346,33 @@ export default function FeedScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: colors.background,
     },
     list: {
-        padding: 16,
+        padding: spacing.lg,
+        paddingBottom: 100,
+    },
+    listCompact: {
+        padding: spacing.sm,
+    },
+    columnWrapper: {
+        gap: spacing.sm,
     },
     header: {
-        marginBottom: 20,
-        paddingTop: 8,
+        marginBottom: spacing.md,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#888',
-    },
-    card: {
-        backgroundColor: '#1a1a1a',
-        borderRadius: 16,
-        marginBottom: 16,
-        overflow: 'hidden',
-    },
-    imagePlaceholder: {
-        height: 200,
-        backgroundColor: '#2a2a2a',
-        justifyContent: 'center',
+    empty: {
+        flex: 1,
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
     },
-    placeholderText: {
-        fontSize: 48,
-    },
-    cardContent: {
-        padding: 16,
-    },
-    cardTitle: {
+    emptyText: {
+        color: colors.textMuted,
         fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
-        marginBottom: 4,
     },
-    cardModel: {
-        fontSize: 12,
-        color: '#a855f7',
-        marginBottom: 8,
-    },
-    cardLikes: {
-        fontSize: 14,
-        color: '#888',
+    footer: {
+        paddingVertical: 20,
+        alignItems: 'center',
     },
 });
