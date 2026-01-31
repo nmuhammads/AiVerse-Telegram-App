@@ -39,3 +39,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Build logs and temp files
+*.log
+build_*.txt
+*.bat
+!gradlew.bat
+
+# Environment
+.env
+.env.local

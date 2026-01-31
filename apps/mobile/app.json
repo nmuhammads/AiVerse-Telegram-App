@@ -26,10 +26,20 @@
       "edgeToEdgeEnabled": true
     },
     "plugins": [
-      "expo-router"
+      [
+        "expo-router",
+        {
+          "root": "./app"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "root": "./app"
+      }
     }
   }
 }

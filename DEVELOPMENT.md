@@ -49,9 +49,17 @@ npm run lint          # ESLint
 ```bash
 cd apps/mobile
 npx expo start        # Start Expo dev server
-npx expo run:android  # Run on Android (requires Android Studio)
-npx expo run:ios      # Run on iOS (requires Xcode)
+# Нажмите 'a' для запуска на Android
+
+# Для нативной сборки Android:
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"  # Windows
+npx expo run:android  # Run on Android
+
+npx expo run:ios      # Run on iOS (requires Xcode, macOS only)
 ```
+
+> **Примечание:** Для Android требуется установленный Android Studio с JBR (Java 21).
+> Подробные инструкции: [`apps/mobile/BUILD_INSTRUCTIONS.md`](apps/mobile/BUILD_INSTRUCTIONS.md)
 
 ### Shared Package
 ```bash
