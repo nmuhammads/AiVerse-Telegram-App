@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, Te
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { colors, spacing, borderRadius } from '../../theme';
 import { api } from '../../lib/api';
 import { useUserStore } from '../../store/userStore';
@@ -14,9 +15,9 @@ import {
     ImageUploader,
     SettingsPanel,
     GenerateButton,
-    StudioHeader,
+    StudioSubHeader,
     VideoSettings,
-    ActiveGenerationsPanel
+    ActiveGenerationsPanel,
 } from '../../components/studio';
 
 export default function StudioScreen() {
@@ -24,12 +25,22 @@ export default function StudioScreen() {
     const params = useLocalSearchParams();
     const router = useRouter();
 
+    // Safely get tab bar height (might be 0 or undefined in some contexts, provide fallback)
+    let tabBarHeight = 0;
+    try {
+        tabBarHeight = useBottomTabBarHeight();
+    } catch (e) {
+        // Fallback if hook fails (e.g. not inside tab navigator context properly or mock)
+        tabBarHeight = 60;
+    }
+
     // Global Studio State
     const [studioMode, setStudioMode] = useState<'studio' | 'chat'>('studio');
     const [balance] = useState(1250); // Mock balance
 
     // Generation State
     const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+    const [generationMode, setGenerationMode] = useState<'text' | 'image'>('text');
     const [selectedModel, setSelectedModel] = useState('seedream4');
     const [prompt, setPrompt] = useState((params.prompt as string) || '');
     const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -68,9 +79,12 @@ export default function StudioScreen() {
         setIsGenerating(true);
         try {
             // Call real API
+            // Call real API
             const response = await api.post<{
                 success: boolean;
                 generationId?: number;
+                generation_id?: number;
+                id?: number;
                 error?: string;
             }>('/generation/generate', {
                 prompt: prompt.trim(),
@@ -86,7 +100,11 @@ export default function StudioScreen() {
                 generate_audio: mediaType === 'video' ? generateAudio : undefined,
             });
 
-            if (response.success && response.generationId) {
+            console.log('[Studio] Generation response:', response);
+
+            const genId = response.generationId || response.generation_id || response.id;
+
+            if (response.success && genId) {
                 Alert.alert(
                     'Generation Started',
                     `Your ${mediaType} is being generated. You'll be notified when it's ready.`,
@@ -95,10 +113,11 @@ export default function StudioScreen() {
                 // Clear prompt after successful start
                 setPrompt('');
             } else {
-                Alert.alert('Error', response.error || 'Generation failed');
+                console.warn('[Studio] Generation failed response:', response);
+                Alert.alert('Error', response.error || 'Generation failed (Unknown response)');
             }
         } catch (error: any) {
-            console.error('Generation error:', error);
+            console.error('[Studio] Generation error:', error);
             Alert.alert('Error', error.message || 'Failed to start generation');
         } finally {
             setIsGenerating(false);
@@ -122,7 +141,7 @@ export default function StudioScreen() {
         return (
             <View style={styles.container}>
                 <View style={{ flex: 1 }}>
-                    <StudioHeader
+                    <StudioSubHeader
                         studioMode={studioMode}
                         balance={balance}
                         onSetStudioMode={setStudioMode}
@@ -146,13 +165,13 @@ export default function StudioScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Top Telegram Header (Safe Area handled in _layout) */}
-
+            {/* Keyboard Avoiding to manage soft input */}
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
             >
-                <StudioHeader
+                <StudioSubHeader
                     studioMode={studioMode}
                     balance={balance}
                     onSetStudioMode={setStudioMode}
@@ -161,13 +180,10 @@ export default function StudioScreen() {
                 />
 
                 <ScrollView
-                    contentContainerStyle={[
-                        styles.content,
-                        { paddingBottom: 220 } // Space for footer
-                    ]}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 100 }]}
                 >
-                    {/* 1. Model Selection */}
+                    {/* 1. Model Selection & Generation Mode */}
                     <ModelSelector
                         selectedModel={selectedModel}
                         mediaType={mediaType}
@@ -187,17 +203,41 @@ export default function StudioScreen() {
                         <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
 
-                    {/* Generation Mode Selector (Text to Image / Image to Image) */}
-                    <View style={styles.genModeSelector}>
-                        <TouchableOpacity style={[styles.genModeButton, styles.genModeActive]}>
-                            <Ionicons name="text" size={16} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.genModeTextActive}>Text to Image</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.genModeButton}>
-                            <Ionicons name="image" size={16} color={colors.textSecondary} style={{ marginRight: 6 }} />
-                            <Text style={styles.genModeText}>Image to Image</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {/* Generation Mode Selector (Text/Image to ...) - RESTORED HERE */}
+                    {selectedModel !== 'kling-mc' && selectedModel !== 'kling-t2v' && selectedModel !== 'kling-i2v' && (
+                        <View style={styles.genModeSelector}>
+                            <TouchableOpacity
+                                style={[styles.genModeButton, generationMode === 'text' && styles.genModeActive]}
+                                onPress={() => setGenerationMode('text')}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name="text"
+                                    size={16}
+                                    color={generationMode === 'text' ? '#fff' : colors.textSecondary}
+                                    style={{ marginRight: 6 }}
+                                />
+                                <Text style={[styles.genModeText, generationMode === 'text' && styles.genModeTextActive]}>
+                                    {mediaType === 'image' ? 'Text to Image' : 'Text to Video'}
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.genModeButton, generationMode === 'image' && styles.genModeActive]}
+                                onPress={() => setGenerationMode('image')}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name="images"
+                                    size={16}
+                                    color={generationMode === 'image' ? '#fff' : colors.textSecondary}
+                                    style={{ marginRight: 6 }}
+                                />
+                                <Text style={[styles.genModeText, generationMode === 'image' && styles.genModeTextActive]}>
+                                    {mediaType === 'image' ? 'Image to Image' : 'Image to Video'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     {/* 2. Prompt Input (Hidden for Kling MC) */}
                     {selectedModel !== 'kling-mc' && (
@@ -211,11 +251,14 @@ export default function StudioScreen() {
                         />
                     )}
 
+                    {/* ... (rest of scroll component) ... */}
                     {/* 3. Image Upload (Reference) */}
                     <ImageUploader
                         images={uploadedImages}
                         onAddImage={uri => setUploadedImages(prev => [...prev, uri])}
                         onRemoveImage={index => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
+                        generationMode={generationMode}
+                        mediaType={mediaType}
                     />
 
                     {/* 4. Settings Panel */}
@@ -257,20 +300,21 @@ export default function StudioScreen() {
                             onSetPrompt={setPrompt}
                         />
                     )}
+
+                    {/* Bottom Action Bar containing Generate Button */}
+                    {/* Moved INSIDE ScrollView to scroll with content */}
+                    <View style={styles.footer}>
+                        {/* Active Generations Panel */}
+                        <ActiveGenerationsPanel onViewResult={handleViewResult} />
+
+                        <GenerateButton
+                            onPress={handleGenerate}
+                            isDisabled={!prompt.trim() && selectedModel !== 'kling-mc'}
+                            isGenerating={isGenerating}
+                            cost={imageCount * 1}
+                        />
+                    </View>
                 </ScrollView>
-
-                {/* Bottom Action Bar */}
-                <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.xs }]}>
-                    {/* Active Generations Panel */}
-                    <ActiveGenerationsPanel onViewResult={handleViewResult} />
-
-                    <GenerateButton
-                        onPress={handleGenerate}
-                        isDisabled={!prompt.trim() && selectedModel !== 'kling-mc'}
-                        isGenerating={isGenerating}
-                        cost={imageCount * 1}
-                    />
-                </View>
             </KeyboardAvoidingView>
         </View>
     );
@@ -281,10 +325,14 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    content: {
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.sm,
-        gap: spacing.xl,
+    // Updated Content styles
+    scrollContent: {
+        paddingHorizontal: spacing.md, // 16px lateral padding
+        paddingTop: spacing.xs,
+        // Ensure enough bottom padding so the footer can be scrolled ABOVE the floating tab bar.
+        // TabBar is ~80px + Insets. 
+        paddingBottom: 120,
+        gap: spacing.md,
     },
     centerContent: {
         flex: 1,
@@ -292,15 +340,10 @@ const styles = StyleSheet.create({
         padding: spacing.lg,
     },
     footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(0,0,0,0.9)', // More opaque for readability
-        paddingHorizontal: spacing.lg,
+        // Now relative inside ScrollView
+        marginTop: spacing.sm,
         paddingTop: spacing.sm,
-        borderTopWidth: 1,
-        borderTopColor: colors.border,
+        // Removed absolute positioning props
     },
     multiGenBanner: {
         flexDirection: 'row',
@@ -330,22 +373,25 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.7)',
         fontSize: 11,
     },
+    // Styles for GenModeSelector
     genModeSelector: {
         flexDirection: 'row',
-        backgroundColor: colors.surface,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         padding: 4,
-        borderRadius: borderRadius.xl,
-        height: 48,
+        borderRadius: borderRadius.lg,
+        height: 44,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     genModeButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: borderRadius.lg,
+        borderRadius: borderRadius.md,
     },
     genModeActive: {
-        backgroundColor: colors.surfaceLight,
+        backgroundColor: '#27272a', // zinc-800
     },
     genModeText: {
         color: colors.textSecondary,
@@ -354,7 +400,5 @@ const styles = StyleSheet.create({
     },
     genModeTextActive: {
         color: '#fff',
-        fontWeight: '600',
-        fontSize: 13,
     },
 });

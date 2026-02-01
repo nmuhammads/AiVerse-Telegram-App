@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, typography, borderRadius } from '../../theme';
@@ -9,6 +9,8 @@ interface ImageUploaderProps {
     onAddImage: (uri: string) => void;
     onRemoveImage: (index: number) => void;
     maxImages?: number;
+    generationMode: 'text' | 'image';
+    mediaType: 'image' | 'video';
 }
 
 export function ImageUploader({
@@ -16,7 +18,15 @@ export function ImageUploader({
     onAddImage,
     onRemoveImage,
     maxImages = 4,
+    generationMode,
+    mediaType,
 }: ImageUploaderProps) {
+
+    // Logic: Hide if Text mode
+    if (generationMode === 'text') {
+        return null;
+    }
+
     const pickImage = async () => {
         if (images.length >= maxImages) {
             Alert.alert('Limit Reached', `You can upload up to ${maxImages} images.`);
@@ -25,8 +35,7 @@ export function ImageUploader({
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
+            allowsEditing: true, // Maybe false for bulk? Web allows editing usually? Let's keep true for now.
             quality: 0.8,
         });
 
@@ -35,87 +44,156 @@ export function ImageUploader({
         }
     };
 
+    // Render Empty State (No images uploaded) matches Web: "Add references...", Icon centered, Select Photo button.
+    if (images.length === 0) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.dashedBox}>
+                    <View style={styles.emptyContent}>
+                        <View style={styles.iconCircle}>
+                            <Ionicons name="image" size={20} color="#a1a1aa" />
+                        </View>
+                        <Text style={styles.emptyText}>Add reference images (Max {maxImages})</Text>
+                    </View>
+
+                    <TouchableOpacity style={styles.selectButton} onPress={pickImage} activeOpacity={0.8}>
+                        <Ionicons name="image-outline" size={16} color={colors.textSecondary} />
+                        <Text style={styles.selectButtonText}>Select Photo</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.hintText}>Copy an image and paste here is not supported on mobile yet</Text>
+                </View>
+            </View>
+        );
+    }
+
+    // Render Filled State: Grid of images
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Reference Images ({images.length}/{maxImages})</Text>
+            <View style={styles.dashedBox}>
+                <View style={styles.gridContainer}>
+                    {images.map((uri, index) => (
+                        <View key={index} style={styles.imageWrapper}>
+                            <Image source={{ uri }} style={styles.image} resizeMode="cover" />
+                            <TouchableOpacity
+                                style={styles.removeButton}
+                                onPress={() => onRemoveImage(index)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="close" size={10} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    ))}
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-                {/* Upload Button */}
-                {images.length < maxImages && (
-                    <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-                        <Ionicons name="add" size={24} color={colors.textSecondary} />
-                        <Text style={styles.uploadText}>Add</Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Images List */}
-                {images.map((uri, index) => (
-                    <View key={index} style={styles.imageWrapper}>
-                        <Image source={{ uri }} style={styles.image} />
-                        <TouchableOpacity
-                            style={styles.removeButton}
-                            onPress={() => onRemoveImage(index)}
-                        >
-                            <Ionicons name="close" size={12} color="#fff" />
+                    {/* Add More Button if limit not reached */}
+                    {images.length < maxImages && (
+                        <TouchableOpacity style={styles.addMoreButton} onPress={pickImage}>
+                            <Ionicons name="add" size={20} color={colors.textSecondary} />
+                            <Text style={styles.addMoreText}>Add</Text>
                         </TouchableOpacity>
-                    </View>
-                ))}
-            </ScrollView>
+                    )}
+                </View>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        gap: spacing.sm,
+        marginTop: spacing.sm,
     },
-    label: {
-        color: colors.textSecondary,
-        fontSize: typography.label.fontSize,
-        fontWeight: '600',
-        marginLeft: spacing.sm,
-    },
-    scroll: {
-        gap: spacing.md,
-        paddingRight: spacing.lg,
-    },
-    uploadButton: {
-        width: 80,
-        height: 80,
-        borderRadius: borderRadius.lg,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    dashedBox: {
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: 'rgba(255,255,255,0.1)',
         borderStyle: 'dashed',
+        borderRadius: borderRadius.xl,
+        padding: spacing.md,
+        backgroundColor: 'rgba(24, 24, 27, 0.2)', // zinc-900/20
+        gap: spacing.md,
+    },
+    // Empty State
+    emptyContent: {
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 4,
+        gap: spacing.xs,
     },
-    uploadText: {
-        color: colors.textSecondary,
-        fontSize: typography.labelSmall.fontSize,
+    iconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#27272a', // zinc-800
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 4,
+    },
+    emptyText: {
+        color: '#d4d4d8', // zinc-300
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    selectButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: borderRadius.xl,
+        paddingVertical: 10,
+        gap: 8,
+    },
+    selectButtonText: {
+        color: '#a1a1aa', // zinc-400
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    hintText: {
+        textAlign: 'center',
+        color: '#52525b', // zinc-600
+        fontSize: 10,
+    },
+
+    // Filled State Grid
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
     },
     imageWrapper: {
+        width: '23%', // 4 columns approx
+        aspectRatio: 1,
+        borderRadius: borderRadius.lg,
+        overflow: 'hidden',
         position: 'relative',
-        width: 80,
-        height: 80,
+        backgroundColor: '#27272a',
     },
     image: {
         width: '100%',
         height: '100%',
-        borderRadius: borderRadius.lg,
     },
     removeButton: {
         position: 'absolute',
-        top: -6,
-        right: -6,
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: colors.error,
+        top: 4,
+        right: 4,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        width: 18,
+        height: 18,
+        borderRadius: 9,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: colors.surface,
     },
+    addMoreButton: {
+        width: '23%',
+        aspectRatio: 1,
+        borderRadius: borderRadius.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+    },
+    addMoreText: {
+        color: '#a1a1aa',
+        fontSize: 10,
+    }
 });

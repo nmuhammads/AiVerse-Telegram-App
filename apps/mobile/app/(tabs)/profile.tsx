@@ -102,7 +102,8 @@ export default function ProfileScreen() {
     return (
         <ScrollView
             style={styles.container}
-            contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: 120 }]}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
             }

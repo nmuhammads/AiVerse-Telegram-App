@@ -318,6 +318,7 @@ export default function FeedScreen() {
                 contentContainerStyle={[
                     styles.list,
                     viewMode === 'compact' && styles.listCompact,
+                    { paddingBottom: 120, paddingTop: 60 } // Extra padding for custom tab bar
                 ]}
                 columnWrapperStyle={viewMode === 'compact' ? styles.columnWrapper : undefined}
                 refreshControl={

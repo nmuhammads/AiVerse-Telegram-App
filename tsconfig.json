@@ -13,5 +13,6 @@
     "**/node_modules",
     "apps/mobile/android",
     "apps/mobile/ios"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

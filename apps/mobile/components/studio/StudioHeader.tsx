@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
-interface StudioHeaderProps {
+interface StudioSubHeaderProps {
     studioMode: 'studio' | 'chat';
     balance: number | null;
     onSetStudioMode: (mode: 'studio' | 'chat') => void;
@@ -11,18 +11,18 @@ interface StudioHeaderProps {
     onOpenPayment: () => void;
 }
 
-export function StudioHeader({
+export function StudioSubHeader({
     studioMode,
     balance,
     onSetStudioMode,
     onOpenEditor,
     onOpenPayment,
-}: StudioHeaderProps) {
+}: StudioSubHeaderProps) {
     return (
         <View style={styles.container}>
             {/* Mode Toggle */}
             <View style={styles.toggleContainer}>
-                <TouchableOpacity onPress={() => onSetStudioMode('studio')}>
+                <TouchableOpacity onPress={() => onSetStudioMode('studio')} activeOpacity={0.7}>
                     <Text style={[
                         styles.toggleText,
                         studioMode === 'studio' ? styles.toggleTextActive : styles.toggleTextInactive
@@ -31,7 +31,7 @@ export function StudioHeader({
                     </Text>
                 </TouchableOpacity>
                 <Text style={styles.divider}>|</Text>
-                <TouchableOpacity onPress={() => onSetStudioMode('chat')}>
+                <TouchableOpacity onPress={() => onSetStudioMode('chat')} activeOpacity={0.7}>
                     <Text style={[
                         styles.toggleText,
                         studioMode === 'chat' ? styles.toggleTextActive : styles.toggleTextInactive
@@ -44,14 +44,14 @@ export function StudioHeader({
             {/* Actions */}
             <View style={styles.actionsContainer}>
                 {/* Editor Button */}
-                <TouchableOpacity style={styles.editorButton} onPress={onOpenEditor}>
-                    <Ionicons name="pencil" size={14} color="#22d3ee" />
+                <TouchableOpacity style={styles.editorButton} onPress={onOpenEditor} activeOpacity={0.7}>
+                    <Ionicons name="pencil" size={12} color="#22d3ee" />
                     <Text style={styles.editorText}>Editor</Text>
                 </TouchableOpacity>
 
                 {/* Balance Button */}
-                <TouchableOpacity style={styles.balanceButton} onPress={onOpenPayment}>
-                    <Ionicons name="flash" size={14} color="#eab308" />
+                <TouchableOpacity style={styles.balanceButton} onPress={onOpenPayment} activeOpacity={0.7}>
+                    <Ionicons name="flash" size={12} color="#eab308" />
                     <Text style={styles.balanceText}>
                         {balance !== null ? balance : '...'}
                     </Text>
@@ -67,15 +67,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.lg,
+        paddingHorizontal: spacing.md,
     },
     toggleContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'baseline',
         gap: spacing.xs,
     },
     toggleText: {
-        fontSize: typography.h3.fontSize,
+        fontSize: 24, // Matches Telegram H1 style roughly
         fontWeight: 'bold',
     },
     toggleTextActive: {
@@ -83,40 +83,41 @@ const styles = StyleSheet.create({
     },
     toggleTextInactive: {
         color: colors.textSecondary,
-        fontWeight: '600',
-        fontSize: typography.body.fontSize,
+        fontSize: 24, // Keep same size so they align well
+        opacity: 0.5,
     },
     divider: {
         color: colors.textSecondary,
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: '300',
         marginHorizontal: 4,
+        opacity: 0.3,
     },
     actionsContainer: {
         flexDirection: 'row',
-        gap: spacing.sm,
+        gap: 8,
     },
     editorButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
+        gap: 4,
+        paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: borderRadius.full,
-        backgroundColor: 'rgba(8, 145, 178, 0.2)', // cyan-600/20
+        backgroundColor: 'rgba(8, 145, 178, 0.15)', // cyan-600/15
         borderWidth: 1,
-        borderColor: 'rgba(6, 182, 212, 0.3)', // cyan-500/30
+        borderColor: 'rgba(6, 182, 212, 0.2)', // cyan-500/20
     },
     editorText: {
         color: '#67e8f9', // cyan-300
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '700',
     },
     balanceButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
+        gap: 4,
+        paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: borderRadius.full,
         backgroundColor: '#18181b', // zinc-900
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
     },
     balanceText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '700',
     },
 });
