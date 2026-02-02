@@ -1,102 +1,162 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../../theme';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
+import { Settings, Bot, Bell } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Link, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 export function Header() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
 
     // TODO: Connect to real user store
     const user = {
-        displayName: 'Morty',
-        avatarUrl: 'https://i.pravatar.cc/100?img=11'
+        displayName: 'Guest',
+        avatarUrl: `https://api.dicebear.com/9.x/avataaars/svg?seed=guest`,
+        id: 'guest'
     };
 
+    const handlePress = (action: () => void) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        action();
+    };
+
+    // Calculate top offset similar to Mini App
+    // platform === 'ios' ? '2px' : (platform === 'android' ? '32px' : '12px')
+    // In RN, we rely on insets.top, but we can add small padding.
+    const topOffset = Platform.OS === 'android' ? 12 : 2;
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <View style={styles.content}>
-                {/* Left: User Info */}
-                <View style={styles.leftSection}>
-                    <View style={styles.avatarContainer}>
-                        <Image
-                            source={{ uri: user.avatarUrl }}
-                            style={styles.avatar}
-                        />
+        <View
+            style={[
+                styles.container,
+                { top: insets.top + topOffset }
+            ]}
+            pointerEvents="box-none"
+        >
+            <BlurView
+                intensity={80}
+                tint="dark"
+                style={styles.pill}
+            >
+                <View style={styles.pillContent}>
+                    {/* Centered Content Group */}
+                    <View style={styles.centerGroup}>
+                        <Text style={styles.displayName}>{user.displayName}</Text>
+
+                        <Link href="/profile" asChild>
+                            <TouchableOpacity style={styles.avatarButton}>
+                                <Image
+                                    source={{ uri: user.avatarUrl }}
+                                    style={styles.avatar}
+                                />
+                            </TouchableOpacity>
+                        </Link>
+
+                        <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => handlePress(() => { })}
+                        >
+                            <Bell size={20} color="#a1a1aa" />
+                            {/* Notification Badge could go here */}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.botButton}
+                            onPress={() => handlePress(() => { })}
+                        >
+                            <LinearGradient
+                                colors={['rgba(124, 58, 237, 0.2)', 'rgba(79, 70, 229, 0.2)']}
+                                style={styles.botGradient}
+                            >
+                                <Bot size={16} color="#a78bfa" />
+                            </LinearGradient>
+                        </TouchableOpacity>
+
+                        <Link href="/settings" asChild>
+                            <TouchableOpacity style={styles.settingsButton}>
+                                <Settings size={16} color="#FFFFFF" />
+                            </TouchableOpacity>
+                        </Link>
                     </View>
-                    <Text style={styles.username}>{user.displayName}</Text>
                 </View>
-
-                {/* Right: Actions */}
-                <View style={styles.rightSection}>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="notifications-outline" size={24} color={colors.textSecondary} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={[styles.iconButton, styles.aiChatButton]}>
-                        <Ionicons name="happy-outline" size={22} color={colors.primaryLight} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            </BlurView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.background,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
+        position: 'absolute',
+        left: 0,
+        right: 0,
         zIndex: 50,
+        // Removed alignItems: 'center' to allow full width
     },
-    content: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.sm,
-        height: 60,
-    },
-    leftSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-    },
-    rightSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-    },
-    username: {
-        color: colors.text,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    avatarContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    pill: {
+        borderRadius: 9999,
         overflow: 'hidden',
-        backgroundColor: colors.surfaceLight,
+        marginHorizontal: 8, // mx-2 equivalent
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    pillContent: {
+        height: 48,
+        // paddingHorizontal: 16, // Not strictly needed if we center via flex
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative', // To allow absolute positioning if needed, or just standard flex center
+        width: '100%',
+    },
+    centerGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    displayName: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 14,
+        marginRight: 4,
+    },
+    avatarButton: {
+        height: 32,
+        width: 32,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#7c3aed', // ring-violet-600
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     avatar: {
         width: '100%',
         height: '100%',
     },
     iconButton: {
-        width: 40,
-        height: 40,
+        padding: 8,
+        borderRadius: 16,
+    },
+    botButton: {
+        height: 32,
+        width: 32,
+        borderRadius: 6,
+        overflow: 'hidden',
+    },
+    botGradient: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: borderRadius.full,
     },
-    aiChatButton: {
-        backgroundColor: 'rgba(139, 92, 246, 0.15)', // violet-600/15
+    settingsButton: {
+        height: 32,
+        width: 32,
+        borderRadius: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

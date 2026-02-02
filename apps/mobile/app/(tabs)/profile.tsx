@@ -241,7 +241,10 @@ export default function ProfileScreen() {
                             <RefreshCw size={20} color="#fff" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.actionButton, styles.iconButton]}>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.iconButton]}
+                            onPress={() => router.push('/settings')}
+                        >
                             <Settings size={20} color="#fff" />
                         </TouchableOpacity>
                     </View>
@@ -262,7 +265,7 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             <ScrollView
                 style={styles.scrollView}
-                contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 10, paddingBottom: 100 }]}
+                contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 60, paddingBottom: 100 }]}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

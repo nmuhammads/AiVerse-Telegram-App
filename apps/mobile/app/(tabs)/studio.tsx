@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { colors, spacing, borderRadius } from '../../theme';
+import * as FileSystem from 'expo-file-system/legacy';
 import { api } from '../../lib/api';
 import { useUserStore } from '../../store/userStore';
 
@@ -26,12 +26,11 @@ export default function StudioScreen() {
     const params = useLocalSearchParams();
     const router = useRouter();
 
-    // Safely get tab bar height (might be 0 or undefined in some contexts, provide fallback)
+    // Safely get tab bar height
     let tabBarHeight = 0;
     try {
         tabBarHeight = useBottomTabBarHeight();
     } catch (e) {
-        // Fallback if hook fails (e.g. not inside tab navigator context properly or mock)
         tabBarHeight = 60;
     }
 
@@ -68,6 +67,7 @@ export default function StudioScreen() {
     const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
     const [videoDurationSeconds, setVideoDurationSeconds] = useState(0);
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const [klingVideoMode, setKlingVideoMode] = useState<'t2v' | 'i2v' | 'motion-control'>('t2v');
 
     // Initial setup from params
     React.useEffect(() => {
@@ -86,7 +86,6 @@ export default function StudioScreen() {
         if (params.media_type) {
             setMediaType(params.media_type as 'image' | 'video');
         }
-        // Handle input images if passed as JSON string or array
         if (params.input_images) {
             try {
                 const images = typeof params.input_images === 'string'
@@ -109,14 +108,59 @@ export default function StudioScreen() {
 
         setIsGenerating(true);
         try {
-            // Call real API
-            // Call real API
+            // Process images: Convert local file URIs to Base64
+            let start = Date.now();
+            const processedImages = uploadedImages.length > 0 ? await Promise.all(uploadedImages.map(async (uri) => {
+                // If it's already a remote URL, return it as is
+                if (uri.startsWith('http') || uri.startsWith('https')) {
+                    return uri;
+                }
+
+                try {
+                    // Check file extension for MIME type
+                    const ext = uri.split('.').pop()?.toLowerCase();
+                    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+                    // Handle content:// URIs on Android by copying to cache if direct read fails
+                    let fileUri = uri;
+                    if (Platform.OS === 'android' && uri.startsWith('content://')) {
+                        try {
+                            const fileInfo = await FileSystem.getInfoAsync(uri);
+                            if (!fileInfo.exists) {
+                                throw new Error('File does not exist');
+                            }
+                        } catch (e) {
+                            // If getInfo fails or file doesn't exist, try copying to cache
+                            const cachePath = `${FileSystem.documentDirectory}upload-${Date.now()}.${ext || 'jpg'}`;
+                            await FileSystem.copyAsync({ from: uri, to: cachePath });
+                            fileUri = cachePath;
+                        }
+                    }
+
+                    const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: 'base64' });
+                    return `data:${mimeType};base64,${base64}`;
+                } catch (e: any) {
+                    console.error('Failed to convert image to base64:', e);
+                    Alert.alert('Upload Error', `Failed to process image: ${e.message}`);
+                    return null; // Return null on failure
+                }
+            })) : undefined;
+            console.log(`[Studio] Image conversion took ${Date.now() - start}ms`);
+
+            // Check for failed image processings
+            if (processedImages && processedImages.includes(null)) {
+                setIsGenerating(false);
+                return;
+            }
+
+            // Filter out nulls to satisfy TypeScript (though we already checked)
+            const validImages = processedImages ? processedImages.filter((img): img is string => img !== null) : undefined;
+
             const response = await api.post<{
                 success: boolean;
                 generationId?: number;
                 generation_id?: number;
                 id?: number;
-
                 error?: string;
                 image?: string;
                 images?: string[];
@@ -126,8 +170,7 @@ export default function StudioScreen() {
                 aspect_ratio: aspectRatio,
                 user_id: userId,
                 media_type: mediaType,
-                images: uploadedImages.length > 0 ? uploadedImages : undefined,
-                // Video params
+                images: validImages,
                 video_duration: mediaType === 'video' ? videoDuration : undefined,
                 video_resolution: mediaType === 'video' ? videoResolution : undefined,
                 fixed_lens: mediaType === 'video' ? fixedLens : undefined,
@@ -137,11 +180,9 @@ export default function StudioScreen() {
             console.log('[Studio] Generation response:', response);
 
             const genId = response.generationId || response.generation_id || response.id;
-
             const hasResult = (response.success && !!genId) || !!response.image || (!!response.images && response.images.length > 0);
 
             if (hasResult) {
-                // Show Result Modal
                 const imageUrl = response.image || (response.images && response.images[0]);
                 if (imageUrl) {
                     setResultImage(imageUrl);
@@ -153,8 +194,6 @@ export default function StudioScreen() {
                         [{ text: 'OK' }]
                     );
                 }
-
-                // Clear prompt after successful start
                 setPrompt('');
             } else {
                 console.warn('[Studio] Generation failed response:', response);
@@ -183,33 +222,30 @@ export default function StudioScreen() {
 
     if (studioMode === 'chat') {
         return (
-            <View style={styles.container}>
-                <View style={{ flex: 1 }}>
-                    <StudioSubHeader
-                        studioMode={studioMode}
-                        balance={balance}
-                        onSetStudioMode={setStudioMode}
-                        onOpenEditor={() => Alert.alert('Editor', 'Image Editor coming soon')}
-                        onOpenPayment={() => Alert.alert('Payment', 'Open Payment Modal')}
+            <View style={[styles.container, { paddingTop: insets.top + (Platform.OS === 'android' ? 60 : 54) }]}>
+                <StudioSubHeader
+                    studioMode={studioMode}
+                    balance={balance}
+                    onSetStudioMode={setStudioMode}
+                    onOpenEditor={() => Alert.alert('Editor', 'Image Editor coming soon')}
+                    onOpenPayment={() => Alert.alert('Payment', 'Open Payment Modal')}
+                />
+                <View style={styles.centerContent}>
+                    <PromptInput
+                        value="Chat mode coming soon..."
+                        onChangeText={() => { }}
+                        isOptimizing={false}
+                        onOptimize={() => { }}
+                        onDescribe={() => { }}
+                        onClear={() => setStudioMode('studio')}
                     />
-                    <View style={styles.centerContent}>
-                        <PromptInput
-                            value="Chat mode coming soon..."
-                            onChangeText={() => { }}
-                            isOptimizing={false}
-                            onOptimize={() => { }}
-                            onDescribe={() => { }}
-                            onClear={() => setStudioMode('studio')}
-                        />
-                    </View>
                 </View>
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
-            {/* Keyboard Avoiding to manage soft input */}
+        <View style={[styles.container, { paddingTop: insets.top + (Platform.OS === 'android' ? 60 : 54) }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
@@ -225,63 +261,23 @@ export default function StudioScreen() {
 
                 <ScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 100 }]}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: tabBarHeight + 20 }
+                    ]}
                 >
                     {/* 1. Model Selection & Generation Mode */}
                     <ModelSelector
                         selectedModel={selectedModel}
                         mediaType={mediaType}
+                        generationMode={generationMode}
+                        klingVideoMode={klingVideoMode}
                         onSelectModel={setSelectedModel}
                         onSelectMediaType={setMediaType}
+                        onSelectGenerationMode={setGenerationMode}
+                        onSelectKlingVideoMode={setKlingVideoMode}
+                        onOpenMultiGeneration={() => router.push('/multi-generation')}
                     />
-
-                    {/* Multi-Generation Banner */}
-                    <TouchableOpacity style={styles.multiGenBanner}>
-                        <View style={styles.multiGenIcon}>
-                            <Ionicons name="layers" size={20} color="#fff" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.multiGenTitle}>Multi-Generation</Text>
-                            <Text style={styles.multiGenSubtitle}>Create up to 3 variants in different AI models</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
-                    </TouchableOpacity>
-
-                    {/* Generation Mode Selector (Text/Image to ...) - RESTORED HERE */}
-                    {selectedModel !== 'kling-mc' && selectedModel !== 'kling-t2v' && selectedModel !== 'kling-i2v' && (
-                        <View style={styles.genModeSelector}>
-                            <TouchableOpacity
-                                style={[styles.genModeButton, generationMode === 'text' && styles.genModeActive]}
-                                onPress={() => setGenerationMode('text')}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name="text"
-                                    size={16}
-                                    color={generationMode === 'text' ? '#fff' : colors.textSecondary}
-                                    style={{ marginRight: 6 }}
-                                />
-                                <Text style={[styles.genModeText, generationMode === 'text' && styles.genModeTextActive]}>
-                                    {mediaType === 'image' ? 'Text to Image' : 'Text to Video'}
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.genModeButton, generationMode === 'image' && styles.genModeActive]}
-                                onPress={() => setGenerationMode('image')}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name="images"
-                                    size={16}
-                                    color={generationMode === 'image' ? '#fff' : colors.textSecondary}
-                                    style={{ marginRight: 6 }}
-                                />
-                                <Text style={[styles.genModeText, generationMode === 'image' && styles.genModeTextActive]}>
-                                    {mediaType === 'image' ? 'Image to Image' : 'Image to Video'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
 
                     {/* 2. Prompt Input (Hidden for Kling MC) */}
                     {selectedModel !== 'kling-mc' && (
@@ -295,7 +291,6 @@ export default function StudioScreen() {
                         />
                     )}
 
-                    {/* ... (rest of scroll component) ... */}
                     {/* 3. Image Upload (Reference) */}
                     <ImageUploader
                         images={uploadedImages}
@@ -303,6 +298,7 @@ export default function StudioScreen() {
                         onRemoveImage={index => setUploadedImages(prev => prev.filter((_, i) => i !== index))}
                         generationMode={generationMode}
                         mediaType={mediaType}
+                        selectedModel={selectedModel}
                     />
 
                     {/* 4. Settings Panel */}
@@ -345,12 +341,9 @@ export default function StudioScreen() {
                         />
                     )}
 
-                    {/* Bottom Action Bar containing Generate Button */}
-                    {/* Moved INSIDE ScrollView to scroll with content */}
-                    <View style={styles.footer}>
-                        {/* Active Generations Panel */}
+                    {/* 5. Generation Actions */}
+                    <View style={styles.generationActions}>
                         <ActiveGenerationsPanel onViewResult={handleViewResult} />
-
                         <GenerateButton
                             onPress={handleGenerate}
                             isDisabled={!prompt.trim() && selectedModel !== 'kling-mc'}
@@ -359,13 +352,14 @@ export default function StudioScreen() {
                         />
                     </View>
                 </ScrollView>
+
             </KeyboardAvoidingView>
 
             <ResultModal
                 visible={resultModalVisible}
                 startIndex={0}
                 items={[{
-                    id: 0, // Mock ID for preview
+                    id: 0,
                     image_url: resultImage || '',
                     prompt: prompt,
                     likes_count: 0,
@@ -383,13 +377,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    // Updated Content styles
     scrollContent: {
-        paddingHorizontal: spacing.md, // 16px lateral padding
+        paddingHorizontal: spacing.md,
         paddingTop: spacing.xs,
-        // Ensure enough bottom padding so the footer can be scrolled ABOVE the floating tab bar.
-        // TabBar is ~80px + Insets. 
-        paddingBottom: 120,
         gap: spacing.md,
     },
     centerContent: {
@@ -397,66 +387,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: spacing.lg,
     },
-    footer: {
-        // Now relative inside ScrollView
+    generationActions: {
+        gap: spacing.sm,
         marginTop: spacing.sm,
-        paddingTop: spacing.sm,
-        // Removed absolute positioning props
-    },
-    multiGenBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#3b0764', // Dark purple background
-        borderRadius: borderRadius.xl,
-        padding: spacing.md,
-        gap: spacing.md,
-        borderWidth: 1,
-        borderColor: 'rgba(236, 72, 153, 0.3)', // Pinkish border
-        overflow: 'hidden',
-    },
-    multiGenIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: '#db2777', // Pink icon bg
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    multiGenTitle: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 14,
-    },
-    multiGenSubtitle: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 11,
-    },
-    // Styles for GenModeSelector
-    genModeSelector: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        padding: 4,
-        borderRadius: borderRadius.lg,
-        height: 44,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.05)',
-    },
-    genModeButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: borderRadius.md,
-    },
-    genModeActive: {
-        backgroundColor: '#27272a', // zinc-800
-    },
-    genModeText: {
-        color: colors.textSecondary,
-        fontWeight: '600',
-        fontSize: 13,
-    },
-    genModeTextActive: {
-        color: '#fff',
-    },
+        marginBottom: spacing.xl,
+    }
 });

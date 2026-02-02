@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
     TouchableOpacity,
     Text,
     StyleSheet,
     View,
-    ActivityIndicator
+    ActivityIndicator,
+    Animated,
+    Easing
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, borderRadius } from '../../theme';
@@ -22,23 +24,64 @@ export function GenerateButton({
     cost = 1,
     isGenerating = false,
 }: GenerateButtonProps) {
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+
+    // Sparkle animation loop when generating
+    useEffect(() => {
+        let animation: Animated.CompositeAnimation | null = null;
+
+        if (isGenerating) {
+            animation = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.5,
+                        duration: 500,
+                        useNativeDriver: true,
+                        easing: Easing.ease // Smooth ease in/out
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 500,
+                        useNativeDriver: true,
+                        easing: Easing.ease
+                    })
+                ])
+            );
+            animation.start();
+        } else {
+            // Reset when not generating
+            pulseAnim.setValue(1);
+        }
+
+        return () => {
+            if (animation) animation.stop();
+        };
+    }, [isGenerating, pulseAnim]);
+
     return (
         <TouchableOpacity
-            style={[styles.button, isDisabled && styles.buttonDisabled]}
+            style={[styles.button, (isDisabled || isGenerating) && styles.buttonDisabled]}
             disabled={isDisabled || isGenerating}
             onPress={onPress}
         >
             <View style={styles.content}>
+                {/* Left: Sparkles (Always visible, animated when generating) */}
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                    <Ionicons name="sparkles" size={20} color="#fff" />
+                </Animated.View>
+
+                {/* Center: Text */}
+                <Text style={styles.text}>
+                    {isGenerating ? 'Generating...' : 'Generate'}
+                </Text>
+
+                {/* Right: Loader or Cost */}
                 {isGenerating ? (
-                    <Text style={styles.text}>Generating...</Text>
+                    <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                    <>
-                        <Ionicons name="sparkles" size={20} color="#fff" />
-                        <Text style={styles.text}>Generate</Text>
-                        <View style={styles.costBadge}>
-                            <Text style={styles.costText}>{cost} ⚡</Text>
-                        </View>
-                    </>
+                    <View style={styles.costBadge}>
+                        <Text style={styles.costText}>{cost} ⚡</Text>
+                    </View>
                 )}
             </View>
         </TouchableOpacity>

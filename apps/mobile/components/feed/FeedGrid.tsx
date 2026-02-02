@@ -17,6 +17,7 @@ interface FeedGridProps {
     onEndReached?: () => void;
     onRefresh?: () => void;
     refreshing?: boolean;
+    contentContainerStyle?: import('react-native').StyleProp<import('react-native').ViewStyle>;
 }
 
 export function FeedGrid({
@@ -30,6 +31,7 @@ export function FeedGrid({
     onEndReached,
     onRefresh,
     refreshing,
+    contentContainerStyle,
 }: FeedGridProps) {
     const numColumns = viewMode === 'standard' ? 2 : 3;
 
@@ -75,7 +77,8 @@ export function FeedGrid({
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.listContent,
-                    viewMode === 'compact' ? styles.listContentCompact : styles.listContentStandard
+                    viewMode === 'compact' ? styles.listContentCompact : styles.listContentStandard,
+                    contentContainerStyle
                 ]}
                 keyExtractor={(item: FeedItem) => item.id}
             />

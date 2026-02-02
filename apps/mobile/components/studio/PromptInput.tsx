@@ -32,46 +32,40 @@ export function PromptInput({
     onDescribe,
     onClear,
 }: PromptInputProps) {
-    const rotateAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(0.6)).current;
 
-    // Animated border rotation
     useEffect(() => {
         const animation = Animated.loop(
-            Animated.timing(rotateAnim, {
-                toValue: 1,
-                duration: 4000,
-                useNativeDriver: true,
-            })
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 0.6,
+                    duration: 1500,
+                    useNativeDriver: true,
+                }),
+            ])
         );
         animation.start();
         return () => animation.stop();
-    }, [rotateAnim]);
-
-    const rotation = rotateAnim.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '360deg'],
-    });
+    }, [pulseAnim]);
 
     return (
         <View style={styles.container}>
-            {/* Prompt Input with animated border */}
-            <View style={styles.inputWrapper}>
-                {/* Animated gradient border */}
-                {/* Animated gradient border - 'Snake' effect simulation */}
-                {/* Animated gradient border - 'Snake' effect simulation */}
-                {/* Fallback to solid color because native module might be missing */}
-                {/* Animated gradient border - 'Snake' effect simulation */}
+            {/* Wrapper for border effect */}
+            <View style={styles.borderWrapper}>
+                {/* Pulsing gradient border - sits behind */}
                 <AnimatedLinearGradient
-                    // Simulate conic-gradient using linear gradient with hard stops for "head" and "tail"
-                    colors={['transparent', 'transparent', colors.primary, colors.gradient.magenta, colors.gradient.cyan]}
-                    locations={[0, 0.6, 0.65, 0.85, 1]}
+                    colors={['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={[
-                        styles.animatedBorder,
-                        { transform: [{ rotate: rotation }] },
-                    ]}
+                    style={[styles.gradientBorder, { opacity: pulseAnim }]}
                 />
+
+                {/* Solid inner background - sits on top, no animation */}
                 <View style={styles.inputInner}>
                     <TextInput
                         style={styles.input}
@@ -133,24 +127,23 @@ const styles = StyleSheet.create({
     container: {
         gap: spacing.md,
     },
-    inputWrapper: {
+    borderWrapper: {
         position: 'relative',
-        borderRadius: borderRadius.lg,
-        overflow: 'hidden',
+        borderRadius: 18,
+        padding: 2,
     },
-    animatedBorder: {
+    gradientBorder: {
         position: 'absolute',
-        top: '-150%',
-        left: '-150%',
-        width: '400%',
-        height: '400%',
-        // Centers the rotation origin
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        borderRadius: 18,
     },
     inputInner: {
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.lg,
-        margin: 2,
-        position: 'relative',
+        backgroundColor: '#18181b',
+        borderRadius: 16,
+        minHeight: 120,
     },
     input: {
         minHeight: 120,

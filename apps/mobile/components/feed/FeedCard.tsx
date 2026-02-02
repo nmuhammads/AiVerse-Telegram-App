@@ -57,12 +57,31 @@ export const FeedCard = memo(function FeedCard({
 }: FeedCardProps) {
     const isCompact = variant === 'compact';
     const [imageError, setImageError] = useState(false);
+    const [failedThumbnail, setFailedThumbnail] = useState(false);
     const modelName = getModelDisplayName(item.model);
+
+    // Reset state when item changes (FlashList recycling)
+    React.useEffect(() => {
+        setImageError(false);
+        setFailedThumbnail(false);
+    }, [item.image_url]);
+
+    const imageSource = failedThumbnail && item.original_url ? item.original_url : item.image_url;
 
     const handlePress = (action?: () => void) => {
         if (action) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             action();
+        }
+    };
+
+    const handleImageError = () => {
+        if (!failedThumbnail && item.original_url && item.image_url !== item.original_url) {
+            // If thumbnail failed, try original
+            setFailedThumbnail(true);
+        } else {
+            // Both failed or no original available
+            setImageError(true);
         }
     };
 
@@ -76,11 +95,11 @@ export const FeedCard = memo(function FeedCard({
             <View style={[styles.imageContainer, isCompact && styles.imageContainerCompact]}>
                 {item.image_url && !imageError ? (
                     <Image
-                        source={{ uri: item.image_url }}
+                        source={{ uri: imageSource }}
                         style={styles.image}
                         contentFit="cover"
                         transition={200}
-                        onError={() => setImageError(true)}
+                        onError={handleImageError}
                         cachePolicy="memory-disk"
                     />
                 ) : (

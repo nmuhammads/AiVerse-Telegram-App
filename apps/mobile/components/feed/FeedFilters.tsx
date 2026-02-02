@@ -1,9 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '../../theme';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, FlatList, Modal, TouchableWithoutFeedback, Dimensions } from 'react-native';
+import { colors, spacing, borderRadius } from '../../theme';
 import * as Haptics from 'expo-haptics';
-import { ChevronDown, LayoutGrid, Grid3X3 } from 'lucide-react-native';
+import { ChevronDown, LayoutGrid, Grid3X3, Check } from 'lucide-react-native';
 
 const MODEL_OPTIONS = [
     { value: 'all', label: 'All Models' },
@@ -28,6 +27,10 @@ export function FeedFilters({
     onViewModeChange,
     onModelFilterChange,
 }: FeedFiltersProps) {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0, width: 0 });
+    const buttonRef = useRef<TouchableOpacity>(null);
+
     const handlePress = (action: () => void) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         action();
@@ -36,11 +39,24 @@ export function FeedFilters({
     const currentDate = new Date().toLocaleString('en-US', { month: 'long' });
     const selectedModelLabel = MODEL_OPTIONS.find(o => o.value === modelFilter)?.label || 'All Models';
 
-    // Simple cycle for now, or could use ActionSheet/Modal in future refactor
-    const handleModelPress = () => {
-        const currentIndex = MODEL_OPTIONS.findIndex(o => o.value === modelFilter);
-        const nextIndex = (currentIndex + 1) % MODEL_OPTIONS.length;
-        handlePress(() => onModelFilterChange(MODEL_OPTIONS[nextIndex].value));
+    const openDropdown = () => {
+        handlePress(() => {
+            buttonRef.current?.measureInWindow((x, y, width, height) => {
+                setDropdownPosition({
+                    top: y + height + 4,
+                    right: Dimensions.get('window').width - (x + width),
+                    width: Math.max(width, 180), // Min width or button width
+                });
+                setIsDropdownOpen(true);
+            });
+        });
+    };
+
+    const handleModelSelect = (value: string) => {
+        handlePress(() => {
+            onModelFilterChange(value);
+            setIsDropdownOpen(false);
+        });
     };
 
     return (
@@ -72,15 +88,63 @@ export function FeedFilters({
                     </TouchableOpacity>
                 </View>
 
-                {/* Model Selector (Mock Dropdown) */}
+                {/* Model Selector Button */}
                 <TouchableOpacity
-                    style={styles.modelSelector}
-                    onPress={handleModelPress}
+                    ref={buttonRef}
+                    style={[styles.modelSelector, isDropdownOpen && styles.modelSelectorActive]}
+                    onPress={openDropdown}
                 >
                     <Text style={styles.modelText} numberOfLines={1}>{selectedModelLabel}</Text>
                     <ChevronDown size={14} color={colors.textSecondary} />
                 </TouchableOpacity>
             </View>
+
+            {/* Modal for Dropdown - ensures it's above everything */}
+            <Modal
+                visible={isDropdownOpen}
+                transparent
+                animationType="none"
+                onRequestClose={() => setIsDropdownOpen(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
+                    <View style={styles.modalOverlay}>
+                        <View style={[
+                            styles.dropdownMenu,
+                            {
+                                top: dropdownPosition.top,
+                                right: dropdownPosition.right,
+                                width: dropdownPosition.width,
+                            }
+                        ]}>
+                            <FlatList
+                                data={MODEL_OPTIONS}
+                                keyExtractor={(item) => item.value}
+                                scrollEnabled={false}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.dropdownItem,
+                                            modelFilter === item.value && styles.dropdownItemActive
+                                        ]}
+                                        onPress={() => handleModelSelect(item.value)}
+                                    >
+                                        <Text style={[
+                                            styles.dropdownItemText,
+                                            modelFilter === item.value && styles.dropdownItemTextActive
+                                        ]}>
+                                            {item.label}
+                                        </Text>
+                                        {modelFilter === item.value && (
+                                            <Check size={14} color={colors.primary} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                                ItemSeparatorComponent={() => <View style={styles.separator} />}
+                            />
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
         </View>
     );
 }
@@ -92,6 +156,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: spacing.sm,
         marginBottom: spacing.sm,
+        zIndex: 10,
     },
     leftContainer: {
         flex: 1,
@@ -110,7 +175,7 @@ const styles = StyleSheet.create({
     },
     viewToggle: {
         flexDirection: 'row',
-        backgroundColor: '#1c1c1e', // Hex from Mini App
+        backgroundColor: '#1c1c1e',
         borderRadius: borderRadius.md,
         padding: 2,
         borderWidth: 1,
@@ -144,9 +209,60 @@ const styles = StyleSheet.create({
         gap: 8,
         maxWidth: 140,
     },
+    modelSelectorActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.surfaceLight,
+    },
     modelText: {
         fontSize: 12,
         fontWeight: '500',
-        color: colors.textSecondary, // Zinc-300 roughly
+        color: colors.textSecondary,
+    },
+    // Modal Overlay styles
+    modalOverlay: {
+        flex: 1,
+        // No background color, just transparent to catch clicks
+    },
+    dropdownMenu: {
+        position: 'absolute',
+        backgroundColor: '#1c1c1e',
+        borderRadius: borderRadius.lg,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        overflow: 'hidden',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+            },
+            android: {
+                elevation: 8,
+            },
+        }),
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+    },
+    dropdownItemActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    dropdownItemText: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+    dropdownItemTextActive: {
+        color: colors.text,
+        fontWeight: '600',
+    },
+    separator: {
+        height: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
 });

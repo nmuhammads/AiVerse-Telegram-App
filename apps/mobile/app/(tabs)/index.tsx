@@ -295,17 +295,15 @@ export default function FeedScreen() {
     }, [loadingMore]);
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
             {loading && items.length === 0 ? (
-                <>
-                    <View style={styles.headerContainer}>
-                        <ListHeaderComponent />
-                    </View>
+                <View style={{ paddingTop: insets.top + 60, paddingHorizontal: spacing.sm }}>
+                    <ListHeaderComponent />
                     <FeedSkeletonGrid count={6} />
-                </>
+                </View>
             ) : (
                 <FeedGrid
-                    items={filteredItems.length > 0 ? filteredItems : items} // Fallback to items if filtered empty? No, logic below handles empty
+                    items={filteredItems.length > 0 ? filteredItems : items}
                     viewMode={viewMode}
                     onItemPress={handleItemPress}
                     onLike={handleLike}
@@ -315,6 +313,7 @@ export default function FeedScreen() {
                     onEndReached={handleLoadMore}
                     onRefresh={onRefresh}
                     refreshing={refreshing}
+                    contentContainerStyle={{ paddingTop: insets.top + 60 }}
                 />
             )}
 
@@ -349,6 +348,8 @@ const styles = StyleSheet.create({
     header: {
         marginBottom: spacing.md,
         paddingTop: spacing.sm,
+        zIndex: 1000,
+        elevation: 50,
     },
     emptyOverlay: {
         position: 'absolute',
