@@ -708,11 +708,11 @@
         "hint": "{{count}} image processing. Tap 🔄 to refresh."
     },
     "rewards": {
-        "subscribe": "Subscribe → +10 tokens",
+        "subscribe": "Subscribe → +20 tokens",
         "claim": "Claim",
         "checking": "Checking...",
         "notSubscribed": "Subscribe to channel first",
-        "success": "+10 tokens claimed!",
+        "success": "+20 tokens claimed!",
         "modalDescription": "Subscribe to our channel and get bonus tokens!"
     },
     "devMode": {

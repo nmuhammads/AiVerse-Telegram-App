@@ -49,7 +49,7 @@ export async function syncAvatar(req: Request, res: Response) {
     if (!TOKEN) return res.status(500).json({ error: 'Telegram token not configured' })
 
     const photosResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`)
-    const photosJson = await photosResp.json()
+    const photosJson = await photosResp.json() as any
     const first = photosJson?.result?.photos?.[0]
 
     if (!first) {
@@ -59,7 +59,7 @@ export async function syncAvatar(req: Request, res: Response) {
     // Get the largest size
     const largest = first[first.length - 1]
     const fileResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${largest.file_id}`)
-    const fileJson = await fileResp.json()
+    const fileJson = await fileResp.json() as any
     const filePathTg = fileJson?.result?.file_path
 
     if (!filePathTg) return res.status(404).json({ error: 'telegram file path not found' })
@@ -559,7 +559,7 @@ export async function getFollowers(req: Request, res: Response) {
 }
 
 const CHANNEL_USERNAME = 'aiversebots'
-const CHANNEL_REWARD_TOKENS = 10
+const CHANNEL_REWARD_TOKENS = 20
 
 // Check if user is subscribed to channel and if they already claimed reward
 export async function checkChannelSubscription(req: Request, res: Response) {
@@ -579,7 +579,7 @@ export async function checkChannelSubscription(req: Request, res: Response) {
 
     // Check subscription status via Telegram API
     const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
-    const tgData = await tgResp.json()
+    const tgData = await tgResp.json() as any
 
     const status = tgData?.result?.status
     const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
@@ -607,7 +607,7 @@ export async function claimChannelReward(req: Request, res: Response) {
 
     // Check subscription status via Telegram API
     const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
-    const tgData = await tgResp.json()
+    const tgData = await tgResp.json() as any
 
     const status = tgData?.result?.status
     const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
