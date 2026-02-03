@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Gift, ExternalLink, Check } from 'lucide-react'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 
 export function ChannelSubscriptionModal() {
@@ -72,7 +72,7 @@ export function ChannelSubscriptionModal() {
         try {
             const res = await fetch('/api/user/claim-channel-reward', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ userId: user.id })
             })
             const data = await res.json()

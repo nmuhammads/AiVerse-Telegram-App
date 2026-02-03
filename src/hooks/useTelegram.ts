@@ -1,6 +1,18 @@
 import { useEffect } from 'react'
 import WebApp from '@twa-dev/sdk'
 
+/**
+ * Get auth headers for API requests
+ * Sends Telegram initData for server-side validation
+ */
+export function getAuthHeaders(): Record<string, string> {
+  const initData = WebApp.initData
+  if (initData) {
+    return { 'X-Telegram-Init-Data': initData }
+  }
+  return {}
+}
+
 export function useTelegram() {
   useEffect(() => {
     const wa = WebApp as unknown as {
@@ -65,7 +77,7 @@ export function useTelegram() {
           language_code: WebApp.initDataUnsafe.user?.language_code,
           ref: storedRef
         }
-        fetch('/api/user/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        fetch('/api/user/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(payload) })
           .finally(() => { sessionStorage.removeItem('aiverse_ref') })
       }
     } catch { /* noop */ }
@@ -179,7 +191,7 @@ export function useTelegram() {
       // Sync avatar on launch
       fetch('/api/user/sync-avatar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ userId: user.id })
       }).catch(e => console.error('Avatar sync failed', e))
     }

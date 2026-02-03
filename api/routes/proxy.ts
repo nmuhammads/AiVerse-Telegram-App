@@ -7,21 +7,24 @@ import { Router, type Request, type Response } from 'express'
 const router = Router()
 
 // Allowed domains for proxying (security)
+// IMPORTANT: Use exact domain names only, no partial matches
 const ALLOWED_DOMAINS = [
     'r2.cloudflarestorage.com',
-    'pub-',  // R2 public buckets start with pub-
     'r2.dev',
-    'aiquickdraw.com',  // Temporary image URLs
+    'aiquickdraw.com',
     'tempfile.aiquickdraw.com',
 ]
 
 /**
  * Check if URL is from allowed domain
+ * Uses exact matching to prevent SSRF attacks
  */
 function isAllowedUrl(url: string): boolean {
     try {
         const urlObj = new URL(url)
-        // Check R2_PUBLIC_URL from env
+        const hostname = urlObj.hostname.toLowerCase()
+
+        // Check R2_PUBLIC_URL from env (exact prefix match)
         const r2PublicUrl = process.env.R2_PUBLIC_URL
         const r2ThumbsUrl = process.env.R2_PUBLIC_URL_THUMBNAILS
         const r2EditedUrl = process.env.R2_PUBLIC_URL_EDITED
@@ -30,8 +33,15 @@ function isAllowedUrl(url: string): boolean {
         if (r2ThumbsUrl && url.startsWith(r2ThumbsUrl)) return true
         if (r2EditedUrl && url.startsWith(r2EditedUrl)) return true
 
-        // Check general allowed domains
-        return ALLOWED_DOMAINS.some(domain => urlObj.hostname.includes(domain))
+        // Check allowed domains using exact match or subdomain match
+        return ALLOWED_DOMAINS.some(domain => {
+            const lowerDomain = domain.toLowerCase()
+            // Exact match: hostname === domain
+            if (hostname === lowerDomain) return true
+            // Subdomain match: hostname ends with .domain
+            if (hostname.endsWith('.' + lowerDomain)) return true
+            return false
+        })
     } catch {
         return false
     }

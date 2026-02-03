@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/generationStore'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { Send, Upload, Download, Share2 } from 'lucide-react'
 
 import { useTranslation } from 'react-i18next'
@@ -93,6 +93,7 @@ export function GenerationForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify({
           prompt,

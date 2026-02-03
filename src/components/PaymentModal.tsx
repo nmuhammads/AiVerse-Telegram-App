@@ -2,7 +2,7 @@ import { X, CreditCard, Star, Zap, Gift } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { isPromoActive, calculateBonusTokens, getBonusAmount } from '@/utils/promo'
 import { isDevMode } from '@/components/DevModeBanner'
 
@@ -98,7 +98,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
             try {
                 const response = await fetch('/api/payment/create-stars-invoice', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify({
                         title: t('payment.packages.tokens', { count: selectedPackage.tokens }),
                         description: t('payment.messages.description', { count: selectedPackage.tokens }),

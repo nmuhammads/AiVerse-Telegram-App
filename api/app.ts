@@ -40,6 +40,17 @@ app.use(express.json({
 }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
+// 🔍 Debug logging for auth headers (remove in production)
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const isProtectedRoute = ['/api/user/', '/api/payment/', '/api/generation/'].some(p => req.path.startsWith(p))
+  if (isProtectedRoute && req.method !== 'GET') {
+    const authHeader = req.headers['x-telegram-init-data']
+    console.log(`\n🔐 [AUTH DEBUG] ${req.method} ${req.path}`)
+    console.log(`   Auth Header: ${authHeader ? '✅ Present (' + String(authHeader).slice(0, 40) + '...)' : '❌ Missing'}`)
+  }
+  next()
+})
+
 /**
  * API Routes
  */
