@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { FeedImage, type FeedItem } from '@/components/FeedImage'
 import { FeedDetailModal } from '@/components/FeedDetailModal'
 import { useGenerationStore, type ModelType } from '@/store/generationStore'
@@ -192,7 +192,7 @@ export default function PublicProfile() {
         try {
             const res = await fetch('/api/user/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ followerId: currentUser.id, followingId: Number(userId) })
             })
             if (res.ok) {

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/generationStore'
 import { useActiveGenerationsStore, MAX_ACTIVE_IMAGES } from '@/store/activeGenerationsStore'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { compressImage } from '@/utils/imageCompression'
 import {
@@ -443,7 +443,7 @@ export function useStudio() {
 
                     const res = await fetch('/api/generation/generate', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify(requestBody),
                         signal: controller.signal
                     })

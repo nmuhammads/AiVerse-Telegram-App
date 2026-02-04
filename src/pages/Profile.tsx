@@ -65,11 +65,12 @@ import { toast } from 'sonner'
 import { GenerationSelector } from '@/components/GenerationSelector'
 import { useNavigate } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useGenerationStore } from '@/store/generationStore'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { ProfileSkeletonGrid } from '@/components/ui/skeleton'
 import { UserAvatar } from '@/components/ui/UserAvatar'
+import { ChannelSubscriptionModal } from '@/components/ChannelSubscriptionModal'
 
 function getModelDisplayName(model: string | null): string {
   if (!model) return ''
@@ -229,7 +230,7 @@ export default function Profile() {
             // Check pending status first
             await fetch('/api/generation/check-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({ user_id: user.id })
             }).catch(() => { })
 
@@ -331,7 +332,7 @@ export default function Profile() {
       // Check pending status first
       await fetch('/api/generation/check-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       }).catch(() => { })
 
@@ -566,7 +567,7 @@ export default function Profile() {
     try {
       const res = await fetch(`/api/generation/${preview.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       })
       if (res.ok) {
@@ -596,7 +597,7 @@ export default function Profile() {
       const variantIndex = previewIndex - 1
       const res = await fetch(`/api/generation/${preview.id}/variant/${variantIndex}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       })
       const data = await res.json()
@@ -640,7 +641,7 @@ export default function Profile() {
     try {
       const r = await fetch('/api/user/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ generationId: preview.id, isPublished: newStatus, isPrivate: newPrivacy })
       })
       if (r.ok) {
@@ -671,7 +672,7 @@ export default function Profile() {
     try {
       const r = await fetch(`/api/generation/${preview.id}/privacy`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ is_prompt_private: newPrivate })
       })
       if (r.ok) {
@@ -695,7 +696,7 @@ export default function Profile() {
     try {
       const r = await fetch('/api/user/cover/set', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ userId: user.id, generationId })
       })
       const j = await r.json()
@@ -875,7 +876,7 @@ export default function Profile() {
 
                   fetch('/api/user/avatar/upload', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify({ userId: user.id, imageBase64: base64 })
                   }).then(async (r) => {
                     if (r.ok) {
@@ -933,7 +934,7 @@ export default function Profile() {
                     try {
                       const r = await fetch('/api/user/claim-channel-reward', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify({ userId: user.id })
                       })
                       const j = await r.json().catch(() => null)
@@ -1815,7 +1816,7 @@ export default function Profile() {
 
                             fetch('/api/user/avatar/upload', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
+                              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                               body: JSON.stringify({ userId: user.id, imageBase64: base64 })
                             }).then(async (r) => {
                               if (r.ok) {
@@ -1859,6 +1860,7 @@ export default function Profile() {
         onClose={() => setShowCoverSelector(false)}
         onSelect={handleCoverSelect}
       />
+      <ChannelSubscriptionModal />
     </div >
   )
 }
