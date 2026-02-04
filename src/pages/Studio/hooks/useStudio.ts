@@ -158,11 +158,65 @@ export function useStudio() {
         const remixId = searchParams.get('remix')
         const contestEntry = searchParams.get('contest_entry')
         const mode = searchParams.get('mode')
+        const modelParam = searchParams.get('model')
+        const mediaParam = searchParams.get('media')
 
         if (mode === 'chat') {
             setStudioMode('chat')
         } else if (mode === 'studio') {
             setStudioMode('studio')
+        }
+
+        // Handle model selection from deeplink
+        if (modelParam) {
+            const videoModels = ['seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc']
+            const imageModels = ['nanobanana', 'nanobanana-pro', 'seedream4', 'seedream4-5', 'gpt-image-1.5', 'qwen-image']
+
+            // Handle Seedance with mode
+            if (modelParam === 'seedance-t2v') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+                setGenerationMode('text')
+                setUploadedImages([])
+            } else if (modelParam === 'seedance-i2v') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+                setGenerationMode('image')
+            } else if (modelParam === 'seedance' || modelParam === 'seedance-1.5-pro') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+            }
+            // Handle Kling models
+            else if (modelParam === 'kling-t2v') {
+                setMediaType('video')
+                setSelectedModel('kling-t2v')
+                setKlingVideoMode('t2v')
+                setGenerationMode('text')
+                setUploadedImages([])
+                setUploadedVideoUrl(null)
+            } else if (modelParam === 'kling-i2v') {
+                setMediaType('video')
+                setSelectedModel('kling-i2v')
+                setKlingVideoMode('i2v')
+                setGenerationMode('image')
+                setUploadedVideoUrl(null)
+            } else if (modelParam === 'kling-mc') {
+                setMediaType('video')
+                setSelectedModel('kling-mc')
+                setKlingVideoMode('motion-control')
+                setGenerationMode('image')
+            }
+            // Handle image models
+            else if (imageModels.includes(modelParam)) {
+                setMediaType('image')
+                setSelectedModel(modelParam as ModelType)
+            }
+            // Additional media type override
+            if (mediaParam === 'image') {
+                setMediaType('image')
+            } else if (mediaParam === 'video') {
+                setMediaType('video')
+            }
         }
 
         if (contestEntry) {

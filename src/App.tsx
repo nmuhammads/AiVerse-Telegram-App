@@ -84,6 +84,27 @@ function StartParamRouter() {
         return;
       }
 
+      // Handle studio with model selection: studio-{modelId}
+      if (p.startsWith("studio-")) {
+        const modelId = p.replace("studio-", "");
+        navigate(`/studio?model=${modelId}`, { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
+
+      // Handle photo mode: photo-{modelId}
+      if (p.startsWith("photo-")) {
+        const modelId = p.replace("photo-", "");
+        navigate(`/studio?model=${modelId}&media=image`, { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
+
+      // Handle video mode: video-{modelId}
+      if (p.startsWith("video-")) {
+        const modelId = p.replace("video-", "");
+        navigate(`/studio?model=${modelId}&media=video`, { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
+
       // Handle dynamic params
       if (p.startsWith("contest-")) {
         const id = p.replace("contest-", "");

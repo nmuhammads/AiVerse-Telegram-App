@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 .vite
 .agent/rules/answerlanguage.md
-docs/
 new ui/
 buildlogs.txt
 deploylogs.txt
@@ -37,3 +36,4 @@ scripts/temp_migrate.js
 uploads/*
 logs/*
 user_692574150_logs.json
+docs/Private/*
