@@ -178,7 +178,7 @@ export function useTelegram() {
   }
 
   const user = (import.meta.env.DEV && !WebApp.initDataUnsafe.user) ? {
-    id: 5740494186,
+    id: 817308975,
     first_name: 'Muhammad',
     last_name: 'Nuriddinov',
     username: 'mortymn',
