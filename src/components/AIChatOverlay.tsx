@@ -12,6 +12,7 @@ import {
 } from '@/store/aiChatStore'
 import { ChatFeaturesOnboarding } from '@/components/ChatFeaturesOnboarding'
 import WebApp from '@twa-dev/sdk'
+import { getAuthHeaders } from '@/hooks/useTelegram'
 
 const MODELS: { id: ChatModel; name: string; shortName: string }[] = [
     { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek v3.2', shortName: 'DeepSeek' },
@@ -271,7 +272,7 @@ export function AIChatOverlay({ variant = 'overlay' }: AIChatOverlayProps) {
                 if (attachedImage.startsWith('data:image/')) {
                     const uploadRes = await fetch('/api/chat/upload', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify({ image: attachedImage })
                     })
 
@@ -297,7 +298,7 @@ export function AIChatOverlay({ variant = 'overlay' }: AIChatOverlayProps) {
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({
                     messages: [...messages, { role: 'user', content: messageContent }].map(m => ({
                         role: m.role,
@@ -378,7 +379,7 @@ export function AIChatOverlay({ variant = 'overlay' }: AIChatOverlayProps) {
 
             const response = await fetch('/api/chat/generate-image', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({
                     prompt: pendingGeneration.prompt,
                     model: modelToUse,
