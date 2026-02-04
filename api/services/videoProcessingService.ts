@@ -256,3 +256,105 @@ export async function processVideoForKling(base64Data: string): Promise<Processe
 export function isBase64Video(url: string): boolean {
     return url.startsWith('data:video/')
 }
+
+// Telegram Bot API limits
+const TELEGRAM_VIDEO_UPLOAD_LIMIT = 20 * 1024 * 1024 // 20MB for upload
+const TARGET_BITRATE = 800 // kbps - for compression
+
+/**
+ * Compress video for Telegram upload
+ * Downloads video from URL, compresses if needed, returns Buffer
+ * @param videoUrl - URL to download video from
+ * @returns Compressed video buffer or null if failed
+ */
+export async function compressVideoForTelegram(videoUrl: string): Promise<Buffer | null> {
+    const tempDir = ensureTempDir()
+    const uniqueId = crypto.randomBytes(8).toString('hex')
+    const inputPath = path.join(tempDir, `tg_input_${uniqueId}.mp4`)
+    const outputPath = path.join(tempDir, `tg_output_${uniqueId}.mp4`)
+
+    try {
+        // 1. Download video
+        console.log(`[VideoCompress] Downloading video from URL...`)
+        const response = await fetch(videoUrl)
+        if (!response.ok) {
+            console.error(`[VideoCompress] Failed to download video: ${response.status}`)
+            return null
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer())
+        const originalSize = buffer.length
+        console.log(`[VideoCompress] Downloaded: ${(originalSize / 1024 / 1024).toFixed(2)}MB`)
+
+        // If already small enough, return as-is
+        if (originalSize <= TELEGRAM_VIDEO_UPLOAD_LIMIT) {
+            console.log(`[VideoCompress] Video already small enough, no compression needed`)
+            return buffer
+        }
+
+        // 2. Save to temp file
+        fs.writeFileSync(inputPath, buffer)
+
+        // 3. Get video duration for bitrate calculation
+        const durationCmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputPath}"`
+        const { stdout: durationStr } = await execAsync(durationCmd)
+        const duration = parseFloat(durationStr.trim()) || 30 // default 30 sec if unknown
+
+        // Calculate target bitrate to fit in 20MB with some margin
+        // target_size_bits = 19MB * 8 * 1024 * 1024 (leave 1MB margin)
+        // bitrate = target_size_bits / duration
+        const targetSizeBits = (TELEGRAM_VIDEO_UPLOAD_LIMIT - 1024 * 1024) * 8
+        const calculatedBitrate = Math.floor(targetSizeBits / duration / 1000) // kbps
+        const bitrate = Math.min(calculatedBitrate, 2000) // cap at 2000kbps for quality
+
+        console.log(`[VideoCompress] Duration: ${duration.toFixed(1)}s, Target bitrate: ${bitrate}kbps`)
+
+        // 4. Compress video with FFmpeg
+        // -b:v: video bitrate
+        // -maxrate/-bufsize: constrain max bitrate
+        // -vf scale: downscale if needed (max 720p)
+        // -crf 28: higher CRF for smaller size
+        // -preset fast: good balance
+        const compressCmd = `ffmpeg -y -i "${inputPath}" -vf "scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease" -c:v libx264 -preset fast -crf 28 -b:v ${bitrate}k -maxrate ${bitrate * 1.5}k -bufsize ${bitrate * 2}k -c:a aac -b:a 64k "${outputPath}"`
+
+        console.log(`[VideoCompress] Running compression...`)
+        await execAsync(compressCmd)
+
+        // 5. Read compressed file
+        const compressedBuffer = fs.readFileSync(outputPath)
+        const compressedSize = compressedBuffer.length
+
+        console.log(`[VideoCompress] Compressed: ${(compressedSize / 1024 / 1024).toFixed(2)}MB (was ${(originalSize / 1024 / 1024).toFixed(2)}MB)`)
+
+        // If still too large, try more aggressive compression
+        if (compressedSize > TELEGRAM_VIDEO_UPLOAD_LIMIT) {
+            console.log(`[VideoCompress] Still too large, applying aggressive compression...`)
+            const aggressivePath = path.join(tempDir, `tg_aggressive_${uniqueId}.mp4`)
+            const aggressiveBitrate = Math.floor(bitrate * 0.6)
+
+            const aggressiveCmd = `ffmpeg -y -i "${outputPath}" -vf "scale='min(854,iw)':'min(480,ih)':force_original_aspect_ratio=decrease" -c:v libx264 -preset fast -crf 32 -b:v ${aggressiveBitrate}k -c:a aac -b:a 48k "${aggressivePath}"`
+            await execAsync(aggressiveCmd)
+
+            const aggressiveBuffer = fs.readFileSync(aggressivePath)
+            console.log(`[VideoCompress] Aggressive: ${(aggressiveBuffer.length / 1024 / 1024).toFixed(2)}MB`)
+
+            try { fs.unlinkSync(aggressivePath) } catch { }
+
+            return aggressiveBuffer
+        }
+
+        return compressedBuffer
+
+    } catch (error) {
+        console.error(`[VideoCompress] Error:`, error)
+        return null
+    } finally {
+        // Cleanup temp files
+        try {
+            if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath)
+            if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
+        } catch (e) {
+            console.warn('[VideoCompress] Cleanup warning:', e)
+        }
+    }
+}

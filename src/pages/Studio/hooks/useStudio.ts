@@ -180,17 +180,36 @@ export function useStudio() {
                         if (data.aspect_ratio && data.aspect_ratio !== '1:1') {
                             setAspectRatio(data.aspect_ratio as AspectRatio)
                         }
-                        if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
-                            setUploadedImages(data.input_images)
-                            setGenerationMode('image')
-                        }
-                        if (data.media_type === 'video') {
+
+                        // Handle Kling Motion Control remix
+                        if (data.model === 'kling-mc' || data.model === 'kling-2.6/motion-control') {
+                            console.log('[Remix] Kling MC detected, loading video_input:', data.video_input)
                             setMediaType('video')
-                            if (!data.model || data.model === 'seedance-1.5-pro') {
-                                setSelectedModel('seedance-1.5-pro')
+                            setSelectedModel('kling-mc')
+                            setKlingVideoMode('motion-control')
+                            // Load video reference from R2
+                            if (data.video_input) {
+                                setUploadedVideoUrl(data.video_input)
+                            }
+                            // Load original photo reference
+                            if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
+                                setUploadedImages(data.input_images)
+                                setGenerationMode('image')
                             }
                         } else {
-                            setMediaType('image')
+                            // Standard remix handling
+                            if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
+                                setUploadedImages(data.input_images)
+                                setGenerationMode('image')
+                            }
+                            if (data.media_type === 'video') {
+                                setMediaType('video')
+                                if (!data.model || data.model === 'seedance-1.5-pro') {
+                                    setSelectedModel('seedance-1.5-pro')
+                                }
+                            } else {
+                                setMediaType('image')
+                            }
                         }
                         setParentGeneration(data.id, data.users?.username || 'Unknown', !!data.is_prompt_private)
                     } else {
@@ -199,7 +218,7 @@ export function useStudio() {
                 })
                 .catch(err => console.error('[Remix] Failed to load remix data:', err))
         }
-    }, [searchParams, setPrompt, setSelectedModel, setParentGeneration, setAspectRatio, setUploadedImages, setGenerationMode, setMediaType])
+    }, [searchParams, setPrompt, setSelectedModel, setParentGeneration, setAspectRatio, setUploadedImages, setGenerationMode, setMediaType, setKlingVideoMode, setUploadedVideoUrl])
 
     // Default ratio logic
     useEffect(() => {

@@ -226,8 +226,8 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
                             </div>
                         </div>
                         <div className={`flex items-center ${isCompact ? 'gap-1' : 'gap-2'}`}>
-                            {/* Скрываем Ремикс для Kling Motion Control */}
-                            {showRemix && !isKlingMC && (
+                            {/* Remix button - now shown for all models including Kling MC */}
+                            {showRemix && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation()

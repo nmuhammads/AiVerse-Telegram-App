@@ -346,16 +346,14 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGenerati
                             <span>{item.likes_count}</span>
                         </button>
 
-                        {/* Скрываем Ремикс для Kling Motion Control */}
-                        {!(item.model === 'kling-mc' || item.model === 'kling-2.6/motion-control') && (
-                            <button
-                                onClick={() => { impact('medium'); onRemix(item) }}
-                                className="flex-1 h-12 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-violet-700 border border-violet-500"
-                            >
-                                <Repeat size={20} />
-                                <span>{t('feed.remix')}</span>
-                            </button>
-                        )}
+                        {/* Remix button - now shown for all models including Kling MC */}
+                        <button
+                            onClick={() => { impact('medium'); onRemix(item) }}
+                            className="flex-1 h-12 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-violet-700 border border-violet-500"
+                        >
+                            <Repeat size={20} />
+                            <span>{t('feed.remix')}</span>
+                        </button>
                     </div>
                 </div>
             </div >

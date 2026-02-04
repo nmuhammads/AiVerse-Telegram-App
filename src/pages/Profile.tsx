@@ -1171,6 +1171,26 @@ export default function Profile() {
                         >
                           <Share2 size={20} />
                         </button>
+                        {/* Copy Remix Link Button */}
+                        <button
+                          onClick={async () => {
+                            impact('light')
+                            const botUsername = 'AiVerseAppBot' // TODO: get dynamically if needed
+                            const refParam = user?.username || String(user?.id || '')
+                            const remixUrl = `https://t.me/${botUsername}?startapp=ref-${refParam}-remix-${preview.id}`
+                            try {
+                              await navigator.clipboard.writeText(remixUrl)
+                              toast.success(t('profile.remixLinkCopied'))
+                            } catch (e) {
+                              console.error('Failed to copy remix link', e)
+                              toast.error(t('common.error'))
+                            }
+                          }}
+                          className="h-10 px-3 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center gap-2 text-white shadow-lg border border-white/10 text-xs font-medium"
+                        >
+                          <Copy size={16} />
+                          <span>{t('profile.copyRemixFull')}</span>
+                        </button>
                         <button
                           onClick={() => { setPreview(null); setCurrentGenerationIndex(null) }}
                           className="w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-white shadow-lg border border-white/10"
@@ -1197,6 +1217,26 @@ export default function Profile() {
                               className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
                             >
                               <Share2 size={20} />
+                            </button>
+                            {/* Copy Remix Link Button */}
+                            <button
+                              onClick={async () => {
+                                impact('light')
+                                const botUsername = 'AiVerseAppBot' // TODO: get dynamically if needed
+                                const refParam = user?.username || String(user?.id || '')
+                                const remixUrl = `https://t.me/${botUsername}?startapp=ref-${refParam}-remix-${preview.id}`
+                                try {
+                                  await navigator.clipboard.writeText(remixUrl)
+                                  toast.success(t('profile.remixLinkCopied'))
+                                } catch (e) {
+                                  console.error('Failed to copy remix link', e)
+                                  toast.error(t('common.error'))
+                                }
+                              }}
+                              className="h-10 px-3 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center gap-2 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
+                            >
+                              <Copy size={16} />
+                              <span>{t('profile.copyRemix')}</span>
                             </button>
                             <button
                               onClick={() => {
