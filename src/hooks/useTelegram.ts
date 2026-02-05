@@ -39,6 +39,13 @@ export function useTelegram() {
       setBackgroundColor: (c: string) => void
     }
     wa.ready()
+
+    // PWA install prompt handler for web version
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      ;(window as any).deferredPrompt = e
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     const applySafe = () => {
       const inset = wa.contentSafeAreaInset || wa.safeAreaInset || { top: 0, bottom: 0, left: 0, right: 0 }
       const r = document.documentElement
@@ -97,6 +104,7 @@ export function useTelegram() {
       wa.offEvent('safeAreaChanged', applySafe)
       wa.offEvent('contentSafeAreaChanged', applySafe)
       wa.MainButton.hide()
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     }
   }, [])
 
@@ -167,8 +175,34 @@ export function useTelegram() {
 
   const addToHomeScreen = () => {
     const wa = WebApp as any
+    // For Telegram Mini App
     if (wa.addToHomeScreen) {
       wa.addToHomeScreen()
+    }
+    // For Web version - show instructions or trigger browser's install prompt
+    else if ('BeforeInstallPromptEvent' in window || (navigator as any).standalone !== undefined) {
+      // Check if PWA install is available
+      const deferredPrompt = (window as any).deferredPrompt
+      if (deferredPrompt) {
+        deferredPrompt.prompt()
+        deferredPrompt.userChoice.then((choiceResult: any) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt')
+          }
+          (window as any).deferredPrompt = null
+        })
+      } else {
+        // Show instructions based on platform
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+        if (isIOS && isSafari) {
+          wa.showAlert?.('Нажмите кнопку "Поделиться" внизу и выберите "На экран Домой"')
+        } else {
+          // For Chrome and other browsers that support PWA
+          wa.showAlert?.('Нажмите меню браузера (⋮) и выберите "Установить приложение" или "Добавить на главный экран"')
+        }
+      }
     }
   }
 

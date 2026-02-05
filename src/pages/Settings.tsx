@@ -24,7 +24,7 @@ const defaultSettings: NotificationSettings = {
 }
 
 export default function Settings() {
-    const { t, i18n } = useTranslation()
+    const { t, i18n, ready } = useTranslation()
     const navigate = useNavigate()
     const { impact } = useHaptics()
     const { addToHomeScreen, checkHomeScreenStatus, platform, tg } = useTelegram()
@@ -43,6 +43,33 @@ export default function Settings() {
     const isMobile = platform === 'ios' || platform === 'android'
 
     const location = useLocation()
+
+    // Debug: Log i18n status
+    useEffect(() => {
+        if (!ready) {
+            console.log('Translations not ready yet, current language:', i18n.language)
+            // Force reload translations
+            i18n.loadNamespaces('translation').then(() => {
+                console.log('Translations loaded manually')
+            }).catch(err => {
+                console.error('Failed to load translations:', err)
+            })
+        } else {
+            console.log('Translations ready, current language:', i18n.language)
+        }
+    }, [ready, i18n])
+
+    // Return loading state if translations not ready
+    if (!ready) {
+        return (
+            <div className="min-h-dvh bg-black text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="loader-spinner mx-auto mb-4"></div>
+                    <p className="text-zinc-400">Loading...</p>
+                </div>
+            </div>
+        )
+    }
 
     // Авто-открытие секции уведомлений при переходе из попапа
     useEffect(() => {
@@ -75,12 +102,18 @@ export default function Settings() {
     }, [isMobile, navigate, tg, location])
 
     useEffect(() => {
-        checkHomeScreenStatus((status) => {
-            if (status === 'missed' || status === 'unknown') {
-                setCanAddToHome(true)
-            }
-        })
-    }, [])
+        // For web version, always show "Add to Home Screen" option
+        if (!isMobile) {
+            setCanAddToHome(true)
+        } else {
+            // For Telegram Mini App, check status
+            checkHomeScreenStatus((status) => {
+                if (status === 'missed' || status === 'unknown') {
+                    setCanAddToHome(true)
+                }
+            })
+        }
+    }, [isMobile])
 
     const [remixCount, setRemixCount] = useState(0)
     const { user } = useTelegram()
