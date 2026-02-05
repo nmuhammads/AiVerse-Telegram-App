@@ -27,6 +27,7 @@ import editorRoutes from './routes/editor.js'
 import watermarkRoutes from './routes/watermark.js'
 import promptRoutes from './routes/prompt.js'
 import chatRoutes from './routes/chat.js'
+import tributeRoutes from './routes/tribute.js'
 
 
 // load env
@@ -71,6 +72,7 @@ app.use('/api/editor', editorRoutes)
 app.use('/api/watermarks', watermarkRoutes)
 app.use('/api/prompt', promptRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/tribute', tributeRoutes)
 
 // PiAPI Webhook (direct import to avoid circular dependency)
 import { handlePiapiWebhook } from './controllers/generationController.js'

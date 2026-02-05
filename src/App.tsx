@@ -17,6 +17,7 @@ import MultiGeneration from "@/pages/MultiGeneration";
 import WatermarkEditor from "@/pages/WatermarkEditor";
 import Login from "@/pages/Login";
 import AuthCallback from "@/pages/AuthCallback";
+import { PaymentResult } from "@/pages/PaymentResult";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
 import { PendingIndicator } from "@/components/PendingIndicator";
@@ -186,7 +187,7 @@ function StartParamRouter() {
 // Main App Layout with Header and TabBar
 function AppLayout() {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/auth/');
+  const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/auth/') || location.pathname.startsWith('/payment/');
   const inTelegram = isInTelegramWebApp();
 
   // Initialize auth state
@@ -210,14 +211,19 @@ function AppLayout() {
     }
   }, [inTelegram]);
 
-  // Login page - no header/tabbar
-  if (isLoginPage) {
+  // Check for payment result pages
+  const isPaymentResultPage = location.pathname.startsWith('/payment/');
+
+  // Login page or payment result - no header/tabbar
+  if (isLoginPage || isPaymentResultPage) {
     return (
       <div className="min-h-screen">
         <Routes>
           <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/auth/confirm" element={<AuthCallback />} />
+          <Route path="/payment/success" element={<PaymentResult />} />
+          <Route path="/payment/fail" element={<PaymentResult />} />
         </Routes>
       </div>
     );

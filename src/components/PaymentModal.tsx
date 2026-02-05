@@ -1,4 +1,4 @@
-import { X, CreditCard, Star, Zap, Gift } from 'lucide-react'
+import { X, CreditCard, Star, Zap, Gift, Globe } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
@@ -12,6 +12,7 @@ interface PaymentModalProps {
 }
 
 type PaymentMethod = 'stars' | 'card' | 'sbp'
+type WebCurrency = 'eur' | 'rub'
 
 const PACKAGES_STARS = [
     { id: 'star_20', tokens: 10, price: 20, spins: 0 },
@@ -23,6 +24,23 @@ const PACKAGES_STARS = [
     { id: 'star_1000', tokens: 550, price: 1000, bonus: '+50 FREE', popular: true, spins: 2 },
 ]
 
+// EUR packages for web payments via Tribute Shop API
+const PACKAGES_EUR = [
+    { id: 'eur_50', tokens: 50, price: 100, priceLabel: '€1.00' },
+    { id: 'eur_120', tokens: 120, price: 230, bonus: '+4%', priceLabel: '€2.30' },
+    { id: 'eur_300', tokens: 300, price: 540, bonus: '+11%', priceLabel: '€5.40' },
+    { id: 'eur_800', tokens: 800, price: 1440, bonus: '+11%', priceLabel: '€14.40' },
+]
+
+// RUB packages for web payments via Tribute Shop API
+const PACKAGES_RUB = [
+    { id: 'rub_50', tokens: 50, price: 10000, priceLabel: '₽100' },
+    { id: 'rub_120', tokens: 120, price: 23000, bonus: '+4%', priceLabel: '₽230' },
+    { id: 'rub_300', tokens: 300, price: 54000, bonus: '+11%', priceLabel: '₽540' },
+    { id: 'rub_800', tokens: 800, price: 144000, bonus: '+11%', priceLabel: '₽1,440' },
+]
+
+// Legacy fiat packages (for Telegram deep links)
 const PACKAGES_FIAT = [
     {
         id: 'fiat_50',
@@ -60,23 +78,36 @@ const PACKAGES_FIAT = [
 export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const { t } = useTranslation()
     const { impact } = useHaptics()
-    const { user } = useTelegram()
-    const [activeMethod, setActiveMethod] = useState<PaymentMethod>('stars')
-    const [selectedPackage, setSelectedPackage] = useState<any>(PACKAGES_STARS[3])
+    const { user, isInTelegram } = useTelegram()
+
+    // Check if we're in web mode (not in Telegram)
+    const isWebMode = !isInTelegram
+
+    const [activeMethod, setActiveMethod] = useState<PaymentMethod>(isWebMode ? 'card' : 'stars')
+    const [webCurrency, setWebCurrency] = useState<WebCurrency>('eur')
+    const [selectedPackage, setSelectedPackage] = useState<any>(isWebMode ? PACKAGES_EUR[0] : PACKAGES_STARS[3])
     const [loading, setLoading] = useState(false)
 
-    // Update selected package when method changes to keep relative position or default
+    // Get packages based on mode and currency
+    const getPackages = () => {
+        if (activeMethod === 'stars') return PACKAGES_STARS
+        if (isWebMode) {
+            return webCurrency === 'eur' ? PACKAGES_EUR : PACKAGES_RUB
+        }
+        return PACKAGES_FIAT
+    }
+
+    // Update selected package when method or currency changes
     useEffect(() => {
-        const packages: any[] = activeMethod === 'stars' ? PACKAGES_STARS : PACKAGES_FIAT
-        // Try to find matching token amount, otherwise default to popular or middle
-        const match = packages.find(p => p.tokens === selectedPackage.tokens) || packages.find(p => p.popular) || packages[0]
+        const packages = getPackages()
+        const match = packages.find(p => p.tokens === selectedPackage.tokens) || packages.find((p: any) => p.popular) || packages[0]
         setSelectedPackage(match)
-    }, [activeMethod])
+    }, [activeMethod, webCurrency, isWebMode])
 
     if (!isOpen) return null
 
-    const packages = activeMethod === 'stars' ? PACKAGES_STARS : PACKAGES_FIAT
-    const currencySymbol = activeMethod === 'stars' ? '⭐' : '₽'
+    const packages = getPackages()
+    const currencySymbol = activeMethod === 'stars' ? '⭐' : (isWebMode ? (webCurrency === 'eur' ? '€' : '₽') : '₽')
 
     const handlePayment = async () => {
         impact('medium')
@@ -137,16 +168,45 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 setLoading(false)
             }
         } else {
-            // Tribute Payment (Card or SBP) via Bot Hub Deep Link
-            const wa = (window as any).Telegram?.WebApp
-            const method = activeMethod === 'card' ? 'card' : 'sbp'
-            const link = `https://t.me/aiverse_hub_bot?start=pay-${method}-${selectedPackage.tokens}`
+            // Fiat Payment (Card or SBP)
+            if (isWebMode) {
+                // Web mode: Use Tribute Shop API
+                setLoading(true)
+                try {
+                    const response = await fetch('/api/tribute/create-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                        body: JSON.stringify({
+                            packageId: selectedPackage.id,
+                            currency: webCurrency,
+                        })
+                    })
+                    const data = await response.json()
 
-            if (wa) {
-                wa.openTelegramLink(link)
-                onClose()
+                    if (data.success && data.paymentUrl) {
+                        // Redirect to Tribute payment page
+                        window.location.href = data.paymentUrl
+                    } else {
+                        alert(t('payment.messages.errorInvoice', { error: data.error || 'Unknown error' }))
+                    }
+                } catch (e) {
+                    console.error(e)
+                    alert(t('payment.messages.errorNetwork'))
+                } finally {
+                    setLoading(false)
+                }
             } else {
-                window.open(link, '_blank')
+                // Telegram mode: Use Bot Hub Deep Link
+                const wa = (window as any).Telegram?.WebApp
+                const method = activeMethod === 'card' ? 'card' : 'sbp'
+                const link = `https://t.me/aiverse_hub_bot?start=pay-${method}-${selectedPackage.tokens}`
+
+                if (wa) {
+                    wa.openTelegramLink(link)
+                    onClose()
+                } else {
+                    window.open(link, '_blank')
+                }
             }
         }
     }
@@ -178,26 +238,50 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 {/* Method Selector */}
                 <div className="px-5 pb-3 shrink-0">
                     <div className="flex p-1 bg-zinc-800/50 rounded-xl border border-white/5">
-                        <button
-                            onClick={() => { impact('light'); setActiveMethod('stars') }}
-                            className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'stars' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
-                        >
-                            <Star size={12} fill={activeMethod === 'stars' ? 'currentColor' : 'none'} /> Stars
-                        </button>
+                        {!isWebMode && (
+                            <button
+                                onClick={() => { impact('light'); setActiveMethod('stars') }}
+                                className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'stars' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
+                            >
+                                <Star size={12} fill={activeMethod === 'stars' ? 'currentColor' : 'none'} /> Stars
+                            </button>
+                        )}
                         <button
                             onClick={() => { impact('light'); setActiveMethod('card') }}
                             className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'card' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
                         >
                             <CreditCard size={12} /> {t('payment.methods.card')}
                         </button>
-                        <button
-                            onClick={() => { impact('light'); setActiveMethod('sbp') }}
-                            className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'sbp' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
-                        >
-                            <div className="w-2.5 h-2.5 bg-gradient-to-tr from-blue-500 via-green-500 to-yellow-500 rounded-sm" /> {t('payment.methods.sbp')}
-                        </button>
+                        {!isWebMode && (
+                            <button
+                                onClick={() => { impact('light'); setActiveMethod('sbp') }}
+                                className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${activeMethod === 'sbp' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
+                            >
+                                <div className="w-2.5 h-2.5 bg-gradient-to-tr from-blue-500 via-green-500 to-yellow-500 rounded-sm" /> {t('payment.methods.sbp')}
+                            </button>
+                        )}
                     </div>
                 </div>
+
+                {/* Currency Selector for Web Mode */}
+                {isWebMode && activeMethod === 'card' && (
+                    <div className="px-5 pb-3 shrink-0">
+                        <div className="flex p-1 bg-zinc-800/50 rounded-xl border border-white/5">
+                            <button
+                                onClick={() => { impact('light'); setWebCurrency('eur') }}
+                                className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${webCurrency === 'eur' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
+                            >
+                                <Globe size={12} /> EUR (€)
+                            </button>
+                            <button
+                                onClick={() => { impact('light'); setWebCurrency('rub') }}
+                                className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${webCurrency === 'rub' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
+                            >
+                                <Globe size={12} /> RUB (₽)
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Dev Mode Warning Banner */}
                 {isDevMode() && (
@@ -261,7 +345,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                             {pkg.spins > 0 && <div className="text-[10px] text-violet-400 font-bold">{t('payment.packages.spins', { count: pkg.spins })}</div>}
                                         </div>
                                         <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
-                                            {pkg.price} {currencySymbol}
+                                            {pkg.priceLabel || `${pkg.price} ${currencySymbol}`}
                                         </div>
                                     </div>
 
@@ -296,11 +380,15 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             : 'bg-white text-black hover:bg-zinc-200 shadow-white/10'
                             }`}
                     >
-                        {loading ? t('payment.button.processing') : t('payment.button.pay', {
-                            amount: selectedPackage.price,
-                            symbol: currencySymbol,
-                            method: activeMethod === 'stars' ? t('payment.methods.stars') : activeMethod === 'card' ? t('payment.methods.card') : t('payment.methods.sbp')
-                        })}
+                        {loading ? t('payment.button.processing') : (
+                            selectedPackage.priceLabel
+                                ? `${t('payment.button.paySimple')} ${selectedPackage.priceLabel}`
+                                : t('payment.button.pay', {
+                                    amount: selectedPackage.price,
+                                    symbol: currencySymbol,
+                                    method: activeMethod === 'stars' ? t('payment.methods.stars') : activeMethod === 'card' ? t('payment.methods.card') : t('payment.methods.sbp')
+                                })
+                        )}
                     </button>
 
                     {/* Bonus Purchase Button */}
