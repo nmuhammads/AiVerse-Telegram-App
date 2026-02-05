@@ -49,10 +49,10 @@ export function TabBar() {
       <div className="mx-auto w-[92%] max-w-[400px]">
         <div className="rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
-            { to: '/', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
+            { to: '/home', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
             { to: '/events', label: t('nav.events'), icon: <Clock size={20} />, badge: eventCount },
             {
-              to: '/studio',
+              to: '/',
               label: studioMode === 'chat' ? t('nav.chat', 'Chat') : t('nav.studio'),
               icon: studioMode === 'chat' ? <MessageCircle size={20} /> : <Settings2 size={20} />,
               badge: 0
@@ -60,7 +60,7 @@ export function TabBar() {
             { to: '/top', label: t('nav.top'), icon: <Star size={20} />, badge: 0 },
             { to: '/profile', label: t('nav.profile'), icon: <User size={20} />, badge: 0 },
           ].map((tab) => {
-            const isStudio = tab.to === '/studio'
+            const isStudio = tab.to === '/' || tab.to === '/studio'
             const isStudioActive = isStudio && studioMode !== 'chat'
 
             return (

@@ -3,6 +3,7 @@ import { Heart, Repeat, Trophy, Pencil, Video } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useNavigate } from 'react-router-dom'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useCloudflareProxy } from '@/contexts/CloudflareProxyContext'
@@ -63,6 +64,7 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
     const [loaded, setLoaded] = useState(false)
     const { impact } = useHaptics()
     const { user } = useTelegram()
+    const { requireAuth } = useRequireAuth()
     const navigate = useNavigate()
     const { getImageUrl, needsProxy } = useCloudflareProxy()
     const [isLiked, setIsLiked] = useState(item.is_liked)
@@ -120,6 +122,10 @@ export const FeedImage = ({ item, priority = false, handleRemix, onClick, onLike
 
     const handleLike = async () => {
         console.log('handleLike called', { userId: user?.id, itemId: item.id })
+        // Check if user is authenticated before allowing like
+        if (!requireAuth()) {
+            return
+        }
         if (!user?.id) {
             console.warn('User not logged in, cannot like')
             return

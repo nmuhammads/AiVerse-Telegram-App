@@ -97,7 +97,7 @@ function StartParamRouter() {
         return;
       }
       if (p === "home") {
-        navigate("/", { replace: true });
+        navigate("/home", { replace: true });
         return;
       }
       if (p === "top") {
@@ -186,7 +186,6 @@ function StartParamRouter() {
 // Main App Layout with Header and TabBar
 function AppLayout() {
   const location = useLocation();
-  const { isAuthenticated, setLoading } = useAuthStore();
   const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/auth/');
   const inTelegram = isInTelegramWebApp();
 
@@ -224,11 +223,6 @@ function AppLayout() {
     );
   }
 
-  // For web users: redirect to login on root if not authenticated
-  if (!inTelegram && !isAuthenticated && location.pathname === '/') {
-    return <Navigate to="/login" replace />;
-  }
-
   return (
     <div className={`${WebApp.platform === 'android' ? 'pt-[calc(env(safe-area-inset-top)+24px)]' : 'pt-[env(safe-area-inset-top)]'} min-h-screen flex flex-col`}>
       <Header />
@@ -236,7 +230,9 @@ function AppLayout() {
       <div className="flex-1">
         <Routes>
           {/* Public routes (viewable without auth, but need auth for actions) */}
-          <Route path="/" element={<PageErrorBoundary pageName="Лента"><Home /></PageErrorBoundary>} />
+          <Route path="/" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
+          <Route path="/home" element={<PageErrorBoundary pageName="Лента"><Home /></PageErrorBoundary>} />
+          <Route path="/studio" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
           <Route path="/top" element={<PageErrorBoundary pageName="Рейтинг"><Leaderboard /></PageErrorBoundary>} />
           <Route path="/profile/:userId" element={<PageErrorBoundary pageName="Профиль"><PublicProfile /></PageErrorBoundary>} />
           <Route path="/contests/:id" element={<PageErrorBoundary pageName="Конкурс"><ContestDetail /></PageErrorBoundary>} />
@@ -244,7 +240,6 @@ function AppLayout() {
 
           {/* Protected routes - require authentication */}
           <Route path="/chat" element={<Navigate to="/studio?mode=chat" replace />} />
-          <Route path="/studio" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
           <Route path="/profile" element={<RequireAuth><PageErrorBoundary pageName="Профиль"><Profile /></PageErrorBoundary></RequireAuth>} />
           <Route path="/settings" element={<RequireAuth><PageErrorBoundary pageName="Настройки"><Settings /></PageErrorBoundary></RequireAuth>} />
           <Route path="/contests/propose" element={<RequireAuth><PageErrorBoundary pageName="Создание конкурса"><ProposeContest /></PageErrorBoundary></RequireAuth>} />

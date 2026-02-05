@@ -2,6 +2,7 @@ import { X, Heart, Repeat, Download, Share2, Sparkles, Maximize2, Trophy, Pencil
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useState, useEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { useNavigate } from 'react-router-dom'
@@ -71,7 +72,8 @@ function getModelDisplayName(model: string | null): string {
 export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGeneration, onNextGeneration, canGoPrev, canGoNext }: Props) {
     const { t, i18n } = useTranslation()
     const { impact } = useHaptics()
-    const { user, platform } = useTelegram()
+    const { platform } = useTelegram()
+    const { requireAuth } = useRequireAuth()
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
     const [isFullScreen, setIsFullScreen] = useState(false)
     const [imageIndex, setImageIndex] = useState(0)
@@ -111,6 +113,10 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGenerati
     }, [onClose])
 
     const handleLikeClick = () => {
+        // Check if user is authenticated before allowing like
+        if (!requireAuth('/home')) {
+            return
+        }
         impact('light')
         setIsLikeAnimating(true)
         onLike(item)
