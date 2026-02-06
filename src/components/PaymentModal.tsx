@@ -184,6 +184,10 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                     const data = await response.json()
 
                     if (data.success && data.paymentUrl) {
+                        // Save order UUID for status verification after redirect
+                        if (data.orderUuid) {
+                            localStorage.setItem('tribute_order_uuid', data.orderUuid)
+                        }
                         // Redirect to Tribute payment page
                         window.location.href = data.paymentUrl
                     } else {

@@ -48,7 +48,7 @@ export async function createTributeOrder(req: AuthenticatedRequest, res: Respons
             return
         }
 
-        // Create Tribute order
+        // Create Tribute order (uuid not known yet, will update successUrl after)
         const tributeOrder = await createOrder({
             amount: pkg.amount,
             currency: currency,
