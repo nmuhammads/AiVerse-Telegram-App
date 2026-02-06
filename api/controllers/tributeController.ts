@@ -6,7 +6,10 @@
 import { Request, Response } from 'express'
 import { createOrder, getOrderStatus, type TributeCurrency } from '../services/tributeService.js'
 import { findPackage, getPackageTitle, getPackageDescription } from '../config/tokenPackages.js'
-import { supaPost, supaSelect } from '../services/supabaseService.js'
+import { supaPost, supaSelect, supaPatch } from '../services/supabaseService.js'
+import { logBalanceChange } from '../services/balanceAuditService.js'
+import { tg } from './telegramController.js'
+import { isPromoActive, calculateBonusTokens, getBonusAmount } from '../utils/promoUtils.js'
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js'
 
 const APP_URL = process.env.APP_URL || 'https://aiverse.app'
@@ -107,9 +110,34 @@ export async function checkOrderStatus(req: Request, res: Response): Promise<voi
         }
 
         // First check our database
-        const localResult = await supaSelect('tribute_orders', `?uuid=eq.${uuid}&select=status,tokens,paid_at`)
+        const localResult = await supaSelect('tribute_orders', `?uuid=eq.${uuid}&select=*`)
         if (localResult.ok && Array.isArray(localResult.data) && localResult.data.length > 0) {
             const order = localResult.data[0]
+
+            // If order is still pending, check Tribute API and reconcile if needed
+            if (order.status === 'pending') {
+                try {
+                    const tributeStatus = await getOrderStatus(uuid)
+                    if (tributeStatus.status === 'paid') {
+                        console.log(`[TributeController] Reconciling order ${uuid}: pending -> paid`)
+                        await reconcilePayment(order)
+                        res.json({
+                            success: true,
+                            status: 'paid',
+                            tokens: order.tokens,
+                            paidAt: new Date().toISOString(),
+                        })
+                        return
+                    } else if (tributeStatus.status === 'failed') {
+                        await supaPatch('tribute_orders', `?uuid=eq.${uuid}`, { status: 'failed' })
+                        res.json({ success: true, status: 'failed' })
+                        return
+                    }
+                } catch (e) {
+                    console.warn(`[TributeController] Could not check Tribute API for ${uuid}:`, e)
+                }
+            }
+
             res.json({
                 success: true,
                 status: order.status,
@@ -130,6 +158,71 @@ export async function checkOrderStatus(req: Request, res: Response): Promise<voi
         res.status(500).json({
             success: false,
             error: error.message || 'Failed to check order status'
+        })
+    }
+}
+
+/**
+ * Reconcile a pending order that was actually paid (webhook missed)
+ */
+async function reconcilePayment(order: any): Promise<void> {
+    const userId = order.user_id
+    const baseTokens = order.tokens
+
+    const promoActive = isPromoActive()
+    const tokensToAdd = promoActive ? calculateBonusTokens(baseTokens) : baseTokens
+    const bonusTokens = promoActive ? getBonusAmount(baseTokens) : 0
+
+    // Get current user balance
+    const userResult = await supaSelect('users', `?user_id=eq.${userId}&select=balance,telegram_id`)
+    if (!userResult.ok || !Array.isArray(userResult.data) || userResult.data.length === 0) {
+        console.error(`[TributeController] Reconcile: User not found: ${userId}`)
+        await supaPatch('tribute_orders', `?uuid=eq.${order.uuid}`, { status: 'paid', paid_at: new Date().toISOString() })
+        return
+    }
+
+    const user = userResult.data[0]
+    const currentBalance = Number(user.balance || 0)
+    const newBalance = currentBalance + tokensToAdd
+
+    // Update user balance
+    await supaPatch('users', `?user_id=eq.${userId}`, { balance: newBalance })
+
+    // Log balance change
+    await logBalanceChange({
+        userId,
+        oldBalance: currentBalance,
+        newBalance,
+        reason: 'payment',
+        referenceId: order.uuid,
+        metadata: {
+            source: 'tribute_web_reconcile',
+            baseTokens,
+            bonusTokens,
+            promoActive,
+            currency: order.currency,
+            amount: order.amount,
+        }
+    })
+
+    // Update order status
+    await supaPatch('tribute_orders', `?uuid=eq.${order.uuid}`, { status: 'paid', paid_at: new Date().toISOString() })
+
+    console.log(`[TributeController] Reconciled: user ${userId} balance ${currentBalance} -> ${newBalance}`)
+
+    // Send Telegram notification
+    const telegramId = user.telegram_id
+    if (telegramId) {
+        const promoText = promoActive ? `\n(Включая бонус +${bonusTokens} 🎁)` : ''
+        const currencySymbol = order.currency === 'eur' ? '€' : '₽'
+        const amountFormatted = (order.amount / 100).toFixed(2)
+
+        await tg('sendMessage', {
+            chat_id: telegramId,
+            text: `✅ Оплата через карту прошла успешно!\n\n` +
+                  `💰 Начислено: ${tokensToAdd} токенов${promoText}\n` +
+                  `💳 Сумма: ${amountFormatted} ${currencySymbol}\n\n` +
+                  `Спасибо за покупку! 🙏`
         })
     }
 }
