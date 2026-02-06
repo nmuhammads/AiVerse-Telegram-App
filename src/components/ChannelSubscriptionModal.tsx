@@ -6,7 +6,7 @@ import { useHaptics } from '@/hooks/useHaptics'
 
 export function ChannelSubscriptionModal() {
     const { t } = useTranslation()
-    const { user, tg } = useTelegram()
+    const { user, tg, isInTelegram } = useTelegram()
     const { impact, notify } = useHaptics()
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -62,7 +62,13 @@ export function ChannelSubscriptionModal() {
 
     const handleSubscribe = () => {
         impact('medium')
-        tg.openTelegramLink('https://t.me/aiversebots')
+        if (isInTelegram) {
+            try {
+                tg.openTelegramLink('https://t.me/aiversebots')
+                return
+            } catch { /* fallback below */ }
+        }
+        window.open('https://t.me/aiversebots', '_blank')
     }
 
     const handleClaim = async () => {

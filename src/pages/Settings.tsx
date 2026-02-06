@@ -28,7 +28,7 @@ export default function Settings() {
     const { t, i18n, ready } = useTranslation()
     const navigate = useNavigate()
     const { impact } = useHaptics()
-    const { addToHomeScreen, checkHomeScreenStatus, platform, tg } = useTelegram()
+    const { addToHomeScreen, checkHomeScreenStatus, platform, tg, isInTelegram } = useTelegram()
     const [canAddToHome, setCanAddToHome] = useState(false)
     const [notifExpanded, setNotifExpanded] = useState(false)
     const [langExpanded, setLangExpanded] = useState(false)
@@ -220,7 +220,12 @@ export default function Settings() {
     const aboutSection = {
         title: t('settings.sections.about'),
         items: [
-            { icon: MessageCircle, label: t('settings.items.support'), onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots?direct', '_blank') : tg.openTelegramLink('https://t.me/aiversebots?direct') },
+            { icon: MessageCircle, label: t('settings.items.support'), onClick: () => {
+                if (isInTelegram && platform !== 'ios') {
+                    try { tg.openTelegramLink('https://t.me/aiversebots?direct'); return } catch { /* fallback */ }
+                }
+                window.open('https://t.me/aiversebots?direct', '_blank')
+            } },
             { icon: Clock, label: t('settings.items.storage'), value: t('settings.items.storageValue'), onClick: () => toast.info(t('settings.messages.storageToast'), { duration: 5000 }) },
             { icon: Info, label: t('settings.items.version'), value: 'v3.3.2', onClick: () => { } },
             ...(isWebAuth ? [{ icon: LogOut, label: t('settings.items.logout'), onClick: handleLogout, className: 'text-red-400' }] : [])

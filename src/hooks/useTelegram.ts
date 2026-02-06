@@ -130,42 +130,83 @@ export function useTelegram() {
     WebApp.MainButton.setText(text)
   }
 
+  const isInTelegramApp = !!(WebApp.initData && WebApp.initDataUnsafe?.user)
+
   const shareImage = (imageUrl: string, caption: string) => {
-    // Открытие ссылки в Telegram
-    WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(imageUrl)}&text=${encodeURIComponent(caption)}`)
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(imageUrl)}&text=${encodeURIComponent(caption)}`
+    if (isInTelegramApp) {
+      try {
+        WebApp.openTelegramLink(shareUrl)
+        return
+      } catch { /* fallback below */ }
+    }
+    // Web fallback: use Web Share API if available, otherwise open in new tab
+    if (navigator.share) {
+      navigator.share({ title: 'AiVerse', text: caption, url: imageUrl }).catch(() => {})
+    } else {
+      window.open(shareUrl, '_blank')
+    }
   }
 
   const saveToGallery = async (url: string, filename?: string) => {
     const wa = WebApp as any
-    if (!wa.downloadFile) {
-      wa.showAlert?.('Обновите Telegram до последней версии')
-      return
+    const proxyUrl = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename || '')}`
+
+    // Telegram Mini App: use native downloadFile API
+    if (isInTelegramApp && wa.downloadFile) {
+      try {
+        const fullUrl = `${window.location.origin}${proxyUrl}`
+        wa.HapticFeedback?.impactOccurred?.('medium')
+        await wa.downloadFile({ url: fullUrl, file_name: filename || 'file' })
+        wa.HapticFeedback?.notificationOccurred?.('success')
+        return
+      } catch (e) {
+        console.error('Telegram download failed:', e)
+        // Fall through to web download
+      }
     }
 
+    // Web/PWA fallback: fetch blob and trigger browser download
     try {
-      // Use proxy URL to ensure correct Content-Disposition headers for Telegram downloadFile
-      const proxyUrl = `/api/telegram/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(filename || '')}`
-      const fullUrl = `${window.location.origin}${proxyUrl}`
-
-      wa.HapticFeedback?.impactOccurred?.('medium')
-      await wa.downloadFile({ url: fullUrl, file_name: filename || 'file' })
-      wa.HapticFeedback?.notificationOccurred?.('success')
+      const response = await fetch(proxyUrl)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename || 'file'
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
     } catch (e) {
       console.error('Download failed:', e)
-      wa.showAlert?.('Не удалось сохранить файл. Попробуйте еще раз.')
-      wa.HapticFeedback?.notificationOccurred?.('error')
+      alert('Не удалось сохранить файл. Попробуйте еще раз.')
     }
   }
 
   const downloadFile = saveToGallery
 
   const openLink = (url: string) => {
-    WebApp.openLink(url)
+    if (isInTelegramApp) {
+      try {
+        WebApp.openLink(url)
+        return
+      } catch { /* fallback below */ }
+    }
+    window.open(url, '_blank')
   }
 
   const openBotDeepLink = (param: string) => {
     const u = `https://t.me/AiVerseAppBot?startapp=${encodeURIComponent(param)}`
-    WebApp.openTelegramLink(u)
+    if (isInTelegramApp) {
+      try {
+        WebApp.openTelegramLink(u)
+        return
+      } catch { /* fallback below */ }
+    }
+    window.open(u, '_blank')
   }
 
   const openDeepLink = (param: string) => {
@@ -175,7 +216,6 @@ export function useTelegram() {
 
   const addToHomeScreen = (onShowIOSPrompt?: () => void) => {
     const wa = WebApp as any
-    const isInTelegramApp = !!(WebApp.initData && WebApp.initDataUnsafe?.user)
 
     // For Telegram Mini App - check API version
     if (isInTelegramApp && wa.addToHomeScreen) {
@@ -266,18 +306,16 @@ export function useTelegram() {
         is_premium: true
       } : undefined)
 
-  const isInTelegram = !!(WebApp.initData && WebApp.initDataUnsafe?.user)
-
   useEffect(() => {
     // Only sync avatar for Telegram users (uses Telegram Bot API)
-    if (user?.id && isInTelegram) {
+    if (user?.id && isInTelegramApp) {
       fetch('/api/user/sync-avatar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ userId: user.id })
       }).catch(e => console.error('Avatar sync failed', e))
     }
-  }, [user?.id, isInTelegram])
+  }, [user?.id, isInTelegramApp])
 
   return {
     showMainButton,
@@ -296,6 +334,6 @@ export function useTelegram() {
     tg: WebApp,
     user,
     platform: WebApp.platform,
-    isInTelegram
+    isInTelegram: isInTelegramApp
   }
 }
