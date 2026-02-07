@@ -410,7 +410,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     }}
                                     className="w-full h-12 px-4 pr-20 rounded-xl bg-zinc-800/70 border border-white/10 text-white text-sm font-medium placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
                                 />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-bold">tokens</span>
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-bold">{t('payment.customInput.tokens', 'tokens')}</span>
                             </div>
                             {isCustomMode && customTokens && (() => {
                                 const count = parseInt(customTokens)
