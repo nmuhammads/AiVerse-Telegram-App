@@ -23,6 +23,7 @@ i18n
     .init({
         fallbackLng: 'ru',
         debug: import.meta.env.DEV,
+        load: 'languageOnly', // Load only 'en', not 'en-US'
 
         interpolation: {
             escapeValue: false, // not needed for react as it escapes by default
@@ -30,15 +31,24 @@ i18n
 
         backend: {
             loadPath: '/locales/{{lng}}/translation.json',
+            requestOptions: {
+                cache: 'no-cache'
+            }
         },
 
         detection: {
             order: ['localStorage', 'telegram', 'navigator'],
             caches: ['localStorage'],
+            lookupLocalStorage: 'i18nextLng'
         },
         react: {
-            useSuspense: false
+            useSuspense: false,
+            bindI18n: 'languageChanged loaded',
+            bindI18nStore: 'added removed',
         }
+    })
+    .catch((err) => {
+        console.error('i18n initialization error:', err)
     })
 
 export default i18n

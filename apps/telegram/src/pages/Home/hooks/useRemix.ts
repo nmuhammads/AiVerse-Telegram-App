@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useGenerationStore, type ModelType } from '@/store/generationStore'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import type { FeedItem } from '@/components/FeedImage'
 
 export function useRemix() {
     const { impact } = useHaptics()
     const navigate = useNavigate()
+    const { requireAuth } = useRequireAuth()
 
     const {
         setPrompt,
@@ -19,6 +21,11 @@ export function useRemix() {
     } = useGenerationStore()
 
     const handleRemix = (item: FeedItem) => {
+        // Check if user is authenticated before allowing remix
+        if (!requireAuth('/home')) {
+            return
+        }
+
         impact('medium')
 
         // Check if prompt is private - pass flag to store for UI hiding
@@ -27,7 +34,7 @@ export function useRemix() {
         // Parse metadata from prompt - always process prompt for generation to work
         // Format: ... real prompt ... [type=text_photo; ratio=3:4; photos=1]
         let cleanPrompt = item.prompt || ''
-        let metadata: Record<string, string> = {}
+        const metadata: Record<string, string> = {}
 
         // Always parse metadata if prompt exists
         if (item.prompt) {

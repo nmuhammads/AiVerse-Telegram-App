@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2, Gift, Lock, Unlock, MessageSquare, Droplets } from 'lucide-react'
+import { Sparkles, Share2, Edit, History as HistoryIcon, X, Download as DownloadIcon, Send, Wallet, Settings as SettingsIcon, Globe, EyeOff, Maximize2, Copy, Check, Crown, Grid, Info, List as ListIcon, Loader2, User, RefreshCw, Clipboard, Camera, Clock, Repeat, Trash2, Filter, Pencil, ChevronLeft, ChevronRight, Video, Image as ImageIcon, VolumeX, Volume2, Gift, Lock, Unlock, MessageSquare, Droplets, LogOut } from 'lucide-react'
 
 // Custom GridImage component for handling load states
 const GridImage = ({ src, originalUrl, alt, className, onImageError }: { src: string, originalUrl: string, alt: string, className?: string, onImageError?: () => void }) => {
@@ -65,11 +65,13 @@ import { toast } from 'sonner'
 import { GenerationSelector } from '@/components/GenerationSelector'
 import { useNavigate } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useGenerationStore } from '@/store/generationStore'
+import { useAuthStore } from '@/store/authStore'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { ProfileSkeletonGrid } from '@/components/ui/skeleton'
 import { UserAvatar } from '@/components/ui/UserAvatar'
+import { ChannelSubscriptionModal } from '@/components/ChannelSubscriptionModal'
 
 function getModelDisplayName(model: string | null): string {
   if (!model) return ''
@@ -112,7 +114,7 @@ export default function Profile() {
   // navigator.share({ title: 'AiVerse', text: cleanPrompt(preview.prompt), url: preview.image_url })
   // shareImage(preview.image_url, cleanPrompt(preview.prompt))
   const { impact, notify } = useHaptics()
-  const { user, platform, saveToGallery, shareImage } = useTelegram()
+  const { user, platform, saveToGallery, shareImage, isInTelegram } = useTelegram()
   const [avatarSrc, setAvatarSrc] = useState<string>('')
   const [coverSrc, setCoverSrc] = useState<string>('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -229,7 +231,7 @@ export default function Profile() {
             // Check pending status first
             await fetch('/api/generation/check-status', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({ user_id: user.id })
             }).catch(() => { })
 
@@ -331,7 +333,7 @@ export default function Profile() {
       // Check pending status first
       await fetch('/api/generation/check-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       }).catch(() => { })
 
@@ -382,7 +384,7 @@ export default function Profile() {
 
     // Parse metadata from prompt
     let cleanPrompt = item.prompt
-    let metadata: Record<string, string> = {}
+    const metadata: Record<string, string> = {}
 
     const match = item.prompt.match(/\s*\[(.*?)\]\s*$/)
     if (match) {
@@ -548,7 +550,7 @@ export default function Profile() {
     { label: t('profile.stats.likes'), value: likes },
     { label: t('profile.stats.remixes'), value: remixCount },
   ]
-  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
+  const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 60px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
   const [showPublishConfirm, setShowPublishConfirm] = useState(false)
   const [showRemixShareConfirm, setShowRemixShareConfirm] = useState(false)
@@ -566,7 +568,7 @@ export default function Profile() {
     try {
       const res = await fetch(`/api/generation/${preview.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       })
       if (res.ok) {
@@ -596,7 +598,7 @@ export default function Profile() {
       const variantIndex = previewIndex - 1
       const res = await fetch(`/api/generation/${preview.id}/variant/${variantIndex}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ user_id: user.id })
       })
       const data = await res.json()
@@ -640,7 +642,7 @@ export default function Profile() {
     try {
       const r = await fetch('/api/user/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ generationId: preview.id, isPublished: newStatus, isPrivate: newPrivacy })
       })
       if (r.ok) {
@@ -671,7 +673,7 @@ export default function Profile() {
     try {
       const r = await fetch(`/api/generation/${preview.id}/privacy`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ is_prompt_private: newPrivate })
       })
       if (r.ok) {
@@ -695,7 +697,7 @@ export default function Profile() {
     try {
       const r = await fetch('/api/user/cover/set', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ userId: user.id, generationId })
       })
       const j = await r.json()
@@ -722,13 +724,30 @@ export default function Profile() {
             backgroundPosition: 'center'
           } : {}}
         >
-          {/* Cover Edit Button */}
+          {/* Cover Edit Button - moved to left */}
           <button
             onClick={() => setShowCoverSelector(true)}
-            className="absolute top-4 right-4 z-20 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white/70 hover:text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/10"
+            className="absolute top-4 left-4 z-20 w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 text-white/70 hover:text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/10"
           >
             <Camera size={16} />
           </button>
+
+          {/* Logout Button - in the right corner (only for web users) */}
+          {!isInTelegram && (
+            <button
+              onClick={() => {
+                if (window.confirm(t('profile.logoutConfirm', 'Вы уверены, что хотите выйти?'))) {
+                  // Clear auth store
+                  useAuthStore.getState().logout()
+                  // Redirect to login
+                  window.location.href = '/login'
+                }
+              }}
+              className="absolute top-4 right-4 z-20 w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center backdrop-blur-md transition-colors border border-red-500/30"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
 
           {/* Background Effects (only show if no cover) */}
           {!coverSrc && (
@@ -875,7 +894,7 @@ export default function Profile() {
 
                   fetch('/api/user/avatar/upload', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify({ userId: user.id, imageBase64: base64 })
                   }).then(async (r) => {
                     if (r.ok) {
@@ -933,7 +952,7 @@ export default function Profile() {
                     try {
                       const r = await fetch('/api/user/claim-channel-reward', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify({ userId: user.id })
                       })
                       const j = await r.json().catch(() => null)
@@ -1170,6 +1189,26 @@ export default function Profile() {
                         >
                           <Share2 size={20} />
                         </button>
+                        {/* Copy Remix Link Button */}
+                        <button
+                          onClick={async () => {
+                            impact('light')
+                            const botUsername = 'AiVerseAppBot' // TODO: get dynamically if needed
+                            const refParam = user?.username || String(user?.id || '')
+                            const remixUrl = `https://t.me/${botUsername}?startapp=ref-${refParam}-remix-${preview.id}`
+                            try {
+                              await navigator.clipboard.writeText(remixUrl)
+                              toast.success(t('profile.remixLinkCopied'))
+                            } catch (e) {
+                              console.error('Failed to copy remix link', e)
+                              toast.error(t('common.error'))
+                            }
+                          }}
+                          className="h-10 px-3 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center gap-2 text-white shadow-lg border border-white/10 text-xs font-medium"
+                        >
+                          <Copy size={16} />
+                          <span>{t('profile.copyRemixFull')}</span>
+                        </button>
                         <button
                           onClick={() => { setPreview(null); setCurrentGenerationIndex(null) }}
                           className="w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-white shadow-lg border border-white/10"
@@ -1196,6 +1235,26 @@ export default function Profile() {
                               className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10"
                             >
                               <Share2 size={20} />
+                            </button>
+                            {/* Copy Remix Link Button */}
+                            <button
+                              onClick={async () => {
+                                impact('light')
+                                const botUsername = 'AiVerseAppBot' // TODO: get dynamically if needed
+                                const refParam = user?.username || String(user?.id || '')
+                                const remixUrl = `https://t.me/${botUsername}?startapp=ref-${refParam}-remix-${preview.id}`
+                                try {
+                                  await navigator.clipboard.writeText(remixUrl)
+                                  toast.success(t('profile.remixLinkCopied'))
+                                } catch (e) {
+                                  console.error('Failed to copy remix link', e)
+                                  toast.error(t('common.error'))
+                                }
+                              }}
+                              className="h-10 px-3 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center gap-2 text-white backdrop-blur-md pointer-events-auto shadow-lg border border-white/10 text-xs font-medium"
+                            >
+                              <Copy size={16} />
+                              <span>{t('profile.copyRemix')}</span>
                             </button>
                             <button
                               onClick={() => {
@@ -1379,7 +1438,8 @@ export default function Profile() {
                                       prompt: cleanPrompt(preview.prompt),
                                       model: preview.model || '',
                                       username: user.username || null,
-                                      user_id: user.id
+                                      user_id: user.id,
+                                      generation_id: preview.id
                                     })
                                   })
                                   if (r.ok) {
@@ -1415,7 +1475,8 @@ export default function Profile() {
                                       prompt: cleanPrompt(preview.prompt),
                                       model: preview.model || '',
                                       username: user.username || null,
-                                      user_id: user.id
+                                      user_id: user.id,
+                                      generation_id: preview.id
                                     })
                                   })
                                   const data = await r.json()
@@ -1813,7 +1874,7 @@ export default function Profile() {
 
                             fetch('/api/user/avatar/upload', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
+                              headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                               body: JSON.stringify({ userId: user.id, imageBase64: base64 })
                             }).then(async (r) => {
                               if (r.ok) {
@@ -1857,6 +1918,7 @@ export default function Profile() {
         onClose={() => setShowCoverSelector(false)}
         onSelect={handleCoverSelect}
       />
+      <ChannelSubscriptionModal />
     </div >
   )
 }

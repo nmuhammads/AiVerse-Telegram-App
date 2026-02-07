@@ -26,6 +26,7 @@ import editorRoutes from './routes/editor.js'
 import watermarkRoutes from './routes/watermark.js'
 import promptRoutes from './routes/prompt.js'
 import chatRoutes from './routes/chat.js'
+import tributeRoutes from './routes/tribute.js'
 
 
 // load env
@@ -34,10 +35,33 @@ dotenv.config()
 const app: express.Application = express()
 
 app.use(cors())
+
+// Capture raw body for Tribute webhook signature verification
+// Must be before express.json() so we can access the original bytes
+app.use('/api/tribute/webhook', express.raw({ type: 'application/json' }))
+
 app.use(express.json({
   limit: '50mb',
 }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+
+// 🔍 Debug logging for auth headers (remove in production)
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  const isProtectedRoute = ['/api/user/', '/api/payment/', '/api/generation/'].some(p => req.path.startsWith(p))
+  if (isProtectedRoute && req.method !== 'GET') {
+    const telegramHeader = req.headers['x-telegram-init-data']
+    const bearerHeader = req.headers['authorization']
+    console.log(`\n🔐 [AUTH DEBUG] ${req.method} ${req.path}`)
+    if (telegramHeader) {
+      console.log(`   Auth: ✅ Telegram initData (${String(telegramHeader).slice(0, 40)}...)`)
+    } else if (bearerHeader) {
+      console.log(`   Auth: ✅ Bearer JWT (${String(bearerHeader).slice(7, 47)}...)`)
+    } else {
+      console.log(`   Auth: ❌ No auth header`)
+    }
+  }
+  next()
+})
 
 /**
  * Request logger middleware (DISABLED - too noisy in production)
@@ -72,6 +96,7 @@ app.use('/api/editor', editorRoutes)
 app.use('/api/watermarks', watermarkRoutes)
 app.use('/api/prompt', promptRoutes)
 app.use('/api/chat', chatRoutes)
+app.use('/api/tribute', tributeRoutes)
 
 // PiAPI Webhook (direct import to avoid circular dependency)
 import { handlePiapiWebhook } from './controllers/generationController.js'

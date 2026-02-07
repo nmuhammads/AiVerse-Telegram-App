@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useMultiGenerationStore, SUPPORTED_RATIOS, type ModelConfig } from '@/store/multiGenerationStore'
 import { type ModelType, type AspectRatio, type GptImageQuality } from '@/store/generationStore'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { PaymentModal } from '@/components/PaymentModal'
 import { compressImage } from '@/utils/imageCompression'
@@ -192,7 +192,7 @@ export default function MultiGeneration() {
 
             const res = await fetch('/api/generation/generate/multi', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify(requestBody),
             })
 
@@ -303,7 +303,7 @@ export default function MultiGeneration() {
     }
 
     const totalCost = calculateTotalCost()
-    const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
+    const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 60px)' : 'calc(env(safe-area-inset-top) + 50px)'
     const maxImages = 8
 
     return (
