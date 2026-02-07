@@ -1,5 +1,5 @@
 import { X, CreditCard, Star, Zap, Gift, Globe } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
@@ -77,6 +77,23 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const [loading, setLoading] = useState(false)
     const [customTokens, setCustomTokens] = useState('')
     const [isCustomMode, setIsCustomMode] = useState(false)
+    const [keyboardOffset, setKeyboardOffset] = useState(0)
+    const inputRef = useRef<HTMLInputElement>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
+
+    // Handle virtual keyboard in Telegram Mini App (iOS)
+    useEffect(() => {
+        if (!isOpen) return
+        const vv = window.visualViewport
+        if (!vv) return
+
+        const onResize = () => {
+            const offset = window.innerHeight - vv.height
+            setKeyboardOffset(offset > 50 ? offset : 0)
+        }
+        vv.addEventListener('resize', onResize)
+        return () => vv.removeEventListener('resize', onResize)
+    }, [isOpen])
 
     // Get packages based on method and currency
     const getPackages = () => {
@@ -202,7 +219,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     }
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ height: '100dvh' }}>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center px-4 pb-2 sm:pb-0" style={{ height: keyboardOffset > 0 ? `calc(100dvh - ${keyboardOffset}px)` : '100dvh' }}>
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
@@ -310,7 +327,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 )}
 
                 {/* Packages Grid */}
-                <div className="px-5 pb-5 overflow-y-auto">
+                <div ref={scrollRef} className="px-5 pb-5 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-2">
                         {packages.map((pkg: any, index: number) => {
                             const isLast = index === packages.length - 1 && packages.length % 2 !== 0
@@ -373,13 +390,20 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             </div>
                             <div className="relative">
                                 <input
+                                    ref={inputRef}
                                     type="number"
                                     min={MIN_CUSTOM_TOKENS}
                                     max={MAX_CUSTOM_TOKENS}
                                     placeholder={t('payment.customInput.placeholder', 'Введите количество токенов...')}
                                     value={customTokens}
                                     inputMode="numeric"
-                                    onFocus={() => setIsCustomMode(true)}
+                                    onFocus={() => {
+                                        setIsCustomMode(true)
+                                        // Scroll input into view after keyboard appears
+                                        setTimeout(() => {
+                                            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                        }, 300)
+                                    }}
                                     onChange={(e) => {
                                         setCustomTokens(e.target.value)
                                         setIsCustomMode(true)
