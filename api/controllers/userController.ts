@@ -28,6 +28,12 @@ export async function syncAvatar(req: Request, res: Response) {
     const { userId } = req.body
     if (!userId) return res.status(400).json({ error: 'userId required' })
 
+    // Skip for web (JWT) users — sync-avatar uses Telegram Bot API
+    const authUser = (req as any).user
+    if (authUser?.auth_method === 'jwt') {
+      return res.json({ ok: true, message: 'skipped for web user' })
+    }
+
     if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
 
     // 1. Check if user already has an avatar_url in users table
@@ -49,7 +55,7 @@ export async function syncAvatar(req: Request, res: Response) {
     if (!TOKEN) return res.status(500).json({ error: 'Telegram token not configured' })
 
     const photosResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getUserProfilePhotos?user_id=${userId}&limit=1`)
-    const photosJson = await photosResp.json()
+    const photosJson = await photosResp.json() as any
     const first = photosJson?.result?.photos?.[0]
 
     if (!first) {
@@ -59,7 +65,7 @@ export async function syncAvatar(req: Request, res: Response) {
     // Get the largest size
     const largest = first[first.length - 1]
     const fileResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getFile?file_id=${largest.file_id}`)
-    const fileJson = await fileResp.json()
+    const fileJson = await fileResp.json() as any
     const filePathTg = fileJson?.result?.file_path
 
     if (!filePathTg) return res.status(404).json({ error: 'telegram file path not found' })
@@ -284,7 +290,7 @@ export async function listGenerations(req: Request, res: Response) {
     if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: 'Supabase not configured' })
 
     // Enhanced query to get full details
-    let select = `select=id,image_url,video_url,prompt,created_at,is_published,is_prompt_private,model,likes_count,remix_count,input_images,user_id,edit_variants,media_type,users(username,first_name,last_name,avatar_url),generation_likes(user_id)`
+    const select = `select=id,image_url,video_url,prompt,created_at,is_published,is_prompt_private,model,likes_count,remix_count,input_images,user_id,edit_variants,media_type,users(username,first_name,last_name,avatar_url),generation_likes(user_id)`
     // Filter: show items that have either image_url OR video_url (both must start with https:// and not be empty)
     // Using stricter filter to exclude empty generations from other bots
     // Exclude specific models that come from other bots (use not.in.() syntax for multiple values)
@@ -559,7 +565,7 @@ export async function getFollowers(req: Request, res: Response) {
 }
 
 const CHANNEL_USERNAME = 'aiversebots'
-const CHANNEL_REWARD_TOKENS = 10
+const CHANNEL_REWARD_TOKENS = 20
 
 // Check if user is subscribed to channel and if they already claimed reward
 export async function checkChannelSubscription(req: Request, res: Response) {
@@ -579,7 +585,7 @@ export async function checkChannelSubscription(req: Request, res: Response) {
 
     // Check subscription status via Telegram API
     const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
-    const tgData = await tgResp.json()
+    const tgData = await tgResp.json() as any
 
     const status = tgData?.result?.status
     const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
@@ -607,7 +613,7 @@ export async function claimChannelReward(req: Request, res: Response) {
 
     // Check subscription status via Telegram API
     const tgResp = await fetch(`https://api.telegram.org/bot${TOKEN}/getChatMember?chat_id=@${CHANNEL_USERNAME}&user_id=${userId}`)
-    const tgData = await tgResp.json()
+    const tgData = await tgResp.json() as any
 
     const status = tgData?.result?.status
     const isSubscribed = ['creator', 'administrator', 'member'].includes(status)
@@ -720,6 +726,39 @@ export async function searchUsers(req: Request, res: Response) {
   } catch (e) {
     console.error('searchUsers error:', e)
     return res.status(500).json({ error: 'search failed' })
+  }
+}
+
+// Update user language
+export async function updateLanguage(req: Request, res: Response) {
+  try {
+    const userId = Number(req.body?.user_id || 0)
+    const languageCode = String(req.body?.language_code || '')
+
+    if (!userId || !languageCode) {
+      return res.status(400).json({ error: 'invalid payload' })
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      return res.status(500).json({ error: 'Supabase not configured' })
+    }
+
+    // Update user language in database
+    const update = await supaPatch(
+      'users',
+      `?user_id=eq.${userId}`,
+      { language_code: languageCode, updated_at: new Date().toISOString() }
+    )
+
+    if (!update.ok) {
+      console.error('updateLanguage error:', update.data)
+      return res.status(500).json({ error: 'failed to update language' })
+    }
+
+    return res.json({ ok: true, data: update.data })
+  } catch (e) {
+    console.error('updateLanguage error:', e)
+    return res.status(500).json({ error: 'update failed' })
   }
 }
 

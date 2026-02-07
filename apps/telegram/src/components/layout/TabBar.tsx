@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom'
 import { Home, Trophy, Settings2, User, Star, Clock, MessageCircle } from 'lucide-react'
-import WebApp from '@twa-dev/sdk'
 import './TabBar.css'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useGenerationStore } from '@/store/generationStore'
+import { resolvedPlatform, isInTelegramApp } from '@/utils/platform'
 
 const StarSVG = ({ className }: { className: string }) => (
   <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -14,7 +14,8 @@ const StarSVG = ({ className }: { className: string }) => (
 
 export function TabBar() {
   const { t } = useTranslation()
-  const isAndroid = WebApp.platform === 'android'
+  const isAndroid = resolvedPlatform === 'android'
+  const isAndroidWeb = isAndroid && !isInTelegramApp
   const [eventCount, setEventCount] = useState(0)
   const { studioMode } = useGenerationStore()
 
@@ -45,14 +46,14 @@ export function TabBar() {
   }, [])
 
   return (
-    <div className={`fixed left-0 right-0 z-50 ${isAndroid ? 'safe-bottom-fixed' : 'bottom-2 pb-[env(safe-area-inset-bottom)]'}`}>
+    <div className={`fixed left-0 right-0 z-50 ${isAndroidWeb ? 'safe-bottom-fixed' : 'bottom-2 pb-[env(safe-area-inset-bottom)]'}`}>
       <div className="mx-auto w-[92%] max-w-[400px]">
         <div className="rounded-full border border-white/10 bg-black/60 backdrop-blur-xl p-1.5 flex justify-between shadow-[0_8px_32px_0_rgba(0,0,0,0.36)]">
           {[
-            { to: '/', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
+            { to: '/home', label: t('nav.home'), icon: <Home size={20} />, badge: 0 },
             { to: '/events', label: t('nav.events'), icon: <Clock size={20} />, badge: eventCount },
             {
-              to: '/studio',
+              to: '/',
               label: studioMode === 'chat' ? t('nav.chat', 'Chat') : t('nav.studio'),
               icon: studioMode === 'chat' ? <MessageCircle size={20} /> : <Settings2 size={20} />,
               badge: 0
@@ -60,7 +61,7 @@ export function TabBar() {
             { to: '/top', label: t('nav.top'), icon: <Star size={20} />, badge: 0 },
             { to: '/profile', label: t('nav.profile'), icon: <User size={20} />, badge: 0 },
           ].map((tab) => {
-            const isStudio = tab.to === '/studio'
+            const isStudio = tab.to === '/' || tab.to === '/studio'
             const isStudioActive = isStudio && studioMode !== 'chat'
 
             return (

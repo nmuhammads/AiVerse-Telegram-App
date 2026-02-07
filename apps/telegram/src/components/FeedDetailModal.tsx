@@ -2,6 +2,7 @@ import { X, Heart, Repeat, Download, Share2, Sparkles, Maximize2, Trophy, Pencil
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useHaptics } from '@/hooks/useHaptics'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useState, useEffect } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { useNavigate } from 'react-router-dom'
@@ -71,7 +72,8 @@ function getModelDisplayName(model: string | null): string {
 export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGeneration, onNextGeneration, canGoPrev, canGoNext }: Props) {
     const { t, i18n } = useTranslation()
     const { impact } = useHaptics()
-    const { user, platform } = useTelegram()
+    const { platform } = useTelegram()
+    const { requireAuth } = useRequireAuth()
     const [isLikeAnimating, setIsLikeAnimating] = useState(false)
     const [isFullScreen, setIsFullScreen] = useState(false)
     const [imageIndex, setImageIndex] = useState(0)
@@ -111,6 +113,10 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGenerati
     }, [onClose])
 
     const handleLikeClick = () => {
+        // Check if user is authenticated before allowing like
+        if (!requireAuth('/home')) {
+            return
+        }
         impact('light')
         setIsLikeAnimating(true)
         onLike(item)
@@ -346,16 +352,14 @@ export function FeedDetailModal({ item, onClose, onRemix, onLike, onPrevGenerati
                             <span>{item.likes_count}</span>
                         </button>
 
-                        {/* Скрываем Ремикс для Kling Motion Control */}
-                        {!(item.model === 'kling-mc' || item.model === 'kling-2.6/motion-control') && (
-                            <button
-                                onClick={() => { impact('medium'); onRemix(item) }}
-                                className="flex-1 h-12 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-violet-700 border border-violet-500"
-                            >
-                                <Repeat size={20} />
-                                <span>{t('feed.remix')}</span>
-                            </button>
-                        )}
+                        {/* Remix button - now shown for all models including Kling MC */}
+                        <button
+                            onClick={() => { impact('medium'); onRemix(item) }}
+                            className="flex-1 h-12 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-violet-700 border border-violet-500"
+                        >
+                            <Repeat size={20} />
+                            <span>{t('feed.remix')}</span>
+                        </button>
                     </div>
                 </div>
             </div >

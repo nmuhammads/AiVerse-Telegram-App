@@ -1,12 +1,14 @@
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock, ChevronDown, ArrowLeft, Check, Search, User, Droplets } from 'lucide-react'
+import { ChevronLeft, Globe, Bell, Info, Shield, ChevronRight, Moon, Zap, Users, MessageCircle, Clock, ChevronDown, ArrowLeft, Check, Search, User, Droplets, LogOut } from 'lucide-react'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
+import { useAuthStore } from '@/store/authStore'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { DevModeBanner } from '@/components/DevModeBanner'
 import { extractFingerprint } from '@/utils/fingerprint'
+import { IOSInstallPrompt } from '@/components/IOSInstallPrompt'
 
 interface NotificationSettings {
     telegram_news: boolean
@@ -23,10 +25,10 @@ const defaultSettings: NotificationSettings = {
 }
 
 export default function Settings() {
-    const { t, i18n } = useTranslation()
+    const { t, i18n, ready } = useTranslation()
     const navigate = useNavigate()
     const { impact } = useHaptics()
-    const { addToHomeScreen, checkHomeScreenStatus, platform, tg } = useTelegram()
+    const { addToHomeScreen, checkHomeScreenStatus, platform, tg, isInTelegram } = useTelegram()
     const [canAddToHome, setCanAddToHome] = useState(false)
     const [notifExpanded, setNotifExpanded] = useState(false)
     const [langExpanded, setLangExpanded] = useState(false)
@@ -39,9 +41,39 @@ export default function Settings() {
     const [fingerprintInput, setFingerprintInput] = useState('')
     const [decodedAuthor, setDecodedAuthor] = useState<string | null>(null)
 
+    // iOS install prompt state
+    const [showIOSPrompt, setShowIOSPrompt] = useState(false)
+
     const isMobile = platform === 'ios' || platform === 'android'
 
     const location = useLocation()
+
+    // Debug: Log i18n status
+    useEffect(() => {
+        if (!ready) {
+            console.log('Translations not ready yet, current language:', i18n.language)
+            // Force reload translations
+            i18n.loadNamespaces('translation').then(() => {
+                console.log('Translations loaded manually')
+            }).catch(err => {
+                console.error('Failed to load translations:', err)
+            })
+        } else {
+            console.log('Translations ready, current language:', i18n.language)
+        }
+    }, [ready, i18n])
+
+    // Return loading state if translations not ready
+    if (!ready) {
+        return (
+            <div className="min-h-dvh bg-black text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="loader-spinner mx-auto mb-4"></div>
+                    <p className="text-zinc-400">Loading...</p>
+                </div>
+            </div>
+        )
+    }
 
     // Авто-открытие секции уведомлений при переходе из попапа
     useEffect(() => {
@@ -74,12 +106,18 @@ export default function Settings() {
     }, [isMobile, navigate, tg, location])
 
     useEffect(() => {
-        checkHomeScreenStatus((status) => {
-            if (status === 'missed' || status === 'unknown') {
-                setCanAddToHome(true)
-            }
-        })
-    }, [])
+        // For web version, always show "Add to Home Screen" option
+        if (!isMobile) {
+            setCanAddToHome(true)
+        } else {
+            // For Telegram Mini App, check status
+            checkHomeScreenStatus((status) => {
+                if (status === 'missed' || status === 'unknown') {
+                    setCanAddToHome(true)
+                }
+            })
+        }
+    }, [isMobile])
 
     const [remixCount, setRemixCount] = useState(0)
     const { user } = useTelegram()
@@ -108,7 +146,7 @@ export default function Settings() {
         try {
             await fetch('/api/user/notification-settings', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ user_id: user.id, settings: newSettings })
             })
         } catch (e) {
@@ -116,10 +154,23 @@ export default function Settings() {
         }
     }
 
-    const changeLanguage = (lang: string) => {
+    const changeLanguage = async (lang: string) => {
         i18n.changeLanguage(lang)
         impact('light')
         setLangExpanded(false)
+
+        // Update language in database
+        if (user?.id) {
+            try {
+                await fetch('/api/user/language', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({ user_id: user.id, language_code: lang })
+                })
+            } catch (e) {
+                console.error('Failed to update language', e)
+            }
+        }
     }
 
     const sections = [
@@ -140,7 +191,7 @@ export default function Settings() {
                     ]
                 },
                 { icon: Moon, label: t('settings.items.theme'), value: t('settings.items.themeValue'), onClick: () => toast.error(t('settings.messages.themeToast')) },
-                ...(canAddToHome ? [{ icon: Zap, label: t('settings.items.addToHome'), onClick: addToHomeScreen }] : [])
+                ...(canAddToHome ? [{ icon: Zap, label: t('settings.items.addToHome'), onClick: () => addToHomeScreen(() => setShowIOSPrompt(true)) }] : [])
             ]
         },
         {
@@ -157,12 +208,27 @@ export default function Settings() {
         }
     ]
 
+    const { isAuthenticated, authMethod, logout } = useAuthStore()
+    const isWebAuth = isAuthenticated && authMethod === 'web'
+
+    const handleLogout = () => {
+        impact('medium')
+        logout()
+        navigate('/login')
+    }
+
     const aboutSection = {
         title: t('settings.sections.about'),
         items: [
-            { icon: MessageCircle, label: t('settings.items.support'), onClick: () => platform === 'ios' ? window.open('https://t.me/aiversebots?direct', '_blank') : tg.openTelegramLink('https://t.me/aiversebots?direct') },
+            { icon: MessageCircle, label: t('settings.items.support'), onClick: () => {
+                if (isInTelegram && platform !== 'ios') {
+                    try { tg.openTelegramLink('https://t.me/aiversebots?direct'); return } catch { /* fallback */ }
+                }
+                window.open('https://t.me/aiversebots?direct', '_blank')
+            } },
             { icon: Clock, label: t('settings.items.storage'), value: t('settings.items.storageValue'), onClick: () => toast.info(t('settings.messages.storageToast'), { duration: 5000 }) },
-            { icon: Info, label: t('settings.items.version'), value: 'v3.2.6', onClick: () => { } },
+            { icon: Info, label: t('settings.items.version'), value: 'v3.3.2', onClick: () => { } },
+            ...(isWebAuth ? [{ icon: LogOut, label: t('settings.items.logout'), onClick: handleLogout, className: 'text-red-400' }] : [])
         ]
     }
 
@@ -394,6 +460,9 @@ export default function Settings() {
                     </div>
                 </div>
             </div>
+
+            {/* iOS Install Prompt Modal */}
+            {showIOSPrompt && <IOSInstallPrompt onClose={() => setShowIOSPrompt(false)} />}
         </div>
     )
 }

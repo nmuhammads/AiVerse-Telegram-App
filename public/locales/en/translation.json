@@ -20,7 +20,8 @@
             "support": "Support",
             "storage": "Data Storage",
             "storageValue": "60 days",
-            "version": "Version"
+            "version": "Version",
+            "logout": "Log out"
         },
         "messages": {
             "themeToast": "Oops, only dark mode is available for now",
@@ -352,7 +353,10 @@
             "confirm": "Publish",
             "publishOpen": "Publish with Open Prompt",
             "publishPrivate": "Publish with Private Prompt"
-        }
+        },
+        "copyRemix": "Remix",
+        "copyRemixFull": "Copy Remix Link",
+        "remixLinkCopied": "Remix link copied!"
     },
     "spin": {
         "title": "Fortune",
@@ -421,6 +425,7 @@
         },
         "button": {
             "pay": "Pay {{amount}} {{symbol}} via {{method}}",
+            "paySimple": "Pay",
             "processing": "Processing...",
             "bonus": "Buy with +15% bonus tokens"
         },
@@ -708,11 +713,11 @@
         "hint": "{{count}} image processing. Tap 🔄 to refresh."
     },
     "rewards": {
-        "subscribe": "Subscribe → +10 tokens",
+        "subscribe": "Subscribe → +20 tokens",
         "claim": "Claim",
         "checking": "Checking...",
         "notSubscribed": "Subscribe to channel first",
-        "success": "+10 tokens claimed!",
+        "success": "+20 tokens claimed!",
         "modalDescription": "Subscribe to our channel and get bonus tokens!"
     },
     "devMode": {
@@ -773,5 +778,50 @@
         "sendToTelegramError": "Failed to send file to Telegram.",
         "onlyImages": "Only images are allowed",
         "imageTooLarge": "Image size must not exceed 5MB"
+    },
+    "login": {
+        "subtitle": {
+            "signup": "Create your account",
+            "welcome": "Welcome back"
+        },
+        "field": {
+            "name": "Name",
+            "email": "Email",
+            "password": "Password"
+        },
+        "placeholder": {
+            "name": "Your name",
+            "email": "your@email.com"
+        },
+        "button": {
+            "signup": "Create Account",
+            "signin": "Sign In"
+        },
+        "divider": "or continue with",
+        "telegramLoading": "Loading Telegram...",
+        "toggle": {
+            "hasAccount": "Already have an account? Sign in",
+            "noAccount": "Don't have an account? Sign up"
+        },
+        "terms": "By continuing, you agree to our Terms of Service",
+        "success": {
+            "checkEmail": "Please check your email to confirm your account"
+        },
+        "error": {
+            "telegramFailed": "Telegram login failed",
+            "connection": "Connection error",
+            "signupFailed": "Signup failed",
+            "invalidCredentials": "Invalid credentials"
+        }
+    },
+    "paymentResult": {
+        "checking": "Checking payment status...",
+        "successTitle": "Payment Successful!",
+        "successMessage": "Your tokens will be credited shortly.",
+        "successMessageWithTokens": "Your {{tokens}} tokens have been credited to your account.",
+        "goHome": "Go to Home",
+        "failTitle": "Payment Failed",
+        "failMessage": "Something went wrong with your payment. Please try again.",
+        "tryAgain": "Try Again"
     }
 }

@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useGenerationStore, type ModelType, type AspectRatio } from '@/store/generationStore'
 import { useActiveGenerationsStore, MAX_ACTIVE_IMAGES } from '@/store/activeGenerationsStore'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { useHaptics } from '@/hooks/useHaptics'
 import { compressImage } from '@/utils/imageCompression'
+import { useAuthStore } from '@/store/authStore'
+import WebApp from '@twa-dev/sdk'
 import {
     GPT_IMAGE_PRICES,
     VIDEO_PRICES,
@@ -158,11 +160,65 @@ export function useStudio() {
         const remixId = searchParams.get('remix')
         const contestEntry = searchParams.get('contest_entry')
         const mode = searchParams.get('mode')
+        const modelParam = searchParams.get('model')
+        const mediaParam = searchParams.get('media')
 
         if (mode === 'chat') {
             setStudioMode('chat')
         } else if (mode === 'studio') {
             setStudioMode('studio')
+        }
+
+        // Handle model selection from deeplink
+        if (modelParam) {
+            const videoModels = ['seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc']
+            const imageModels = ['nanobanana', 'nanobanana-pro', 'seedream4', 'seedream4-5', 'gpt-image-1.5', 'qwen-image']
+
+            // Handle Seedance with mode
+            if (modelParam === 'seedance-t2v') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+                setGenerationMode('text')
+                setUploadedImages([])
+            } else if (modelParam === 'seedance-i2v') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+                setGenerationMode('image')
+            } else if (modelParam === 'seedance' || modelParam === 'seedance-1.5-pro') {
+                setMediaType('video')
+                setSelectedModel('seedance-1.5-pro')
+            }
+            // Handle Kling models
+            else if (modelParam === 'kling-t2v') {
+                setMediaType('video')
+                setSelectedModel('kling-t2v')
+                setKlingVideoMode('t2v')
+                setGenerationMode('text')
+                setUploadedImages([])
+                setUploadedVideoUrl(null)
+            } else if (modelParam === 'kling-i2v') {
+                setMediaType('video')
+                setSelectedModel('kling-i2v')
+                setKlingVideoMode('i2v')
+                setGenerationMode('image')
+                setUploadedVideoUrl(null)
+            } else if (modelParam === 'kling-mc') {
+                setMediaType('video')
+                setSelectedModel('kling-mc')
+                setKlingVideoMode('motion-control')
+                setGenerationMode('image')
+            }
+            // Handle image models
+            else if (imageModels.includes(modelParam)) {
+                setMediaType('image')
+                setSelectedModel(modelParam as ModelType)
+            }
+            // Additional media type override
+            if (mediaParam === 'image') {
+                setMediaType('image')
+            } else if (mediaParam === 'video') {
+                setMediaType('video')
+            }
         }
 
         if (contestEntry) {
@@ -180,17 +236,36 @@ export function useStudio() {
                         if (data.aspect_ratio && data.aspect_ratio !== '1:1') {
                             setAspectRatio(data.aspect_ratio as AspectRatio)
                         }
-                        if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
-                            setUploadedImages(data.input_images)
-                            setGenerationMode('image')
-                        }
-                        if (data.media_type === 'video') {
+
+                        // Handle Kling Motion Control remix
+                        if (data.model === 'kling-mc' || data.model === 'kling-2.6/motion-control') {
+                            console.log('[Remix] Kling MC detected, loading video_input:', data.video_input)
                             setMediaType('video')
-                            if (!data.model || data.model === 'seedance-1.5-pro') {
-                                setSelectedModel('seedance-1.5-pro')
+                            setSelectedModel('kling-mc')
+                            setKlingVideoMode('motion-control')
+                            // Load video reference from R2
+                            if (data.video_input) {
+                                setUploadedVideoUrl(data.video_input)
+                            }
+                            // Load original photo reference
+                            if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
+                                setUploadedImages(data.input_images)
+                                setGenerationMode('image')
                             }
                         } else {
-                            setMediaType('image')
+                            // Standard remix handling
+                            if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
+                                setUploadedImages(data.input_images)
+                                setGenerationMode('image')
+                            }
+                            if (data.media_type === 'video') {
+                                setMediaType('video')
+                                if (!data.model || data.model === 'seedance-1.5-pro') {
+                                    setSelectedModel('seedance-1.5-pro')
+                                }
+                            } else {
+                                setMediaType('image')
+                            }
                         }
                         setParentGeneration(data.id, data.users?.username || 'Unknown', !!data.is_prompt_private)
                     } else {
@@ -199,7 +274,7 @@ export function useStudio() {
                 })
                 .catch(err => console.error('[Remix] Failed to load remix data:', err))
         }
-    }, [searchParams, setPrompt, setSelectedModel, setParentGeneration, setAspectRatio, setUploadedImages, setGenerationMode, setMediaType])
+    }, [searchParams, setPrompt, setSelectedModel, setParentGeneration, setAspectRatio, setUploadedImages, setGenerationMode, setMediaType, setKlingVideoMode, setUploadedVideoUrl])
 
     // Default ratio logic
     useEffect(() => {
@@ -327,6 +402,16 @@ export function useStudio() {
     }
 
     const handleGenerate = async () => {
+        // Check if user is authenticated (skip for Telegram users)
+        const isInTelegram = !!(WebApp.initData && WebApp.initDataUnsafe?.user)
+        const { isAuthenticated } = useAuthStore.getState()
+
+        if (!isInTelegram && !isAuthenticated) {
+            // Redirect to login
+            navigate('/login', { state: { from: '/studio' } })
+            return
+        }
+
         const { addGeneration, updateGeneration, removeGeneration, getAvailableSlots } = useActiveGenerationsStore.getState()
         const requestImageCount = mediaType === 'video' ? 1 : imageCount
         const availableSlots = getAvailableSlots()
@@ -443,7 +528,7 @@ export function useStudio() {
 
                     const res = await fetch('/api/generation/generate', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify(requestBody),
                         signal: controller.signal
                     })

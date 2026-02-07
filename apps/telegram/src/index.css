@@ -196,7 +196,7 @@ body {
 
 /* Safe Area Utilities */
 .safe-bottom-fixed {
-  bottom: 2rem;
+  bottom: 0.5rem;
   padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
 }
 

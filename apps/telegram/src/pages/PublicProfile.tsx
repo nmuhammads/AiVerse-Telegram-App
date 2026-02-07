@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useHaptics } from '@/hooks/useHaptics'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, getAuthHeaders } from '@/hooks/useTelegram'
 import { FeedImage, type FeedItem } from '@/components/FeedImage'
 import { FeedDetailModal } from '@/components/FeedDetailModal'
 import { useGenerationStore, type ModelType } from '@/store/generationStore'
@@ -89,7 +89,7 @@ export default function PublicProfile() {
 
         // Parse metadata from prompt
         let cleanPrompt = item.prompt
-        let metadata: Record<string, string> = {}
+        const metadata: Record<string, string> = {}
 
         const match = item.prompt.match(/\s*\[(.*?)\]\s*$/)
         if (match) {
@@ -192,7 +192,7 @@ export default function PublicProfile() {
         try {
             const res = await fetch('/api/user/follow', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ followerId: currentUser.id, followingId: Number(userId) })
             })
             if (res.ok) {
@@ -277,7 +277,7 @@ export default function PublicProfile() {
         { label: t('publicProfile.stats.remixes'), value: profileUser?.remix_count || 0 },
     ]
 
-    const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 5px)' : 'calc(env(safe-area-inset-top) + 50px)'
+    const paddingTop = platform === 'ios' ? 'calc(env(safe-area-inset-top) + 60px)' : 'calc(env(safe-area-inset-top) + 50px)'
 
     return (
         <div className="min-h-dvh bg-black safe-bottom-tabbar" style={{ paddingTop }}>
