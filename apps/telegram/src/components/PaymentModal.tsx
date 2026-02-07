@@ -79,6 +79,16 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const [isCustomMode, setIsCustomMode] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
+    const [modalMaxHeight, setModalMaxHeight] = useState<string>('min(90vh, 800px)')
+
+    // Capture modal height on open so keyboard resize doesn't shrink it (iOS Telegram)
+    useEffect(() => {
+        if (isOpen && isInTelegram) {
+            setModalMaxHeight(`min(${window.innerHeight * 0.9}px, 800px)`)
+        } else {
+            setModalMaxHeight('min(90vh, 800px)')
+        }
+    }, [isOpen, isInTelegram])
 
     // Get packages based on method and currency
     const getPackages = () => {
@@ -204,7 +214,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     }
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ height: '100dvh' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
@@ -212,7 +222,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
             />
 
             {/* Modal */}
-            <div className="relative w-full max-w-sm bg-zinc-900 rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col" style={{ maxHeight: 'min(90vh, 800px)' }}>
+            <div className="relative w-full max-w-sm bg-zinc-900 rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col" style={{ maxHeight: modalMaxHeight }}>
                 {/* Header */}
                 <div className="p-5 pb-3 flex justify-between items-start shrink-0">
                     <div>
@@ -384,15 +394,6 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     inputMode="numeric"
                                     onFocus={() => {
                                         setIsCustomMode(true)
-                                        // Scroll the scrollable container so input is visible above keyboard
-                                        setTimeout(() => {
-                                            if (scrollRef.current && inputRef.current) {
-                                                const container = scrollRef.current
-                                                const input = inputRef.current
-                                                const inputTop = input.offsetTop - container.offsetTop
-                                                container.scrollTo({ top: inputTop - 20, behavior: 'smooth' })
-                                            }
-                                        }, 300)
                                     }}
                                     onChange={(e) => {
                                         setCustomTokens(e.target.value)
