@@ -421,6 +421,7 @@
         },
         "button": {
             "pay": "Pay {{amount}} {{symbol}} via {{method}}",
+            "paySimple": "Pay",
             "processing": "Processing...",
             "bonus": "Buy with +15% bonus tokens"
         },
