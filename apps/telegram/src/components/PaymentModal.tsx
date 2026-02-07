@@ -77,23 +77,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const [loading, setLoading] = useState(false)
     const [customTokens, setCustomTokens] = useState('')
     const [isCustomMode, setIsCustomMode] = useState(false)
-    const [keyboardOffset, setKeyboardOffset] = useState(0)
     const inputRef = useRef<HTMLInputElement>(null)
     const scrollRef = useRef<HTMLDivElement>(null)
-
-    // Handle virtual keyboard in Telegram Mini App (iOS)
-    useEffect(() => {
-        if (!isOpen) return
-        const vv = window.visualViewport
-        if (!vv) return
-
-        const onResize = () => {
-            const offset = window.innerHeight - vv.height
-            setKeyboardOffset(offset > 50 ? offset : 0)
-        }
-        vv.addEventListener('resize', onResize)
-        return () => vv.removeEventListener('resize', onResize)
-    }, [isOpen])
 
     // Get packages based on method and currency
     const getPackages = () => {
@@ -219,7 +204,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     }
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center px-4 pb-2 sm:pb-0" style={{ height: keyboardOffset > 0 ? `calc(100dvh - ${keyboardOffset}px)` : '100dvh' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ height: '100dvh' }}>
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
@@ -399,9 +384,14 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     inputMode="numeric"
                                     onFocus={() => {
                                         setIsCustomMode(true)
-                                        // Scroll input into view after keyboard appears
+                                        // Scroll the scrollable container so input is visible above keyboard
                                         setTimeout(() => {
-                                            inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                            if (scrollRef.current && inputRef.current) {
+                                                const container = scrollRef.current
+                                                const input = inputRef.current
+                                                const inputTop = input.offsetTop - container.offsetTop
+                                                container.scrollTo({ top: inputTop - 20, behavior: 'smooth' })
+                                            }
                                         }, 300)
                                     }}
                                     onChange={(e) => {
