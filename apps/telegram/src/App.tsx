@@ -17,6 +17,8 @@ import MultiGeneration from "@/pages/MultiGeneration";
 import WatermarkEditor from "@/pages/WatermarkEditor";
 import Login from "@/pages/Login";
 import AuthCallback from "@/pages/AuthCallback";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 import { PaymentResult } from "@/pages/PaymentResult";
 import { Header } from "@/components/layout/Header";
 import { TabBar } from "@/components/layout/TabBar";
@@ -187,7 +189,7 @@ function StartParamRouter() {
 // Main App Layout with Header and TabBar
 function AppLayout() {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/auth/') || location.pathname.startsWith('/payment/');
+  const isLoginPage = location.pathname === '/login' || location.pathname.startsWith('/auth/') || location.pathname.startsWith('/payment/') || location.pathname === '/privacy' || location.pathname === '/terms';
   const inTelegram = isInTelegramWebApp();
 
   // Initialize auth state
@@ -224,6 +226,8 @@ function AppLayout() {
           <Route path="/auth/confirm" element={<AuthCallback />} />
           <Route path="/payment/success" element={<PaymentResult />} />
           <Route path="/payment/fail" element={<PaymentResult />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
         </Routes>
       </div>
     );

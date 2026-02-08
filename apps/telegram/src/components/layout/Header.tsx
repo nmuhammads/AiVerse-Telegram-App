@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings, Bot, LogIn } from 'lucide-react'
+import { Settings, Bot, LogIn, Globe } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useRequireAuth } from '@/hooks/useRequireAuth'
@@ -9,7 +9,7 @@ import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useAIChatStore } from '@/store/aiChatStore'
 
 export function Header() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { user, platform } = useTelegram()
   const { isGuest } = useRequireAuth()
   const { openChat } = useAIChatStore()
@@ -27,6 +27,11 @@ export function Header() {
   }, [user?.id])
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'ru' ? 'en' : 'ru'
+    i18n.changeLanguage(newLang)
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,13 +64,22 @@ export function Header() {
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse" />
               </div>
-              <Link
-                to="/login"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                <LogIn size={14} />
-                <span>{t('auth.login', 'Войти')}</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleLanguage}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm transition-colors"
+                >
+                  <Globe size={14} />
+                  <span>{i18n.language === 'ru' ? 'EN' : 'RU'}</span>
+                </button>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  <LogIn size={14} />
+                  <span>{t('auth.login', 'Войти')}</span>
+                </Link>
+              </div>
             </>
           ) : (
             <>
