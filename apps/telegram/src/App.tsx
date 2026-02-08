@@ -247,7 +247,7 @@ function AppLayout() {
       <div className="flex-1">
         <Routes>
           {/* Public routes (viewable without auth, but need auth for actions) */}
-          <Route path="/" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
+          <Route path="/" element={<RequireAuth><PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary></RequireAuth>} />
           <Route path="/home" element={<PageErrorBoundary pageName="Лента"><Home /></PageErrorBoundary>} />
           <Route path="/studio" element={<PageErrorBoundary pageName="Студия"><Studio /></PageErrorBoundary>} />
           <Route path="/top" element={<PageErrorBoundary pageName="Рейтинг"><Leaderboard /></PageErrorBoundary>} />
