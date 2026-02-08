@@ -36,6 +36,8 @@ scripts/temp_migrate.js
 uploads/*
 logs/*
 user_692574150_logs.json
+.agent/rules/language.md
 docs/Private/*
 bd/authscheme.sql
 bd/publicscheme.sql
+.agent/*

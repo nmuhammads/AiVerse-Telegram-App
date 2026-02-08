@@ -1,34 +1,24 @@
 {
-  "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2020",
-    "outDir": "../dist/api",
-    "rootDir": ".",
-    "noEmit": false,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "forceConsistentCasingInFileNames": false,
-    "lib": [
-      "ES2020"
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": false,
+        "outDir": "./dist",
+        "declaration": true,
+        "types": [
+            "node",
+            "express"
+        ]
+    },
+    "include": [
+        "**/*.ts"
     ],
-    "typeRoots": [
-      "../node_modules/@types"
-    ],
-    "types": [
-      "node",
-      "express"
+    "exclude": [
+        "node_modules",
+        "dist"
     ]
-  },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "../src",
-    "../dist"
-  ]
 }
