@@ -63,6 +63,12 @@ export function Header() {
                   AiVerse
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse" />
+                <Link
+                  to="/privacy"
+                  className="text-xs text-white/50 hover:text-white/80 transition-colors"
+                >
+                  {t('header.privacy')}
+                </Link>
               </div>
               <div className="flex items-center gap-2">
                 <button

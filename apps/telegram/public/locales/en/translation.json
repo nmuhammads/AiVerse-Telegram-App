@@ -1,4 +1,7 @@
 {
+    "header": {
+        "privacy": "Privacy Policy"
+    },
     "login": {
         "subtitle": {
             "welcome": "Welcome",
