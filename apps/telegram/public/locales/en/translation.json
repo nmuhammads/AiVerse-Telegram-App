@@ -15,7 +15,8 @@
         },
         "button": {
             "signin": "Sign In",
-            "signup": "Sign Up"
+            "signup": "Sign Up",
+            "google": "Sign in with Google"
         },
         "divider": "or",
         "telegramLoading": "Loading Telegram...",
@@ -26,6 +27,7 @@
         "terms": "By continuing, you agree to our terms of service",
         "error": {
             "telegramFailed": "Failed to login with Telegram",
+            "googleFailed": "Failed to sign in with Google",
             "connection": "Connection error",
             "signupFailed": "Failed to sign up",
             "invalidCredentials": "Invalid email or password"

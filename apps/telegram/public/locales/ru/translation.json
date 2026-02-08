@@ -15,7 +15,8 @@
         },
         "button": {
             "signin": "Войти",
-            "signup": "Зарегистрироваться"
+            "signup": "Зарегистрироваться",
+            "google": "Войти через Google"
         },
         "divider": "или",
         "telegramLoading": "Загрузка Telegram...",
@@ -26,6 +27,7 @@
         "terms": "Продолжая, вы соглашаетесь с условиями использования",
         "error": {
             "telegramFailed": "Не удалось войти через Telegram",
+            "googleFailed": "Не удалось войти через Google",
             "connection": "Ошибка подключения",
             "signupFailed": "Не удалось зарегистрироваться",
             "invalidCredentials": "Неверный email или пароль"

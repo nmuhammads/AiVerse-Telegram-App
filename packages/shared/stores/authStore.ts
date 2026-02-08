@@ -171,6 +171,44 @@ export async function loginWithTelegram(telegramData: Record<string, string>) {
     return data
 }
 
+/**
+ * Login with Google OAuth via Supabase Auth
+ * Redirects to Google's consent screen
+ */
+export async function loginWithGoogle() {
+    const { createClient } = await import('@supabase/supabase-js')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env = (import.meta as any).env || {}
+    const supabaseUrl = env.VITE_SUPABASE_URL || 'https://coilacklqaljatlvhujl.supabase.co'
+    const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || ''
+
+    if (!supabaseAnonKey) {
+        console.error('[Auth] VITE_SUPABASE_ANON_KEY not configured')
+        return { ok: false, error: 'Google login not configured' }
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent'
+            }
+        }
+    })
+
+    if (error) {
+        console.error('[Auth] Google login error:', error)
+        return { ok: false, error: error.message }
+    }
+
+    return { ok: true, data }
+}
+
 export async function refreshTokens() {
     const { refreshToken } = useAuthStore.getState()
 
