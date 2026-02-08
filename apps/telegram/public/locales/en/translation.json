@@ -1,4 +1,49 @@
 {
+    "header": {
+        "privacy": "Privacy Policy"
+    },
+    "landing": {
+        "signIn": "Sign In",
+        "badge": "AI-Powered Creative Platform",
+        "headline": {
+            "part1": "Create Amazing",
+            "part2": "AI Art & Videos"
+        },
+        "subheadline": "Generate stunning images and videos with cutting-edge AI models. Join thousands of creators bringing their imagination to life.",
+        "cta": {
+            "getStarted": "Get Started Free",
+            "tryDemo": "Try Demo"
+        },
+        "features": {
+            "title": "Everything You Need",
+            "subtitle": "Powerful AI tools to unleash your creativity",
+            "images": {
+                "title": "AI Images",
+                "desc": "Create stunning images from text with multiple AI models including GPT, Seedream, and more"
+            },
+            "videos": {
+                "title": "AI Videos",
+                "desc": "Generate videos from text or images with Kling AI, Seedance, and other advanced models"
+            },
+            "chat": {
+                "title": "AI Chat",
+                "desc": "Chat with AI assistant to refine your prompts and get creative suggestions"
+            },
+            "community": {
+                "title": "Community",
+                "desc": "Share your work, participate in contests, and get inspired by other creators"
+            }
+        },
+        "bottomCta": {
+            "title": "Ready to Create?",
+            "subtitle": "Start generating amazing AI art in seconds"
+        },
+        "footer": {
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "contact": "Contact"
+        }
+    },
     "login": {
         "subtitle": {
             "welcome": "Welcome",
@@ -15,7 +60,8 @@
         },
         "button": {
             "signin": "Sign In",
-            "signup": "Sign Up"
+            "signup": "Sign Up",
+            "google": "Sign in with Google"
         },
         "divider": "or",
         "telegramLoading": "Loading Telegram...",
@@ -26,6 +72,7 @@
         "terms": "By continuing, you agree to our terms of service",
         "error": {
             "telegramFailed": "Failed to login with Telegram",
+            "googleFailed": "Failed to sign in with Google",
             "connection": "Connection error",
             "signupFailed": "Failed to sign up",
             "invalidCredentials": "Invalid email or password"
@@ -56,6 +103,8 @@
             "storage": "Data Storage",
             "storageValue": "60 days",
             "version": "Version",
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
             "logout": "Logout"
         },
         "messages": {
@@ -608,6 +657,7 @@
         "profile": "Profile"
     },
     "common": {
+        "back": "Back",
         "guest": "Guest",
         "empty": "Empty",
         "cancel": "Cancel",
@@ -820,5 +870,88 @@
         "sendToTelegramError": "Failed to send file to Telegram.",
         "onlyImages": "Only images are allowed",
         "imageTooLarge": "Image size must not exceed 5MB"
+    },
+    "privacy": {
+        "title": "Privacy Policy",
+        "lastUpdated": "Last Updated",
+        "sections": {
+            "intro": {
+                "title": "Introduction",
+                "content": "AiVerse (\"we\", \"us\", \"our\") respects your privacy. This policy explains how we collect, use, and protect your information."
+            },
+            "dataCollection": {
+                "title": "Data We Collect",
+                "content": "We collect the following information:",
+                "items": {
+                    "email": "Email address (when registering via email or Google)",
+                    "name": "First and last name",
+                    "avatar": "Profile photo (automatically from Telegram when logging in via the mini app, or uploaded by you personally)",
+                    "generations": "Generated images and videos"
+                }
+            },
+            "dataStorage": {
+                "title": "Data Storage",
+                "content": "Generated images and videos are stored on our servers for 14 days, after which they are permanently deleted. To preserve your generations forever, we send the original files to your chat with the bot in Telegram, where they are stored in your Telegram account cloud indefinitely."
+            },
+            "dataUse": {
+                "title": "How We Use Your Data",
+                "content": "We use your data to provide image generation services, improve our service, and communicate with you."
+            },
+            "dataSharing": {
+                "title": "Data Sharing",
+                "content": "We do not sell your data. We may share data with service providers (cloud storage, payment processors) to operate our service."
+            },
+            "security": {
+                "title": "Security",
+                "content": "We use modern security measures to protect your data."
+            },
+            "contact": {
+                "title": "Contact",
+                "content": "If you have questions, contact us:"
+            }
+        }
+    },
+    "terms": {
+        "title": "Terms of Service",
+        "lastUpdated": "Last Updated",
+        "sections": {
+            "acceptance": {
+                "title": "Acceptance of Terms",
+                "content": "By using AiVerse, you agree to these terms. If you do not agree, please do not use the service."
+            },
+            "service": {
+                "title": "Service Description",
+                "content": "AiVerse is an AI-powered image and video generation service."
+            },
+            "account": {
+                "title": "Account",
+                "content": "You are responsible for the security of your account and all activities performed under it."
+            },
+            "content": {
+                "title": "User Content",
+                "content": "You retain rights to content you create. By providing content, you grant us the right to use it to operate the service."
+            },
+            "prohibited": {
+                "title": "Prohibited Use",
+                "content": "You may not use the service for:",
+                "items": {
+                    "illegal": "Creating illegal content",
+                    "harmful": "Creating harmful or offensive content",
+                    "abuse": "Abusing the service"
+                }
+            },
+            "liability": {
+                "title": "Limitation of Liability",
+                "content": "The service is provided \"as is\". We are not liable for any damages from using the service."
+            },
+            "changes": {
+                "title": "Changes to Terms",
+                "content": "We may modify these terms. Continued use of the service means acceptance of changes."
+            },
+            "contact": {
+                "title": "Contact",
+                "content": "If you have questions, contact us:"
+            }
+        }
     }
 }
