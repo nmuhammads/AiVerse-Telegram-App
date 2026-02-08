@@ -190,7 +190,7 @@ function mapQwenImageSize(ratio?: string): string | undefined {
 }
 
 function getPublicBaseUrl(): string | null {
-  const url = process.env.WEBAPP_URL || process.env.VERCEL_URL || process.env.RAILWAY_PUBLIC_DOMAIN || null
+  const url = process.env.WEBAPP_URL || process.env.RAILWAY_PUBLIC_DOMAIN || null
   return url ? (url.startsWith('http') ? url : `https://${url}`) : null
 }
 
@@ -1824,9 +1824,9 @@ export async function getGenerationById(req: Request, res: Response) {
       return res.status(500).json({ error: 'Database not configured' })
     }
 
-    // Fetch generation - include video_url for video generations
+    // Fetch generation - include video_url and video_input for video generations
     // Note: aspect_ratio not in DB, extracted from prompt metadata
-    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,user_id,status,media_type,is_prompt_private,error_message,users(username,first_name)`
+    const query = `?id=eq.${id}&select=id,prompt,model,input_images,image_url,video_url,video_input,user_id,status,media_type,is_prompt_private,error_message,users(username,first_name)`
     console.log('[getGenerationById] Query:', query)
 
     const result = await supaSelect('generations', query)
@@ -1880,6 +1880,7 @@ export async function getGenerationById(req: Request, res: Response) {
       input_images: gen.input_images || [],
       image_url: gen.image_url,
       video_url: gen.video_url,
+      video_input: gen.video_input || null, // For Kling MC remix
       aspect_ratio: ratio,
       generation_type: type,
       media_type: gen.media_type || (gen.model === 'seedance-1.5-pro' ? 'video' : 'image'),

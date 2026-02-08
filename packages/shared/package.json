@@ -1,0 +1,24 @@
+{
+    "name": "@aiverse/shared",
+    "version": "1.0.0",
+    "private": true,
+    "main": "./index.ts",
+    "types": "./index.ts",
+    "exports": {
+        ".": "./index.ts",
+        "./stores": "./stores/index.ts",
+        "./stores/*": "./stores/*",
+        "./types": "./types/index.ts",
+        "./types/*": "./types/*",
+        "./utils/*": "./utils/*",
+        "./i18n/*": "./i18n/*"
+    },
+    "peerDependencies": {
+        "zustand": "^5.0.0",
+        "react": ">=19.0.0",
+        "@supabase/supabase-js": "^2.0.0"
+    },
+    "devDependencies": {
+        "typescript": "~5.8.0"
+    }
+}

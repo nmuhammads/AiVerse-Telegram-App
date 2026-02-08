@@ -4,13 +4,13 @@ import { isPromoActive, calculateBonusTokens, getBonusAmount } from '../utils/pr
 import { addFingerprint } from '../utils/fingerprint.js'
 import { applyTextWatermark, applyImageWatermark } from '../utils/watermark.js'
 import { getTelegramMessage } from '../utils/telegramMessages.js'
+import { compressVideoForTelegram } from '../services/videoProcessingService.js'
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''
 const API = TOKEN ? `https://api.telegram.org/bot${TOKEN}` : ''
 const APP_URL = (
   process.env.WEBAPP_URL ||
   process.env.APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
   (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '') ||
   ''
 )
@@ -748,7 +748,7 @@ export async function sendRemixShare(req: Request, res: Response) {
       const isVideoContentType = ct.includes('video/') || ct.includes('mp4')
 
       if (originalSize > MAX_FILE_SIZE && !isVideoContentType) {
-        // Compress large images with sharp (cannot compress video easily without ffmpeg)
+        // Compress large images with sharp
         console.info('sendRemixShare:compressing_image', { originalSize })
         fileBuffer = await sharp(Buffer.from(ab))
           .jpeg({ quality: 85 })
@@ -756,6 +756,22 @@ export async function sendRemixShare(req: Request, res: Response) {
         filename = `ai-${Date.now()}.jpg`
         contentType = 'image/jpeg'
         console.info('sendRemixShare:compressed', { newSize: fileBuffer.length })
+      } else if (isVideoContentType && originalSize > MAX_FILE_SIZE) {
+        // Compress large videos with FFmpeg
+        console.info('sendRemixShare:compressing_video', { originalSize })
+        const compressedVideo = await compressVideoForTelegram(mediaUrl)
+        if (compressedVideo) {
+          fileBuffer = compressedVideo
+          filename = `ai-${Date.now()}.mp4`
+          contentType = 'video/mp4'
+          console.info('sendRemixShare:video_compressed', { newSize: fileBuffer.length })
+        } else {
+          // Compression failed, try with original
+          console.warn('sendRemixShare:video_compression_failed, using original')
+          fileBuffer = Buffer.from(ab)
+          filename = `ai-${Date.now()}.mp4`
+          contentType = 'video/mp4'
+        }
       } else {
         fileBuffer = Buffer.from(ab)
         const ext = (() => {
@@ -976,6 +992,17 @@ export async function sendWithPrompt(req: Request, res: Response) {
               .jpeg({ quality: 75 })
               .toBuffer()
             console.info('sendWithPrompt:resized', { newSize: finalBuffer.length })
+          }
+        } else if (isVideoContent && finalBuffer.length > MAX_PHOTO_SIZE * 2) {
+          // Compress large videos with FFmpeg (20MB limit for videos)
+          console.info('sendWithPrompt:compressing_video', { originalSize: finalBuffer.length })
+          const compressedVideo = await compressVideoForTelegram(mediaUrl)
+          if (compressedVideo) {
+            finalBuffer = compressedVideo
+            finalContentType = 'video/mp4'
+            console.info('sendWithPrompt:video_compressed', { newSize: finalBuffer.length })
+          } else {
+            console.warn('sendWithPrompt:video_compression_failed, using original')
           }
         }
 
