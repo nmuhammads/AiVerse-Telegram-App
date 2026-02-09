@@ -44,6 +44,12 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { isAuthenticated } = useAuthStore();
 
+  // DEV MODE: bypass auth for local development
+  const isDevMode = import.meta.env.DEV || import.meta.env.VITE_DEV_MODE === 'true';
+  if (isDevMode) {
+    return <>{children}</>;
+  }
+
   // In Telegram Mini App - always allow
   if (isInTelegramWebApp()) {
     return <>{children}</>;
