@@ -80,16 +80,21 @@ async function createUserTopics(chatId: number): Promise<Record<string, number>>
   return topicIds
 }
 
-// Check if topics are enabled for user
-async function checkTopicsEnabled(chatId: number): Promise<boolean> {
+// Check if topics are enabled for the bot (Bot API 9.4)
+// This uses getMe since has_topics_enabled is a property of the bot, not the chat
+let botTopicsEnabled: boolean | null = null // Cache the result
+
+async function checkBotTopicsEnabled(): Promise<boolean> {
+  if (botTopicsEnabled !== null) return botTopicsEnabled
+
   try {
-    const result = await tg('getChat', { chat_id: chatId })
-    console.log(`[Topics] getChat for ${chatId}:`, JSON.stringify(result, null, 2))
-    const enabled = result?.ok && result.result?.has_topics_enabled === true
-    console.log(`[Topics] Topics enabled for ${chatId}: ${enabled}`)
-    return enabled
+    const result = await tg('getMe', {})
+    console.log(`[Topics] getMe result:`, JSON.stringify(result?.result, null, 2))
+    botTopicsEnabled = result?.ok && result.result?.has_topics_enabled === true
+    console.log(`[Topics] Bot topics enabled: ${botTopicsEnabled}`)
+    return botTopicsEnabled
   } catch (e) {
-    console.error(`[Topics] checkTopicsEnabled error for ${chatId}:`, e)
+    console.error(`[Topics] checkBotTopicsEnabled error:`, e)
     return false
   }
 }
@@ -212,7 +217,7 @@ export async function webhook(req: Request, res: Response) {
       }
 
       // Check if topics are enabled and create them if needed (Bot API 9.4)
-      const topicsEnabled = await checkTopicsEnabled(chatId)
+      const topicsEnabled = await checkBotTopicsEnabled()
       if (topicsEnabled) {
         // Check if user already has topics (check in DB or just try to create)
         const userId = msg.from?.id
