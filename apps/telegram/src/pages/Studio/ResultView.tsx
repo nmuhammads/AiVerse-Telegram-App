@@ -55,7 +55,6 @@ export function ResultView({
       <div className="flex-1 flex items-center justify-center mb-4 relative">
         {isVideoResult ? (
           <>
-            {console.log('[Studio Video]', { resultUrl })}
             <video
               src={resultUrl}
               controls
@@ -63,19 +62,6 @@ export function ResultView({
               muted={isMuted}
               playsInline
               className="max-w-full max-h-[60vh] object-contain rounded-xl"
-              onLoadStart={() => console.log('[Studio Video] Load started, url:', resultUrl)}
-              onLoadedData={() => console.log('[Studio Video] Data loaded successfully')}
-              onCanPlay={() => console.log('[Studio Video] Can play now')}
-              onError={(e) => {
-                const video = e.currentTarget
-                console.error('[Studio Video] Error:', {
-                  url: resultUrl,
-                  errorCode: video.error?.code,
-                  errorMsg: video.error?.message,
-                  networkState: video.networkState,
-                  readyState: video.readyState
-                })
-              }}
             />
             <button
               onClick={onToggleMuted}

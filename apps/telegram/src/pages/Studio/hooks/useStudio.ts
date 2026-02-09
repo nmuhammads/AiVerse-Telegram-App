@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -692,8 +692,8 @@ export function useStudio() {
         setCurrentImageIndex(index)
     }
 
-    // Price Calculation
-    const priceLabel = (() => {
+    // Price Calculation (memoized)
+    const priceLabel = useMemo(() => {
         let basePrice: number
         if (selectedModel === 'seedance-1.5-pro') {
             basePrice = calculateVideoCost(videoResolution, videoDuration, generateAudio)
@@ -710,12 +710,14 @@ export function useStudio() {
         }
         const totalPrice = mediaType === 'video' ? basePrice : basePrice * imageCount
         return `${totalPrice} ${t('studio.tokens')}`
-    })()
+    }, [selectedModel, videoResolution, videoDuration, generateAudio, klingVideoMode, klingDuration, klingSound, klingMCQuality, videoDurationSeconds, resolution, gptImageQuality, mediaType, imageCount, t])
 
-    const isGenerateDisabled = (!prompt.trim() && selectedModel !== 'kling-mc' && !(isPromptPrivate && parentGenerationId))
-        || (aspectRatio === 'Auto' && !['kling-mc', 'qwen-image'].includes(selectedModel))
-        || (generationMode === 'image' && uploadedImages.length === 0)
-        || (selectedModel === 'kling-mc' && (!uploadedVideoUrl || (characterOrientation === 'image' && videoDurationSeconds > 10) || (characterOrientation === 'video' && videoDurationSeconds > 30)))
+    const isGenerateDisabled = useMemo(() => {
+        return (!prompt.trim() && selectedModel !== 'kling-mc' && !(isPromptPrivate && parentGenerationId))
+            || (aspectRatio === 'Auto' && !['kling-mc', 'qwen-image'].includes(selectedModel))
+            || (generationMode === 'image' && uploadedImages.length === 0)
+            || (selectedModel === 'kling-mc' && (!uploadedVideoUrl || (characterOrientation === 'image' && videoDurationSeconds > 10) || (characterOrientation === 'video' && videoDurationSeconds > 30)))
+    }, [prompt, selectedModel, isPromptPrivate, parentGenerationId, aspectRatio, generationMode, uploadedImages.length, uploadedVideoUrl, characterOrientation, videoDurationSeconds])
 
     return {
         // State

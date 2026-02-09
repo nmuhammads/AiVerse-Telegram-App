@@ -8,20 +8,20 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Video, MessageSquare, Trophy, ArrowRight, Globe } from 'lucide-react'
 
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
+
 const LANGUAGES = [
     { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-    { code: 'en', label: 'English', flag: '🇺🇸' }
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'es', label: 'Español', flag: '🇪🇸' },
+    { code: 'fr', label: 'Français', flag: '🇫🇷' },
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+    { code: 'ar', label: 'العربية', flag: '🇸🇦' }
 ]
 
 export default function Landing() {
     const { t, i18n } = useTranslation()
 
-    const toggleLanguage = () => {
-        const newLang = i18n.language === 'ru' ? 'en' : 'ru'
-        i18n.changeLanguage(newLang)
-    }
-
-    const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0]
 
     const features = [
         {
@@ -71,13 +71,7 @@ export default function Landing() {
                             <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse" />
                         </div>
                         <div className="flex items-center gap-3">
-                            <button
-                                onClick={toggleLanguage}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-colors text-sm"
-                            >
-                                <Globe className="w-4 h-4" />
-                                <span>{currentLang.flag} {currentLang.code.toUpperCase()}</span>
-                            </button>
+                            <LanguageSelector />
                             <Link
                                 to="/login"
                                 className="px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors text-sm font-medium"

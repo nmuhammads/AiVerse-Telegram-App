@@ -21,12 +21,23 @@ i18n
     .use(languageDetector)
     .use(initReactI18next)
     .init({
-        fallbackLng: 'ru',
+        fallbackLng: {
+            'uz': ['ru'],
+            'tj': ['ru'],
+            'kk': ['ru'],
+            'kz': ['ru'],
+            'hy': ['ru'],
+            'az': ['ru'],
+            'be': ['ru'],
+            'tk': ['ru'],
+            'default': ['en']
+        },
+        supportedLngs: ['ru', 'en', 'es', 'fr', 'de', 'ar'],
         debug: import.meta.env.DEV,
-        load: 'languageOnly', // Load only 'en', not 'en-US'
+        load: 'languageOnly',
 
         interpolation: {
-            escapeValue: false, // not needed for react as it escapes by default
+            escapeValue: false,
         },
 
         backend: {

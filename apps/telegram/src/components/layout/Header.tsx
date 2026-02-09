@@ -7,6 +7,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { NotificationBell } from '@/components/NotificationBell'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useAIChatStore } from '@/store/aiChatStore'
+import { LanguageSelector } from '@/components/ui/LanguageSelector'
 
 export function Header() {
   const { t, i18n } = useTranslation()
@@ -28,10 +29,6 @@ export function Header() {
   const [isVisible, setIsVisible] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'ru' ? 'en' : 'ru'
-    i18n.changeLanguage(newLang)
-  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,21 +60,9 @@ export function Header() {
                   AiVerse
                 </div>
                 <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 animate-pulse" />
-                <Link
-                  to="/privacy"
-                  className="text-xs text-white/50 hover:text-white/80 transition-colors"
-                >
-                  {t('header.privacy')}
-                </Link>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleLanguage}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm transition-colors"
-                >
-                  <Globe size={14} />
-                  <span>{i18n.language === 'ru' ? 'EN' : 'RU'}</span>
-                </button>
+                <LanguageSelector />
                 <Link
                   to="/login"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,7 @@ type GenerateButtonProps = {
   onGenerate: () => void
 }
 
-export function GenerateButton({
+export const GenerateButton = memo(function GenerateButton({
   t,
   mediaType,
   imageCount,
@@ -107,4 +108,4 @@ export function GenerateButton({
       </div>
     </div>
   )
-}
+})

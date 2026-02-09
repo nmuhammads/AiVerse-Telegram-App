@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AspectRatio, GptImageQuality, ModelType } from '@/store/generationStore'
 
@@ -19,7 +20,7 @@ type SettingsPanelProps = {
   onImpact: (style: 'light' | 'medium' | 'heavy') => void
 }
 
-export function SettingsPanel({
+export const SettingsPanel = memo(function SettingsPanel({
   t,
   selectedModel,
   ratios,
@@ -95,4 +96,4 @@ export function SettingsPanel({
       )}
     </>
   )
-}
+})
