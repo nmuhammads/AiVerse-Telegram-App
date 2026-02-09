@@ -29,6 +29,29 @@ export async function tg(method: string, payload: Record<string, unknown>) {
 import { supaSelect, supaPatch, supaPost } from '../services/supabaseService.js'
 import { logBalanceChange } from '../services/balanceAuditService.js'
 
+// Helper to check if spin event is enabled
+async function isSpinEventEnabled(): Promise<boolean> {
+  try {
+    const result = await supaSelect('event_settings', `?event_key=eq.spin&select=enabled,start_date,end_date`)
+    if (!result.ok || !result.data || result.data.length === 0) {
+      return false
+    }
+    const event = result.data[0]
+    const now = new Date()
+    let isActive = event.enabled
+    if (event.start_date && new Date(event.start_date) > now) {
+      isActive = false
+    }
+    if (event.end_date && new Date(event.end_date) < now) {
+      isActive = false
+    }
+    return isActive
+  } catch (e) {
+    console.error('[Spin] isSpinEventEnabled error:', e)
+    return false
+  }
+}
+
 // Topic definitions for private chats (Bot API 9.4)
 // Note: icon_custom_emoji_id requires Premium, using Unicode emoji in names instead
 const TOPIC_DEFINITIONS = [
@@ -635,13 +658,14 @@ export async function webhook(req: Request, res: Response) {
 
         if (userQ.ok && userQ.data?.[0]) {
           const user = userQ.data[0]
+          const spinEnabled = await isSpinEventEnabled()
+          const spinLine = spinEnabled ? `\n🎰 *Спины:* ${user.spins || 0}` : ''
           const profileText = `👤 *Ваш профиль*
 
 📛 *Имя:* ${user.first_name || callback.from?.first_name || 'Не указано'}
 🆔 *ID:* \`${callbackUserId}\`
 
-💰 *Баланс:* ${user.balance || 0} токенов
-🎰 *Спины:* ${user.spins || 0}
+💰 *Баланс:* ${user.balance || 0} токенов${spinLine}
 🎨 *Генераций:* ${genCount}`
 
           const kb = {
@@ -690,14 +714,20 @@ export async function webhook(req: Request, res: Response) {
       const userId = msg.from?.id
       const payload = JSON.parse(payment.invoice_payload || '{}')
       const baseTokens = Number(payload.tokens || 0)
-      const spinsToAdd = Number(payload.spins || 0)
+      let spinsToAdd = Number(payload.spins || 0)
+
+      // Check if spin event is enabled - don't award spins if disabled
+      const spinEventEnabled = await isSpinEventEnabled()
+      if (!spinEventEnabled) {
+        spinsToAdd = 0
+      }
 
       // Apply New Year promo bonus (+20%)
       const promoActive = isPromoActive()
       const tokensToAdd = promoActive ? calculateBonusTokens(baseTokens) : baseTokens
       const bonusTokens = promoActive ? getBonusAmount(baseTokens) : 0
 
-      console.log(`[Payment] Successful payment from ${userId}, base: ${baseTokens}, bonus: ${bonusTokens}, total: ${tokensToAdd}, promoActive: ${promoActive}, spins: ${spinsToAdd}, payload:`, payload)
+      console.log(`[Payment] Successful payment from ${userId}, base: ${baseTokens}, bonus: ${bonusTokens}, total: ${tokensToAdd}, promoActive: ${promoActive}, spins: ${spinsToAdd}, spinEventEnabled: ${spinEventEnabled}, payload:`, payload)
 
       if (userId && tokensToAdd > 0) {
         // Fetch current balance and spins
@@ -1139,13 +1169,14 @@ export async function webhook(req: Request, res: Response) {
 
         if (userQ.ok && userQ.data?.[0]) {
           const user = userQ.data[0]
+          const spinEnabled = await isSpinEventEnabled()
+          const spinLine = spinEnabled ? `\n🎰 *Спины:* ${user.spins || 0}` : ''
           const profileText = `👤 *Ваш профиль*
 
 📛 *Имя:* ${user.first_name || msg.from?.first_name || 'Не указано'}
 🆔 *ID:* \`${userId}\`
 
-💰 *Баланс:* ${user.balance || 0} токенов
-🎰 *Спины:* ${user.spins || 0}
+💰 *Баланс:* ${user.balance || 0} токенов${spinLine}
 🎨 *Генераций:* ${genCount}`
 
           const kb = {
