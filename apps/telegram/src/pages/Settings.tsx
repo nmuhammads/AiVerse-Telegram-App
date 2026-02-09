@@ -181,13 +181,26 @@ export default function Settings() {
                     id: 'language',
                     icon: Globe,
                     label: t('settings.items.language'),
-                    value: i18n.language.startsWith('ru') ? 'Русский' : 'English',
+                    value: (() => {
+                        const lang = i18n.language;
+                        if (lang.startsWith('ru')) return 'Русский';
+                        if (lang.startsWith('en')) return 'English';
+                        if (lang.startsWith('es')) return 'Español';
+                        if (lang.startsWith('ar')) return 'العربية';
+                        if (lang.startsWith('de')) return 'Deutsch';
+                        if (lang.startsWith('fr')) return 'Français';
+                        return 'English';
+                    })(),
                     onClick: () => setLangExpanded(!langExpanded),
                     isCollapsible: true,
                     expanded: langExpanded,
                     options: [
                         { label: 'Русский', onClick: () => changeLanguage('ru'), active: i18n.language.startsWith('ru') },
-                        { label: 'English', onClick: () => changeLanguage('en'), active: i18n.language.startsWith('en') }
+                        { label: 'English', onClick: () => changeLanguage('en'), active: i18n.language.startsWith('en') },
+                        { label: 'Español', onClick: () => changeLanguage('es'), active: i18n.language.startsWith('es') },
+                        { label: 'العربية', onClick: () => changeLanguage('ar'), active: i18n.language.startsWith('ar') },
+                        { label: 'Deutsch', onClick: () => changeLanguage('de'), active: i18n.language.startsWith('de') },
+                        { label: 'Français', onClick: () => changeLanguage('fr'), active: i18n.language.startsWith('fr') }
                     ]
                 },
                 { icon: Moon, label: t('settings.items.theme'), value: t('settings.items.themeValue'), onClick: () => toast.error(t('settings.messages.themeToast')) },

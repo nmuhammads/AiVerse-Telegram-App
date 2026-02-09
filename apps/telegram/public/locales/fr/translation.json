@@ -1,0 +1,957 @@
+{
+    "header": {
+        "privacy": "Politique de confidentialité"
+    },
+    "landing": {
+        "signIn": "Se connecter",
+        "badge": "Plateforme Créative IA",
+        "headline": {
+            "part1": "Créez d'incroyables",
+            "part2": "Art et Vidéos IA"
+        },
+        "subheadline": "Générez des images et des vidéos époustouflantes avec des modèles d'IA de pointe. Rejoignez des milliers de créateurs qui donnent vie à leur imagination.",
+        "cta": {
+            "getStarted": "Démarrer Gratuitement",
+            "tryDemo": "Essayer la Démo"
+        },
+        "features": {
+            "title": "Tout ce dont vous avez besoin",
+            "subtitle": "Des outils IA puissants pour libérer votre créativité",
+            "images": {
+                "title": "Images IA",
+                "desc": "Créez des images magnifiques à partir de texte avec plusieurs modèles IA, dont GPT, Seedream et plus"
+            },
+            "videos": {
+                "title": "Vidéos IA",
+                "desc": "Générez des vidéos à partir de texte ou d'images avec Kling AI, Seedance et d'autres modèles avancés"
+            },
+            "chat": {
+                "title": "Chat IA",
+                "desc": "Discutez avec l'assistant IA pour affiner vos prompts et obtenir des suggestions créatives"
+            },
+            "community": {
+                "title": "Communauté",
+                "desc": "Partagez votre travail, participez à des concours et laissez-vous inspirer par d'autres créateurs"
+            }
+        },
+        "bottomCta": {
+            "title": "Prêt à Créer ?",
+            "subtitle": "Commencez à générer de l'art IA incroyable en quelques secondes"
+        },
+        "footer": {
+            "privacy": "Confidentialité",
+            "terms": "Conditions d'utilisation",
+            "contact": "Contact"
+        }
+    },
+    "login": {
+        "subtitle": {
+            "welcome": "Bienvenue",
+            "signup": "Créer un compte"
+        },
+        "field": {
+            "name": "Nom",
+            "email": "E-mail",
+            "password": "Mot de passe"
+        },
+        "placeholder": {
+            "name": "Entrez votre nom",
+            "email": "exemple@mail.com"
+        },
+        "button": {
+            "signin": "Se connecter",
+            "signup": "S'inscrire",
+            "google": "Se connecter avec Google"
+        },
+        "divider": "ou",
+        "telegramLoading": "Chargement de Telegram...",
+        "toggle": {
+            "noAccount": "Pas encore de compte ? S'inscrire",
+            "hasAccount": "Déjà un compte ? Se connecter"
+        },
+        "terms": "En continuant, vous acceptez nos conditions d'utilisation",
+        "error": {
+            "telegramFailed": "Échec de la connexion Telegram",
+            "googleFailed": "Échec de la connexion Google",
+            "connection": "Erreur de connexion",
+            "signupFailed": "Échec de l'inscription",
+            "invalidCredentials": "E-mail ou mot de passe invalide"
+        },
+        "success": {
+            "checkEmail": "Vérifiez vos e-mails pour confirmation"
+        }
+    },
+    "settings": {
+        "title": "Paramètres",
+        "sections": {
+            "general": "Général",
+            "remix": "Remix",
+            "social": "Social",
+            "about": "À propos",
+            "notifications": "Notifications",
+            "tools": "Outils"
+        },
+        "items": {
+            "language": "Langue",
+            "languageValue": "Français",
+            "theme": "Thème",
+            "themeValue": "Sombre",
+            "addToHome": "Ajouter à l'écran d'accueil",
+            "accumulations": "Accumulations",
+            "subscriptions": "Abonnements & Abonnés",
+            "support": "Support",
+            "storage": "Stockage des données",
+            "storageValue": "60 jours",
+            "version": "Version",
+            "privacy": "Politique de confidentialité",
+            "terms": "Conditions d'utilisation",
+            "logout": "Se déconnecter"
+        },
+        "messages": {
+            "themeToast": "Oups, seul le mode sombre est disponible pour l'instant",
+            "storageToast": "Les images sont stockées pendant 60 jours. Les originaux en qualité maximale sont envoyés au chat avec le bot et y sont stockés indéfiniment 💾"
+        },
+        "notifications": {
+            "telegram": "Notifications Telegram",
+            "hint": "Configurer ici",
+            "options": {
+                "news": "Nouvelles",
+                "remix": "Remix",
+                "generation": "Générations",
+                "likes": "J'aime"
+            }
+        },
+        "fingerprint": {
+            "title": "Vérifier l'auteur du prompt",
+            "description": "Collez un prompt reçu via 'Avec Prompt' pour découvrir son auteur",
+            "placeholder": "Collez le prompt ici...",
+            "check": "Vérifier",
+            "author": "Auteur",
+            "found": "Auteur trouvé !",
+            "notFound": "Empreinte de l'auteur non trouvée",
+            "noFingerprint": "Aucune empreinte d'auteur trouvée dans ce prompt"
+        }
+    },
+    "watermark": {
+        "title": "Filigrane",
+        "textLabel": "Texte du filigrane",
+        "textPlaceholder": "Votre texte...",
+        "opacity": "Opacité",
+        "position": "Position",
+        "save": "Enregistrer",
+        "saved": "Filigrane enregistré",
+        "deleted": "Filigrane supprimé",
+        "generate": "Générer IA",
+        "previewPlaceholder": "Aperçu",
+        "generated": "✨ Filigrane créé !",
+        "insufficientBalance": "Solde insuffisant",
+        "switchToText": "Passer au texte",
+        "switchToAi": "Passer au filigrane IA",
+        "switchedToAi": "Filigrane IA activé",
+        "tabs": {
+            "generator": "Générateur",
+            "custom": "Personnalisé"
+        },
+        "uploadSection": "Télécharger une image",
+        "uploadImage": "Télécharger une image",
+        "uploaded": "✨ Image téléchargée !",
+        "customLoaded": "Image téléchargée",
+        "invalidFileType": "Veuillez sélectionner une image",
+        "removeBg": "Supprimer le fond",
+        "bgRemoved": "✨ Fond supprimé !",
+        "removingBg": "Suppression du fond...",
+        "bgRemovedLabel": "Fond supprimé",
+        "saveAsIs": "Enregistrer tel quel",
+        "uploadPreview": {
+            "title": "Aperçu de l'image"
+        },
+        "replaceWarning": {
+            "title": "⚠️ Remplacer le filigrane ?",
+            "text": "Le filigrane actuel sera définitivement supprimé et remplacé par un nouveau.",
+            "confirm": "Remplacer"
+        }
+    },
+    "home": {
+        "tabs": {
+            "new": "Nouveau",
+            "popular": "Populaire",
+            "following": "Abonnements"
+        },
+        "searchPlaceholder": "Rechercher un prompt...",
+        "search": {
+            "posts": "Publications",
+            "users": "Utilisateurs",
+            "usersPlaceholder": "Rechercher des utilisateurs...",
+            "noUsersFound": "Utilisateurs non trouvés",
+            "searching": "Recherche..."
+        },
+        "feedTitle": "Fil du {{date}}",
+        "models": {
+            "all": "Tous les modèles"
+        },
+        "empty": "Aucune publication",
+        "loadingMore": "Chargement..."
+    },
+    "studio": {
+        "title": "Studio",
+        "tokens": "jetons",
+        "models": {
+            "nanobanana": {
+                "name": "NanoBanana",
+                "desc": "3 jetons"
+            },
+            "nanobanana-pro": {
+                "name": "NanoBanana Pro",
+                "desc": "15 jetons"
+            },
+            "seedream4": {
+                "name": "Seedream 4",
+                "desc": "4 jetons"
+            },
+            "seedream4-5": {
+                "name": "Seedream 4.5",
+                "desc": "7 jetons"
+            },
+            "gpt-image-1.5": {
+                "name": "GPT image 1.5",
+                "desc": "à partir de 5 jetons"
+            },
+            "qwen-image": {
+                "name": "Qwen Image",
+                "desc": "3 jetons"
+            },
+            "test-model": {
+                "name": "🧪 Modèle Test",
+                "desc": "0 jeton"
+            },
+            "seedance-1.5-pro": {
+                "name": "Seedance Pro",
+                "desc": "à partir de 24 jetons"
+            },
+            "kling-t2v": {
+                "name": "Kling AI",
+                "desc": "à partir de 30 jetons"
+            }
+        },
+        "kling": {
+            "motionControl": "Contrôle du mouvement",
+            "duration": "Durée",
+            "sound": "Son",
+            "referenceImage": "Image de référence",
+            "mc": {
+                "uploadImage": "Charger photo du personnage",
+                "imageHint": "Le visage doit être visible (tête + épaules + torse)",
+                "orientation": "Orientation du personnage",
+                "orientationHint": "Choisissez d'où proviennent le regard et la posture",
+                "asImage": "Comme sur la photo",
+                "asImageDesc1": "Pose et direction de la photo",
+                "max10s": "max 10s",
+                "asVideo": "Comme sur la vidéo",
+                "asVideoDesc1": "Pose et direction de la vidéo",
+                "max30s": "max 30s",
+                "uploadVideo": "Charger vidéo de mouvement",
+                "videoHint": "MP4/MOV, 3-30s, min 720p",
+                "uploadVideoBtn": "Charger vidéo",
+                "changeVideo": "Changer vidéo",
+                "selectVideo": "Sélectionner vidéo",
+                "validDuration": "✓ Valide",
+                "invalidDuration": "✕ Trop long",
+                "durationError": "Vidéo trop longue. Max : {{max}}s",
+                "quality": "Qualité",
+                "optionalPrompt": "Prompt",
+                "optional": "Optionnel",
+                "promptPlaceholder": "Détails : vêtements, décor, style...",
+                "promptHint": "Le prompt est optionnel. Utilisez-le pour changer les détails : vêtements, fond, style, etc.",
+                "perSec": "s"
+            }
+        },
+        "tokens_1": "{{count}} jeton",
+        "tokens_2": "{{count}} jetons",
+        "tokens_5": "{{count}} jetons",
+        "mediaType": {
+            "image": "Photo",
+            "video": "Vidéo"
+        },
+        "mode": {
+            "textToImage": "Texte en Image",
+            "imageToImage": "Image en Image",
+            "textToVideo": "Texte en Vidéo",
+            "imageToVideo": "Image en Vidéo"
+        },
+        "video": {
+            "modelDesc": "Générer une vidéo à partir de texte ou d'image",
+            "duration": "Durée",
+            "seconds": "sec",
+            "resolution": "Résolution",
+            "camera": "Caméra",
+            "cameraStatic": "Statique",
+            "cameraDynamic": "Dynamique",
+            "cameraStaticHint": "La caméra est fixe — les objets bougent dans le cadre",
+            "cameraDynamicHint": "La caméra bouge librement — effet cinématographique",
+            "audio": "Audio",
+            "audioOff": "Sans audio",
+            "audioOn": "Avec audio",
+            "audioWarning": "⚠️ L'audio double le coût de génération",
+            "startFrame": "Image initiale",
+            "endFrame": "Image finale",
+            "addStartFrame": "Ajouter",
+            "addEndFrame": "Optionnel",
+            "framesHint": "L'image initiale est requise. L'image finale est optionnelle pour contrôler l'aspect final."
+        },
+        "prompt": {
+            "from": "Prompt de {{username}}",
+            "placeholder": "Décrivez votre idée..."
+        },
+        "upload": {
+            "limitError": "Maximum {{limit}} photos",
+            "modelLimitError": "Maximum {{limit}} photos pour ce modèle",
+            "more": "Plus",
+            "paste": "Coller",
+            "addReferences": "Ajouter des références (max {{limit}})",
+            "selectPhoto": "Sélectionner photo",
+            "pasteHint": "Appui long ici → Coller",
+            "copyHint": "Copiez la photo → appuyez sur la zone violette → Coller",
+            "remixHint": "Lors d'un remix, remplacez les photos de référence par les vôtres si nécessaire"
+        },
+        "aspectRatio": "Ratio d'aspect",
+        "quality": {
+            "label": "Qualité",
+            "2k": "2K (10 jetons)",
+            "4k": "4K (15 jetons)"
+        },
+        "generate": {
+            "button": "Générer",
+            "generating": "Création du chef-d'œuvre...",
+            "waitMessage": "Si le processus prend du temps, vous pouvez réduire l'application. \nLe résultat apparaîtra dans <1>Mes Générations</1> sur votre profil\net sera envoyé au <3>chat Telegram</3>."
+        },
+        "errors": {
+            "promptRequired": "Saisissez un prompt",
+            "imageRequired": "Téléchargez une image",
+            "pasteInstruction": "Copiez la photo et faites un appui long ici → Coller",
+            "generationError": "Erreur de génération",
+            "timeout": "Délai dépassé. La génération peut finir en arrière-plan, vérifiez plus tard.",
+            "videoTimeout": "La génération vidéo prend jusqu'à 30 minutes. Vérifiez l'historique plus tard.",
+            "network": "Erreur réseau. Vérifiez votre connexion ou réessayez plus tard."
+        },
+        "result": {
+            "title": "Résultat",
+            "videoTitle": "Vidéo Prête",
+            "save": "Enregistrer",
+            "sendToChat": "Envoyer au Chat",
+            "close": "Fermer la fenêtre"
+        },
+        "promptHelper": {
+            "optimize": "✨ Améliorer le Prompt",
+            "optimizing": "Amélioration...",
+            "describe": "📝 Prompt depuis Photo",
+            "describing": "Description...",
+            "describeTitle": "Décrire l'image",
+            "describeSubtitle": "L'IA créera un prompt à partir de votre photo",
+            "uploadImage": "Télécharger une image",
+            "uploadHint": "Cliquez ou glissez pour télécharger",
+            "pasteImage": "Coller depuis le presse-papiers",
+            "generatePrompt": "Générer le Prompt",
+            "noPrompt": "Entrez un prompt à améliorer",
+            "noImageInClipboard": "Aucune image dans le presse-papiers",
+            "pasteError": "Échec du collage de l'image",
+            "optimizeSuccess": "Prompt amélioré !",
+            "describeSuccess": "Prompt généré !",
+            "error": "Échec du traitement",
+            "v1Description": "Description détaillée utilisant le modèle IA pour générer des prompts.",
+            "v2Description": "Mode avancé avec instructions à l'IA sur la façon de décrire le prompt en utilisant les détails de la photo."
+        }
+    },
+    "profile": {
+        "guest": "Invité",
+        "pro": "PRO",
+        "stats": {
+            "generations": "Générations",
+            "followers": "Abonnés",
+            "likes": "J'aime",
+            "remixes": "Remix"
+        },
+        "balance": {
+            "tokens": "jetons",
+            "success": "Solde rechargé avec succès. Merci pour votre achat !"
+        },
+        "actions": {
+            "share": {
+                "title": "Profil AiVerse",
+                "text": "Découvrez mon profil et mes créations sur AiVerse 🎨"
+            },
+            "close": "Fermer",
+            "change": "Modifier",
+            "selectFromGallery": "Choisir dans la Galerie",
+            "pastePrompt": "Appui long pour coller la photo",
+            "back": "Retour"
+        },
+        "history": {
+            "title": "Mes Générations",
+            "empty": "L'historique est vide",
+            "loadMore": "Charger plus"
+        },
+        "storage": {
+            "text": "Les images sont conservées dans l'app pendant <0>60 jours</0>. Les originaux sont envoyés au bot Telegram et gardés <1>indéfiniment</1> 💾"
+        },
+        "filters": {
+            "all": "Tout",
+            "published": "Public",
+            "private": "Privé",
+            "photo": "Photos",
+            "video": "Vidéos"
+        },
+        "preview": {
+            "saveToGallery": "Sauver dans Galerie",
+            "sendToChat": "Fichier",
+            "shareRemix": "Partager Remix",
+            "publish": "Publier sur le Fil",
+            "unpublish": "Retirer du Fil",
+            "delete": "Supprimer",
+            "publicLabel": "Public",
+            "showPrompt": "Voir & Copier",
+            "hidePrompt": "Cacher le Prompt",
+            "copyPrompt": "Copier le Prompt",
+            "copied": "Copié !",
+            "promptPrivate": "Prompt masqué",
+            "promptPublic": "Masquer le prompt",
+            "hiddenByAuthor": "🔒 Masqué par l'auteur",
+            "sendToSection": "Envoyer au Chat",
+            "sendWithPrompt": "Avec Refs",
+            "sendWithPromptHint": "Envoyer au chat avec prompt et lien de parrainage",
+            "sendWithWatermark": "Ref & Filigrane",
+            "sendWithWatermarkHint": "Envoyer avec filigrane et lien de parrainage",
+            "noWatermarkSettings": "Configurez d'abord le filigrane dans les paramètres",
+            "buttonPrivate": "Prompt Privé",
+            "buttonPublic": "Prompt Ouvert"
+        },
+        "deleteConfirm": {
+            "title": "Supprimer la génération ?",
+            "description": "Cette action est irréversible",
+            "cancel": "Annuler",
+            "confirm": "Supprimer"
+        },
+        "publishConfirm": {
+            "title": "Publier sur le Fil ?",
+            "description": "Votre travail sera visible par les autres utilisateurs",
+            "cancel": "Annuler",
+            "confirm": "Publier",
+            "publishOpen": "Publier avec Prompt Ouvert",
+            "publishPrivate": "Publier avec Prompt Privé"
+        },
+        "copyRemix": "Remix",
+        "copyRemixFull": "Copier le lien Remix",
+        "remixLinkCopied": "Lien Remix copié !"
+    },
+    "spin": {
+        "title": "Fortuna",
+        "available": "Disponible :",
+        "spins": "lancés",
+        "spinButton": "TOURNER",
+        "spinning": "Tourne...",
+        "balanceHint": "Rechargez dès 300 jetons pour obtenir des lancers",
+        "eventDisabled": {
+            "title": "Événement indisponible",
+            "description": "La Roue de la Fortune est momentanément indisponible. Restez à l'écoute !",
+            "back": "Retour aux Événements",
+            "toast": "Événement indisponible"
+        },
+        "errors": {
+            "spin": "Erreur lors du lancer",
+            "network": "Erreur réseau"
+        },
+        "win": {
+            "jackpot": "🎉 Jackpot !",
+            "congrats": "Félicitations !",
+            "youWon": "Vous avez gagné :",
+            "tokens": "jetons",
+            "claim": "Récupérer ! ✨"
+        },
+        "info": {
+            "title": "Roue de la Fortune",
+            "description": "Tournez la roue et gagnez des jetons ! Tous les segments ont les mêmes chances.",
+            "oddsTitle": "Chances",
+            "howToGet": "Comment obtenir des lancers ?",
+            "conditions": {
+                "1": "• Recharge dès 300 jetons → 1 lancer",
+                "2": "• Recharge dès 800 jetons → 2 lancers",
+                "3": "• Recharge dès 1500 jetons → 3 lancers"
+            },
+            "close": "Compris"
+        }
+    },
+    "subscriptions": {
+        "title": "Abonnements",
+        "tabs": {
+            "followers": "Abonnés",
+            "following": "Abonnements"
+        },
+        "empty": {
+            "followers": "Aucun abonné pour l'instant",
+            "following": "Vous ne suivez personne"
+        }
+    },
+    "payment": {
+        "title": "Recharger le solde",
+        "subtitle": "Choisissez un pack de jetons",
+        "devModeWarning": "⚠️ Mode de paiement test",
+        "devModeDescription": "Vous serez redirigé vers le bot de production pour le paiement. C'est un environnement de test.",
+        "methods": {
+            "stars": "Stars",
+            "card": "Carte",
+            "sbp": "SBP"
+        },
+        "packages": {
+            "tokens": "{{count}} jetons",
+            "bonus": "Bonus",
+            "spins": "+{{count}} 🎰 lancer",
+            "spins_other": "+{{count}} 🎰 lancers",
+            "popular": "POPULAIRE"
+        },
+        "customInput": {
+            "label": "Ou saisissez votre propre montant",
+            "placeholder": "Nombre de jetons...",
+            "min": "Minimum {{min}} jetons",
+            "max": "Maximum {{max}} jetons",
+            "tokens": "jetons"
+        },
+        "button": {
+            "pay": "Payer {{amount}} {{symbol}} via {{method}}",
+            "paySimple": "Payer",
+            "processing": "Traitement...",
+            "bonus": "Acheter avec bonus +15% jetons"
+        },
+        "messages": {
+            "description": "Achat de {{count}} jetons AiVerse",
+            "success": "Paiement réussi ! Jetons crédités.",
+            "status": "Statut du paiement : {{status}}",
+            "errorInvoice": "Erreur lors de la création de la facture : {{error}}",
+            "errorNetwork": "Erreur réseau",
+            "sbpCommission": "Des frais de service s'appliquent pour les paiements SBP",
+            "minPurchase": "Achat minimum via administrateur avec bonus — 200 jetons"
+        }
+    },
+    "generationSelector": {
+        "title": "Choisir une création",
+        "empty": "Aucune génération pour l'instant.",
+        "select": "Sélectionner"
+    },
+    "events": {
+        "pageTitle": "Événements",
+        "tabs": {
+            "contests": "Concours",
+            "events": "Événements"
+        },
+        "filters": {
+            "active": "Actifs",
+            "upcoming": "À venir",
+            "completed": "Terminés"
+        },
+        "empty": {
+            "active": "Aucun concours actif",
+            "upcoming": "Aucun concours à venir",
+            "completed": "Aucun concours terminé",
+            "events": "Aucun événement pour le moment"
+        },
+        "contestStatus": {
+            "until": "Jusqu'au ",
+            "starts": "Commence le ",
+            "ended": "Fini le "
+        },
+        "spin": {
+            "title": "Roue de la Fortune",
+            "description": "Tentez votre chance et gagnez des prix !",
+            "unavailable": "Événement temporairement indisponible"
+        },
+        "comingSoon": "Nouveaux événements bientôt !"
+    },
+    "leaderboard": {
+        "title": {
+            "month": "Top de {{month}}",
+            "allTime": "Top de tous les temps"
+        },
+        "period": {
+            "month": "Pour {{month}}",
+            "allTime": "Tous les temps"
+        },
+        "tabs": {
+            "likes": "J'aime",
+            "remixes": "Remix"
+        },
+        "empty": "Vide pour le moment...",
+        "badges": {
+            "legend": "Légende",
+            "pro": "Pro",
+            "expert": "Expert"
+        }
+    },
+    "accumulations": {
+        "title": "Accumulations",
+        "forRemix": "Pour Remix",
+        "loading": "Chargement...",
+        "empty": {
+            "title": "L'historique est vide",
+            "description": "Les jetons reçus pour les remix de vos travaux par d'autres s'afficheront ici."
+        }
+    },
+    "publicProfile": {
+        "stats": {
+            "generations": "Générations",
+            "followers": "Abonnés",
+            "likes": "J'aime",
+            "remixes": "Remix"
+        },
+        "follow": "S'abonner",
+        "unfollow": "Se désabonner",
+        "publicGenerations": "Générations publiques",
+        "empty": "Aucune création publique",
+        "loadMore": "Charger plus"
+    },
+    "contestDetail": {
+        "status": {
+            "active": "Actif",
+            "completed": "Terminé",
+            "upcoming": "À venir",
+            "until": "Jusqu'au {{date}}"
+        },
+        "organizer": "Organisateur : {{name}}",
+        "tabs": {
+            "info": "Info",
+            "gallery": "Galerie",
+            "leaderboard": "Classement"
+        },
+        "sections": {
+            "description": "Description",
+            "rules": "Règles",
+            "prizes": "Prix"
+        },
+        "prizePlace": "{{place}}e Place",
+        "emptyGallery": "Aucune participation. Soyez le premier !",
+        "sorting": {
+            "new": "Nouveaux",
+            "top": "Top"
+        },
+        "filter": {
+            "allModels": "Tous les modèles",
+            "nanobanana": "NanoBanana",
+            "nanobanana_pro": "NanoBanana Pro",
+            "seedream4": "SeeDream 4",
+            "seedream4_5": "SeeDream 4.5",
+            "gptimage1_5": "GPT Image 1.5"
+        },
+        "loadingMore": "Chargement...",
+        "join": "Rejoindre",
+        "messages": {
+            "successJoin": "Travail ajouté au concours !",
+            "errorJoin": "Erreur lors de l'ajout",
+            "errorNetwork": "Erreur réseau",
+            "errorLike": "Erreur sur le Like",
+            "notFound": "Concours non trouvé"
+        },
+        "likes": "{{count}} j'aime"
+    },
+    "nav": {
+        "home": "Accueil",
+        "events": "Événements",
+        "studio": "Studio",
+        "top": "Top",
+        "profile": "Profil"
+    },
+    "common": {
+        "back": "Retour",
+        "guest": "Invité",
+        "empty": "Vide",
+        "cancel": "Annuler",
+        "done": "Terminé",
+        "error": "Erreur",
+        "topUp": "Recharger",
+        "loading": "Chargement..."
+    },
+    "generationForm": {
+        "title": "Générateur d'images IA",
+        "subtitle": "Créez des images incroyables avec l'IA",
+        "resultTitle": "Résultat de la génération",
+        "labels": {
+            "model": "Choisir le modèle",
+            "upload": "Charger une image (optionnel pour éditer)",
+            "aspectRatio": "Ratio d'aspect",
+            "prompt": "Prompt"
+        },
+        "buttons": {
+            "generate": "Générer l'image",
+            "edit": "Éditer l'image",
+            "remove": "Supprimer l'image",
+            "another": "Générer une autre",
+            "download": "Télécharger",
+            "share": "Partager"
+        },
+        "placeholders": {
+            "upload": "Cliquer pour charger",
+            "promptEdit": "Décrivez ce que vous voulez changer...",
+            "promptCreate": "Décrivez l'image à créer..."
+        },
+        "status": {
+            "generating": "Génération...",
+            "editing": "Édition..."
+        },
+        "errors": {
+            "emptyPrompt": "Veuillez entrer un prompt",
+            "failed": "Échec de la génération",
+            "textLength": "Le texte dépasse la limite maximale"
+        },
+        "models": {
+            "nanobanana-pro": {
+                "desc": "Texte en Image par défaut"
+            },
+            "seedream4": {
+                "desc": "Haute Qualité"
+            },
+            "nanobanana": {
+                "desc": "Génération Rapide"
+            },
+            "seedream4-5": {
+                "desc": "Éditer & Créer"
+            }
+        },
+        "ratios": {
+            "square": "Carré (1:1)",
+            "landscape": "Paysage (16:9)",
+            "portrait": "Portrait (9:16)"
+        }
+    },
+    "feed": {
+        "participatingInContest": "Participe au concours",
+        "remix": "Remix",
+        "imageUnavailable": "Image indisponible"
+    },
+    "chatOnboarding": {
+        "title": "Mode Chat",
+        "description": "Appuyez sur le bouton <1>Chat</1> en surbrillance pour discuter avec l'Assistant IA.",
+        "button": "Compris"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "personal": "Personnel",
+        "news": "Nouvelles",
+        "settings": "Paramètres de notification Telegram",
+        "emptyPersonal": "Aucune notification",
+        "emptyNews": "Aucune nouvelle",
+        "readAll": "Tout lire",
+        "time": {
+            "m": "m",
+            "h": "h",
+            "d": "d"
+        }
+    },
+    "announcement": {
+        "title": "Découvrez GPT Image 1.5 🚀",
+        "description": "Le nouveau modèle d'OpenAI est là ! Qualité incroyable, compréhension des prompts complexes. Essayez-le !",
+        "button": "Essayer",
+        "close": "Fermer"
+    },
+    "editor": {
+        "title": "Éditeur",
+        "edit": "Éditer",
+        "image": "Image Originale",
+        "upload": "Charger",
+        "myWorks": "Mes Travaux",
+        "fromGenerations": "Des Générations",
+        "instruction": "Instruction",
+        "instructionPlaceholder": "Que voulez-vous changer ?",
+        "hints": {
+            "title": "Conseils",
+            "1": "Soyez précis dans les changements",
+            "2": "Spécifiez le style si nécessaire",
+            "3": "Moins de mots = résultat plus précis"
+        },
+        "generate": "Éditer",
+        "removeBg": "Supprimer Fond",
+        "upscale": "Améliorer Qualité",
+        "generating": "Traitement...",
+        "tokens": "jetons",
+        "result": "Résultat",
+        "save": "Enregistrer",
+        "continue": "Continuer",
+        "close": "Fermer",
+        "insufficientBalance": "Solde insuffisant",
+        "needTokens": "Il vous faut {{count}} jetons pour éditer",
+        "error": {
+            "required": "Chargez une image et saisissez l'instruction"
+        },
+        "mode": {
+            "edit": "Éditer",
+            "inpaint": "Inpaint",
+            "angles": "Angles",
+            "removeBg": "Supprimer Fond",
+            "upscale": "Améliorer"
+        },
+        "angles": {
+            "rotation": "Rotation",
+            "tilt": "Inclinaison",
+            "zoom": "Zoom",
+            "reset": "Réinitialiser"
+        },
+        "drawMask": "Dessiner Masque",
+        "maskEditor": {
+            "title": "Dessiner Masque",
+            "clear": "Effacer",
+            "done": "Terminé",
+            "brushSize": "Taille pinceau"
+        }
+    },
+    "promo": {
+        "banner": "🎄 Promo Nouvel An ! +20% de jetons sur tout achat jusqu'au 5 janv. ! 🎁"
+    },
+    "pending": {
+        "hint": "{{count}} image en cours. Appuyez sur 🔄 pour actualiser."
+    },
+    "rewards": {
+        "subscribe": "S'abonner → +10 jetons",
+        "claim": "Récupérer",
+        "checking": "Vérification...",
+        "notSubscribed": "Abonnez-vous d'abord au canal",
+        "success": "+10 jetons récupérés !",
+        "modalDescription": "Abonnez-vous à notre canal et recevez des jetons bonus !"
+    },
+    "devMode": {
+        "title": "⚠️ Environnement Test",
+        "description": "Ceci est une version de test. Des erreurs peuvent survenir.",
+        "warning": "Les jetons ne sont pas remboursés pour les erreurs."
+    },
+    "multiGeneration": {
+        "title": "Multi-Génération",
+        "button": "Multi-Génération",
+        "selectModels": "Sélectionnez jusqu'à 3 modèles",
+        "generate": "Générer",
+        "generating": "Génération...",
+        "tokens": "jetons",
+        "limitReached": "Maximum 3 modèles",
+        "noModelsSelected": "Sélectionnez au moins un modèle",
+        "error": "Erreur de génération",
+        "resultWillAppear": "Le résultat s'affichera ici",
+        "desc": "Créez jusqu'à 3 variantes simultanément avec différents modèles d'IA"
+    },
+    "activeGenerations": {
+        "title": "Générations actives",
+        "noPrompt": "Pas de prompt",
+        "completed": "Fini",
+        "error": "Erreur",
+        "clearCompleted": "Vider",
+        "maxReached": "Maximum de 4 générations parallèles atteint"
+    },
+    "aiChat": {
+        "title": "Chat IA",
+        "placeholder": "Écrivez un message...",
+        "send": "Envoyer",
+        "minimize": "Réduire",
+        "restore": "Ouvrir le chat",
+        "clear": "Effacer chat",
+        "selectModel": "Choisir modèle",
+        "welcome": "Salut ! Je suis l'assistant IA d'AiVerse",
+        "welcomeHint": "Pose-moi des questions sur la génération d'images",
+        "thinking": "Réflexion...",
+        "error": "Une erreur est survenue. Réessayez.",
+        "modelChangeTitle": "Changer de modèle ?",
+        "modelChangeMessage": "Vous passez à {{model}}. Que faire de l'historique actuel ?",
+        "keepHistory": "Garder l'historique",
+        "clearHistory": "Effacer l'historique",
+        "cancel": "Annuler",
+        "confirmGeneration": "Générer l'image ?",
+        "tokens": "jeton(s)",
+        "generate": "Générer",
+        "generating": "Génération...",
+        "cancelGeneration": "Annuler",
+        "generationError": "❌ Échec. Veuillez réessayer.",
+        "generationCancelled": "Génération annulée.",
+        "selectImageModel": "Modèle d'image",
+        "newChat": "Nouveau Chat",
+        "continueChat": "Continuer ici",
+        "requestSent": "Requête envoyée...",
+        "uploadError": "Erreur de chargement d'image",
+        "sendToTelegramError": "Échec de l'envoi vers Telegram.",
+        "onlyImages": "Seules les images sont autorisées",
+        "imageTooLarge": "L'image ne doit pas dépasser 5 Mo"
+    },
+    "privacy": {
+        "title": "Politique de confidentialité",
+        "lastUpdated": "Dernière mise à jour",
+        "sections": {
+            "intro": {
+                "title": "Introduction",
+                "content": "AiVerse (\"nous\", \"notre\") respecte votre vie privée. Cette politique explique comment nous traitons vos informations."
+            },
+            "dataCollection": {
+                "title": "Données collectées",
+                "content": "Nous collectons les informations suivantes :",
+                "items": {
+                    "email": "Adresse e-mail (lors de l'inscription)",
+                    "name": "Nom et prénom",
+                    "avatar": "Photo de profil (automatique via Telegram ou chargée par vous)",
+                    "generations": "Images et vidéos générées"
+                }
+            },
+            "dataStorage": {
+                "title": "Stockage des données",
+                "content": "Les créations sont stockées 14 jours sur nos serveurs. Pour les garder, nous envoyons les originaux vers votre chat Telegram."
+            },
+            "dataUse": {
+                "title": "Utilisation des données",
+                "content": "Nous utilisons vos données pour fournir le service, l'améliorer et communiquer avec vous."
+            },
+            "dataSharing": {
+                "title": "Partage des données",
+                "content": "Nous ne vendons pas vos données. Nous pouvons les partager avec des prestataires (cloud, paiement) pour opérer le service."
+            },
+            "security": {
+                "title": "Sécurité",
+                "content": "Nous utilisons des mesures de sécurité modernes."
+            },
+            "contact": {
+                "title": "Contact",
+                "content": "Pour toute question, contactez-nous :"
+            }
+        }
+    },
+    "terms": {
+        "title": "Conditions d'utilisation",
+        "lastUpdated": "Dernière mise à jour",
+        "sections": {
+            "acceptance": {
+                "title": "Acceptation des conditions",
+                "content": "En utilisant AiVerse, vous acceptez ces conditions."
+            },
+            "service": {
+                "title": "Description du service",
+                "content": "AiVerse est un service de génération d'images et vidéos par IA."
+            },
+            "account": {
+                "title": "Compte",
+                "content": "Vous êtes responsable de la sécurité de votre compte."
+            },
+            "content": {
+                "title": "Contenu utilisateur",
+                "content": "Vous gardez les droits sur vos créations. En les créant, vous nous donnez le droit de les utiliser pour opérer le service."
+            },
+            "prohibited": {
+                "title": "Usages interdits",
+                "content": "Vous ne pouvez pas utiliser le service pour :",
+                "items": {
+                    "illegal": "Contenu illégal",
+                    "harmful": "Contenu offensant",
+                    "abuse": "Abus du service"
+                }
+            },
+            "liability": {
+                "title": "Limitation de responsabilité",
+                "content": "Le service est fourni \"tel quel\". Nous ne sommes pas responsables des dommages liés à son usage."
+            },
+            "changes": {
+                "title": "Modification des conditions",
+                "content": "Nous pouvons modifier ces conditions. L'usage continu vaut acceptation."
+            },
+            "contact": {
+                "title": "Contact",
+                "content": "Pour toute question, contactez-nous :"
+            }
+        }
+    }
+}
