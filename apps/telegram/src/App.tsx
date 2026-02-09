@@ -126,6 +126,10 @@ function StartParamRouter() {
         navigate("/accumulations", { replace: true, state: { fromDeepLink: true } });
         return;
       }
+      if (p === "balance" || p === "payment") {
+        navigate("/profile?payment=true", { replace: true, state: { fromDeepLink: true } });
+        return;
+      }
       if (p === "contests" || p === "events") {
         navigate("/events", { replace: true, state: { fromDeepLink: true } });
         return;
