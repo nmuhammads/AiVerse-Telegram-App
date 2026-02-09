@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Image as ImageIcon, Loader2, Sparkles, Wand2, X, Info } from 'lucide-react'
 import { type ModelType } from '@/store/generationStore'
@@ -19,7 +19,7 @@ type PromptInputProps = {
   selectedModel: ModelType
 }
 
-export function PromptInput({
+export const PromptInput = memo(function PromptInput({
   t,
   prompt,
   isPromptPrivate,
@@ -139,4 +139,4 @@ export function PromptInput({
       )}
     </div>
   )
-}
+})

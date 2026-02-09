@@ -1,8 +1,10 @@
+import { memo } from 'react'
 import { useGenerationStore } from '@/store/generationStore'
 import { cn } from '@/lib/utils'
 
-export function StudioModeToggle() {
-    const { studioMode, setStudioMode } = useGenerationStore()
+export const StudioModeToggle = memo(function StudioModeToggle() {
+    const studioMode = useGenerationStore(state => state.studioMode)
+    const setStudioMode = useGenerationStore(state => state.setStudioMode)
 
     return (
         <div className="flex items-center gap-1.5 select-none">
@@ -33,4 +35,4 @@ export function StudioModeToggle() {
             </button>
         </div>
     )
-}
+})
