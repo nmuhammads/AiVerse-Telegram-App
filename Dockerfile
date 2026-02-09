@@ -48,12 +48,15 @@ ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 # Собираем frontend (apps/telegram -> dist в корне)
 RUN pnpm --filter telegram build
 
-# Копируем собранный фронтенд в api/dist для раздачи
+# Собираем API (TypeScript -> JavaScript)
+RUN pnpm --filter api build
+
+# Копируем собранный фронтенд в api/dist для раздачи статики
 RUN mkdir -p api/dist && cp -r apps/telegram/dist/* api/dist/
 
 # Открываем порт
 EXPOSE 3000
 
-# Запускаем API сервер
+# Запускаем API сервер (используем скомпилированный JS)
 WORKDIR /app/api
-CMD ["pnpm", "start"]
+CMD ["node", "dist/server.js"]
