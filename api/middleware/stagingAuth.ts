@@ -28,6 +28,33 @@ export function stagingAuthMiddleware(req: Request, res: Response, next: NextFun
         return
     }
 
+    // Skip Telegram Mini App requests (they authenticate via initData)
+    const telegramInitData = req.headers['x-telegram-init-data']
+    if (telegramInitData) {
+        next()
+        return
+    }
+
+    // Skip initial page load from Telegram WebApp (check URL params)
+    const hasTelegramParams = req.query.tgWebAppData ||
+        req.query.tgWebAppStartParam ||
+        req.query.tgWebAppVersion ||
+        req.query.start
+    if (hasTelegramParams) {
+        next()
+        return
+    }
+
+    // Skip requests from Telegram WebView (check User-Agent)
+    const userAgent = req.headers['user-agent'] || ''
+    const isTelegramWebView = userAgent.includes('Telegram') ||
+        userAgent.includes('TelegramBot') ||
+        userAgent.includes('WebView')
+    if (isTelegramWebView) {
+        next()
+        return
+    }
+
     const authHeader = req.headers.authorization
 
     if (!authHeader || !authHeader.startsWith('Basic ')) {
