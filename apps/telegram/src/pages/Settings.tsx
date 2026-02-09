@@ -81,8 +81,10 @@ export default function Settings() {
             tg.BackButton.show()
             const handleBack = () => {
                 impact('light')
-                if (location.state?.fromDeepLink) {
-                    navigate('/', { replace: true })
+                // If opened via deeplink or no browser history, go to studio
+                // window.history.length <= 2 means user opened app directly to this page
+                if (location.state?.fromDeepLink || window.history.length <= 2) {
+                    navigate('/studio', { replace: true })
                 } else {
                     navigate(-1)
                 }
