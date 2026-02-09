@@ -127,18 +127,18 @@ export async function webhook(req: Request, res: Response) {
 
       const mainKeyboard = {
         keyboard: [
-          [{ text: '🧠 Чат с ИИ', icon_custom_emoji_id: EMOJI_IDS.aiChat }],
+          [{ text: 'Чат с ИИ', icon_custom_emoji_id: EMOJI_IDS.aiChat }],
           [
-            { text: '🍌 NanoBanana', icon_custom_emoji_id: EMOJI_IDS.banana },
-            { text: '🌩 Seedream 4', icon_custom_emoji_id: EMOJI_IDS.seedream }
+            { text: 'NanoBanana', icon_custom_emoji_id: EMOJI_IDS.banana },
+            { text: 'Seedream 4', icon_custom_emoji_id: EMOJI_IDS.seedream }
           ],
           [
-            { text: '🌩 Seedream 4.5', icon_custom_emoji_id: EMOJI_IDS.seedream },
-            { text: '📱 GPT Image', icon_custom_emoji_id: EMOJI_IDS.gptImage }
+            { text: 'Seedream 4.5', icon_custom_emoji_id: EMOJI_IDS.seedream },
+            { text: 'GPT Image', icon_custom_emoji_id: EMOJI_IDS.gptImage }
           ],
           [
-            { text: '🎬 Seedance', icon_custom_emoji_id: EMOJI_IDS.video },
-            { text: '🎬 Kling', icon_custom_emoji_id: EMOJI_IDS.video }
+            { text: 'Seedance', icon_custom_emoji_id: EMOJI_IDS.video },
+            { text: 'Kling', icon_custom_emoji_id: EMOJI_IDS.video }
           ],
           [{ text: '👤 Профиль' }, { text: '💎 Пополнить' }],
         ],
@@ -330,7 +330,7 @@ export async function webhook(req: Request, res: Response) {
       photo: string;
       examples?: string;
     }> = {
-      '🍌 NanoBanana': {
+      'NanoBanana': {
         name: 'NanoBanana',
         description: '🍌 *NanoBanana* — быстрая генерация изображений\n\n• NanoBanana — 3 токена\n• NanoBanana Pro — 15 токенов (высокое качество, Auto ratio)',
         price: '3-15',
@@ -338,31 +338,31 @@ export async function webhook(req: Request, res: Response) {
         photo: `${APP_URL}/models/nanobanana-pro.png`,
         examples: 'Отлично подходит для быстрых генераций и экспериментов'
       },
-      '🌩 Seedream 4': {
+      'Seedream 4': {
         name: 'Seedream 4',
-        description: '🌩 *Seedream 4* — качественная модель генерации изображений\n\n• Стоимость: 4 токена\n• Высокое качество изображений\n• Поддержка различных соотношений сторон',
+        description: '⚡ *Seedream 4* — качественная модель генерации изображений\n\n• Стоимость: 4 токена\n• Высокое качество изображений\n• Поддержка различных соотношений сторон',
         price: '4',
         deeplink: 'studio-seedream4',
         photo: `${APP_URL}/models/seedream.png`,
         examples: 'Идеально для фотореалистичных изображений'
       },
-      '🌩 Seedream 4.5': {
+      'Seedream 4.5': {
         name: 'Seedream 4.5',
-        description: '🌩 *Seedream 4.5* — улучшенная версия Seedream\n\n• Стоимость: 7 токенов\n• Улучшенное качество деталей\n• Более точное следование промпту',
+        description: '⚡ *Seedream 4.5* — улучшенная версия Seedream\n\n• Стоимость: 7 токенов\n• Улучшенное качество деталей\n• Более точное следование промпту',
         price: '7',
         deeplink: 'studio-seedream4-5',
         photo: `${APP_URL}/models/seedream-4-5.png`,
         examples: 'Для самых детализированных изображений'
       },
-      '📱 GPT Image': {
+      'GPT Image': {
         name: 'GPT Image',
-        description: '📱 *GPT Image 1.5* — модель от OpenAI\n\n• Medium качество: 5 токенов\n• High качество: 15 токенов\n• Отличное понимание текста',
+        description: '🤖 *GPT Image 1.5* — модель от OpenAI\n\n• Medium качество: 5 токенов\n• High качество: 15 токенов\n• Отличное понимание текста',
         price: '5-15',
         deeplink: 'studio-gpt-image-1.5',
         photo: `${APP_URL}/models/optimized/gpt-image.png`,
         examples: 'Лучший выбор для сложных промптов'
       },
-      '🎬 Seedance': {
+      'Seedance': {
         name: 'Seedance Pro',
         description: '🎬 *Seedance Pro* — генерация видео\n\n• Text-to-Video и Image-to-Video\n• Разрешение: 480p / 720p\n• Длительность: 4-12 сек\n• Стоимость: 12-116 токенов',
         price: '12-116',
@@ -370,7 +370,7 @@ export async function webhook(req: Request, res: Response) {
         photo: `${APP_URL}/models/seedream.png`,
         examples: '🎥 Создавайте потрясающие видео из текста или изображений!'
       },
-      '🎬 Kling': {
+      'Kling': {
         name: 'Kling AI',
         description: '🎬 *Kling AI* — продвинутая модель видео\n\n• Text-to-Video (T2V): 55-110 токенов\n• Image-to-Video (I2V): 55-110 токенов\n• Motion Control (MC): 30+ токенов\n  ↳ Контроль движения по видео-референсу\n\nПоддержка звука и длинных видео до 10 сек',
         price: '30-220',
@@ -415,7 +415,7 @@ export async function webhook(req: Request, res: Response) {
     }
 
     // Handle additional buttons
-    if (text === '🧠 Чат с ИИ') {
+    if (text === 'Чат с ИИ') {
       const url = `${APP_URL}?tgWebAppStartParam=chat`
       const kb = { inline_keyboard: [[{ text: '💬 Открыть чат', web_app: { url } }]] }
       await tg('sendMessage', {
