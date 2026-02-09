@@ -84,8 +84,12 @@ async function createUserTopics(chatId: number): Promise<Record<string, number>>
 async function checkTopicsEnabled(chatId: number): Promise<boolean> {
   try {
     const result = await tg('getChat', { chat_id: chatId })
-    return result?.ok && result.result?.has_topics_enabled === true
-  } catch {
+    console.log(`[Topics] getChat for ${chatId}:`, JSON.stringify(result, null, 2))
+    const enabled = result?.ok && result.result?.has_topics_enabled === true
+    console.log(`[Topics] Topics enabled for ${chatId}: ${enabled}`)
+    return enabled
+  } catch (e) {
+    console.error(`[Topics] checkTopicsEnabled error for ${chatId}:`, e)
     return false
   }
 }
