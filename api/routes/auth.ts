@@ -410,7 +410,23 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
       const publicUser = await supaSelect('users', `?auth_id=eq.${user.id}&select=*`)
       let userData = (publicUser.ok && Array.isArray(publicUser.data) && publicUser.data[0]) || null
 
-      // Auto-create public.users record for Google OAuth users (first login)
+      // If not found by auth_id, try to find by email and link them
+      if (!userData && user.email) {
+        const byEmail = await supaSelect('users', `?email=eq.${encodeURIComponent(user.email)}&select=*`)
+        if (byEmail.ok && Array.isArray(byEmail.data) && byEmail.data[0]) {
+          // Found existing user by email — link auth_id
+          const existingUser = byEmail.data[0]
+          const meta = user.user_metadata || {}
+          await supaPatch('users', `?user_id=eq.${existingUser.user_id}`, {
+            auth_id: user.id,
+            avatar_url: existingUser.avatar_url || meta.avatar_url || meta.picture || null
+          })
+          userData = { ...existingUser, auth_id: user.id }
+          console.log(`[Auth/me] Linked auth_id ${user.id} to existing user ${existingUser.user_id} (found by email)`)
+        }
+      }
+
+      // Still not found — create new user (first-time Google OAuth)
       if (!userData) {
         const userId = Date.now()
         const meta = user.user_metadata || {}
