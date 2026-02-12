@@ -309,7 +309,9 @@
             "endFrame": "End frame",
             "addStartFrame": "Add",
             "addEndFrame": "Optional",
-            "framesHint": "Start frame is required. End frame is optional to control the final look of the video."
+            "framesHint": "Start frame is required. End frame is optional to control the final look of the video.",
+            "uploadStart": "Upload started",
+            "uploadEnd": "Upload finished"
         },
         "prompt": {
             "from": "Prompt from {{username}}",

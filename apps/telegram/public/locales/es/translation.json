@@ -309,7 +309,9 @@
             "endFrame": "Fotograma final",
             "addStartFrame": "Añadir",
             "addEndFrame": "Opcional",
-            "framesHint": "El fotograma inicial es obligatorio. El final es opcional para controlar el aspecto final del video."
+            "framesHint": "El fotograma inicial es obligatorio. El final es opcional para controlar el aspecto final del video.",
+            "uploadStart": "Inicio de carga",
+            "uploadEnd": "Carga finalizada"
         },
         "prompt": {
             "from": "Prompt de {{username}}",

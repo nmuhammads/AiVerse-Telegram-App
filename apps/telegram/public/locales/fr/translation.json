@@ -309,7 +309,9 @@
             "endFrame": "Image finale",
             "addStartFrame": "Ajouter",
             "addEndFrame": "Optionnel",
-            "framesHint": "L'image initiale est requise. L'image finale est optionnelle pour contrôler l'aspect final."
+            "framesHint": "L'image initiale est requise. L'image finale est optionnelle pour contrôler l'aspect final.",
+            "uploadStart": "Début du téléchargement",
+            "uploadEnd": "Téléchargement terminé"
         },
         "prompt": {
             "from": "Prompt de {{username}}",

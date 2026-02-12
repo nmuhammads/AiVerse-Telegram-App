@@ -309,7 +309,9 @@
             "endFrame": "Endbild",
             "addStartFrame": "Hinzufügen",
             "addEndFrame": "Optional",
-            "framesHint": "Startbild ist erforderlich. Das Endbild ist optional, um das endgültige Aussehen des Videos zu steuern."
+            "framesHint": "Startbild ist erforderlich. Das Endbild ist optional, um das endgültige Aussehen des Videos zu steuern.",
+            "uploadStart": "Upload gestartet",
+            "uploadEnd": "Upload beendet"
         },
         "prompt": {
             "from": "Prompt von {{username}}",
