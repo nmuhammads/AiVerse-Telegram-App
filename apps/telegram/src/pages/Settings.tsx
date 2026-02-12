@@ -146,7 +146,9 @@ export default function Settings() {
             fetch('/api/avatars', { headers: getAuthHeaders() })
                 .then(r => r.json())
                 .then(data => {
-                    if (Array.isArray(data)) setAvatars(data)
+                    if (data?.avatars && Array.isArray(data.avatars)) {
+                        setAvatars(data.avatars.filter((a: any) => a.url))
+                    }
                 })
                 .catch(() => { })
                 .finally(() => setIsLoadingAvatars(false))
@@ -163,8 +165,8 @@ export default function Settings() {
                 body: JSON.stringify({ image: avatarPreview, display_name: avatarName.trim() })
             })
             const data = await res.json()
-            if (res.ok && data) {
-                setAvatars(prev => [data, ...prev])
+            if (res.ok && data?.avatar) {
+                setAvatars(prev => [data.avatar, ...prev])
                 toast.success(t('settings.avatars.added', 'Аватар добавлен'))
                 setShowAddAvatarModal(false)
                 setAvatarName('')
