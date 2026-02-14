@@ -1,6 +1,6 @@
 /**
  * Token Packages Configuration
- * For Tribute Shop API payments (EUR + RUB)
+ * For Tribute Shop API payments (EUR + RUB + USD)
  */
 
 import type { TributeCurrency } from '../services/tributeService.js'
@@ -8,7 +8,7 @@ import type { TributeCurrency } from '../services/tributeService.js'
 export interface TokenPackage {
     id: string
     tokens: number
-    amount: number      // in cents (EUR) or kopecks (RUB)
+    amount: number      // in cents (EUR/USD) or kopecks (RUB)
     label: string       // display label
     price: string       // formatted price
     bonus?: string      // bonus text like "+4%"
@@ -17,6 +17,7 @@ export interface TokenPackage {
 export interface PackagesByСurrency {
     eur: TokenPackage[]
     rub: TokenPackage[]
+    usd: TokenPackage[]
 }
 
 /**
@@ -37,6 +38,13 @@ export const WEB_PACKAGES: PackagesByСurrency = {
         { id: 'rub_120', tokens: 120, amount: 23000, label: '120 токенов', price: '₽230', bonus: '+4%' },
         { id: 'rub_300', tokens: 300, amount: 54000, label: '300 токенов', price: '₽540', bonus: '+11%' },
         { id: 'rub_800', tokens: 800, amount: 144000, label: '800 токенов', price: '₽1,440', bonus: '+11%' },
+    ],
+    // USD packages (1 USD ≈ 77 RUB)
+    usd: [
+        { id: 'usd_50', tokens: 50, amount: 130, label: '50 tokens', price: '$1.30' },
+        { id: 'usd_120', tokens: 120, amount: 300, label: '120 tokens', price: '$3.00', bonus: '+4%' },
+        { id: 'usd_300', tokens: 300, amount: 700, label: '300 tokens', price: '$7.00', bonus: '+11%' },
+        { id: 'usd_800', tokens: 800, amount: 1870, label: '800 tokens', price: '$18.70', bonus: '+11%' },
     ],
 }
 
@@ -71,6 +79,7 @@ export function getPackageDescription(pkg: TokenPackage): string {
 // Base rates per token in smallest currency units
 const BASE_RATE_RUB = 200    // 2 RUB = 200 kopecks per token
 const BASE_RATE_EUR = 2.2    // €0.022 = 2.2 cents per token
+const BASE_RATE_USD = 2.6    // $0.026 = 2.6 cents per token
 
 /**
  * Get discount tier for a given token count
@@ -88,7 +97,7 @@ export function getDiscountForTokens(tokens: number): number {
  */
 export function calculateCustomPrice(tokens: number, currency: TributeCurrency): { amount: number; tokens: number; discount: number } {
     const discount = getDiscountForTokens(tokens)
-    const baseRate = currency === 'eur' ? BASE_RATE_EUR : BASE_RATE_RUB
+    const baseRate = currency === 'eur' ? BASE_RATE_EUR : currency === 'usd' ? BASE_RATE_USD : BASE_RATE_RUB
     const amount = Math.round(tokens * baseRate * (1 - discount))
     return { amount, tokens, discount }
 }

@@ -35,8 +35,8 @@ export async function createTributeOrder(req: AuthenticatedRequest, res: Respons
             return
         }
 
-        if (!currency || (currency !== 'eur' && currency !== 'rub')) {
-            res.status(400).json({ success: false, error: 'Invalid currency. Must be "eur" or "rub"' })
+        if (!currency || (currency !== 'eur' && currency !== 'rub' && currency !== 'usd')) {
+            res.status(400).json({ success: false, error: 'Invalid currency. Must be "eur", "rub" or "usd"' })
             return
         }
 
@@ -237,7 +237,7 @@ async function reconcilePayment(order: any): Promise<void> {
     const telegramId = user.telegram_id
     if (telegramId) {
         const promoText = promoActive ? `\n(Включая бонус +${bonusTokens} 🎁)` : ''
-        const currencySymbol = order.currency === 'eur' ? '€' : '₽'
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
 
         await tg('sendMessage', {
@@ -256,7 +256,7 @@ async function reconcilePayment(order: any): Promise<void> {
             ? `@${user.username}`
             : `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Пользователь без имени'
 
-        const currencySymbol = order.currency === 'eur' ? '€' : '₽'
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
         const promoText = promoActive ? ` (+${bonusTokens} бонус 🎁)` : ''
 
@@ -280,7 +280,7 @@ export async function getPackagesList(req: Request, res: Response): Promise<void
     try {
         const currency = (req.query.currency as TributeCurrency) || 'eur'
 
-        if (currency !== 'eur' && currency !== 'rub') {
+        if (currency !== 'eur' && currency !== 'rub' && currency !== 'usd') {
             res.status(400).json({ success: false, error: 'Invalid currency' })
             return
         }
