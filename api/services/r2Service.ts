@@ -4,6 +4,25 @@ import sharp from 'sharp'
 
 let s3Client: S3Client | null = null
 
+// Helper: detect image type from magic bytes
+function detectImageType(buffer: Buffer): string | null {
+    if (buffer.length < 4) return null
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'image/jpeg'
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return 'image/png'
+    if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) return 'image/gif'
+    if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) return 'image/webp'
+    return null
+}
+
+// Helper: extract image extension from URL path
+function extractExtFromUrl(url: string): string | null {
+    try {
+        const pathname = new URL(url).pathname
+        const match = pathname.match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)(\?|$)/i)
+        return match ? match[1].toLowerCase() : null
+    } catch { return null }
+}
+
 function getS3Client() {
     if (s3Client) return s3Client
 
@@ -54,7 +73,19 @@ export async function uploadImageFromUrl(imageUrl: string, folder: string = ''):
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`)
         const arrayBuffer = await response.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
-        const contentType = response.headers.get('content-type') || 'image/png'
+        let contentType = response.headers.get('content-type') || 'image/png'
+
+        // Fix: Supabase signed URLs may return text/plain for images
+        if (!contentType.startsWith('image/')) {
+            const detectedType = detectImageType(buffer)
+            if (detectedType) {
+                contentType = detectedType
+            } else {
+                const urlExt = extractExtFromUrl(imageUrl)
+                contentType = urlExt ? `image/${urlExt === 'jpg' ? 'jpeg' : urlExt}` : 'image/jpeg'
+            }
+            console.log(`[R2] Fixed content-type from ${response.headers.get('content-type')} to ${contentType}`)
+        }
 
         // 2. Generate unique filename
         const hash = crypto.randomBytes(16).toString('hex')
@@ -226,7 +257,19 @@ export async function uploadToEditedBucket(imageUrl: string): Promise<string> {
         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`)
         const arrayBuffer = await response.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
-        const contentType = response.headers.get('content-type') || 'image/png'
+        let contentType = response.headers.get('content-type') || 'image/png'
+
+        // Fix: Some URLs may return non-image content-type
+        if (!contentType.startsWith('image/')) {
+            const detectedType = detectImageType(buffer)
+            if (detectedType) {
+                contentType = detectedType
+            } else {
+                const urlExt = extractExtFromUrl(imageUrl)
+                contentType = urlExt ? `image/${urlExt === 'jpg' ? 'jpeg' : urlExt}` : 'image/jpeg'
+            }
+            console.log(`[R2] Fixed content-type from ${response.headers.get('content-type')} to ${contentType}`)
+        }
 
         const hash = crypto.randomBytes(16).toString('hex')
         const ext = contentType.split('/')[1] || 'png'
