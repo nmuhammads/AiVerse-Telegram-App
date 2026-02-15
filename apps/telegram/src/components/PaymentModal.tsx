@@ -13,7 +13,7 @@ interface PaymentModalProps {
 }
 
 type PaymentMethod = 'stars' | 'card'
-type WebCurrency = 'eur' | 'rub'
+type WebCurrency = 'eur' | 'rub' | 'usd'
 
 const PACKAGES_STARS = [
     { id: 'star_20', tokens: 10, price: 20, spins: 0 },
@@ -41,9 +41,18 @@ const PACKAGES_RUB = [
     { id: 'rub_800', tokens: 800, price: 144000, bonus: '+11%', priceLabel: '₽1,440' },
 ]
 
+// USD packages via Tribute Shop API (1 USD ≈ 77 RUB)
+const PACKAGES_USD = [
+    { id: 'usd_50', tokens: 50, price: 130, priceLabel: '$1.30' },
+    { id: 'usd_120', tokens: 120, price: 300, bonus: '+4%', priceLabel: '$3.00' },
+    { id: 'usd_300', tokens: 300, price: 700, bonus: '+11%', priceLabel: '$7.00' },
+    { id: 'usd_800', tokens: 800, price: 1870, bonus: '+11%', priceLabel: '$18.70' },
+]
+
 // Custom token pricing
 const BASE_RATE_RUB = 200   // kopecks per token (2 RUB)
 const BASE_RATE_EUR = 2.2   // cents per token (€0.022)
+const BASE_RATE_USD = 2.6   // cents per token ($0.026)
 const MIN_CUSTOM_TOKENS = 50
 const MAX_CUSTOM_TOKENS = 10000
 
@@ -55,11 +64,16 @@ function getDiscountTier(tokens: number): { discount: number; label: string } {
 
 function calculateCustomTokenPrice(tokens: number, currency: WebCurrency): { amount: number; priceLabel: string; discount: number } {
     const { discount } = getDiscountTier(tokens)
-    const baseRate = currency === 'eur' ? BASE_RATE_EUR : BASE_RATE_RUB
+    const baseRate = currency === 'eur' ? BASE_RATE_EUR : currency === 'usd' ? BASE_RATE_USD : BASE_RATE_RUB
     const amount = Math.round(tokens * baseRate * (1 - discount))
-    const priceLabel = currency === 'eur'
-        ? `€${(amount / 100).toFixed(2)}`
-        : `₽${Math.round(amount / 100).toLocaleString('ru-RU')}`
+    let priceLabel: string
+    if (currency === 'eur') {
+        priceLabel = `€${(amount / 100).toFixed(2)}`
+    } else if (currency === 'usd') {
+        priceLabel = `$${(amount / 100).toFixed(2)}`
+    } else {
+        priceLabel = `₽${Math.round(amount / 100).toLocaleString('ru-RU')}`
+    }
     return { amount, priceLabel, discount }
 }
 
@@ -73,7 +87,10 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
     // Determine default currency based on user's language
     const getDefaultCurrency = (): WebCurrency => {
-        return i18n.language === 'ru' ? 'rub' : 'eur'
+        const lang = i18n.language
+        if (lang === 'ru') return 'rub'
+        if (lang === 'de' || lang === 'fr') return 'eur'
+        return 'usd'
     }
 
     const [activeMethod, setActiveMethod] = useState<PaymentMethod>(isWebMode ? 'card' : 'stars')
@@ -102,7 +119,9 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     // Get packages based on method and currency
     const getPackages = () => {
         if (activeMethod === 'stars') return PACKAGES_STARS
-        return webCurrency === 'eur' ? PACKAGES_EUR : PACKAGES_RUB
+        if (webCurrency === 'eur') return PACKAGES_EUR
+        if (webCurrency === 'usd') return PACKAGES_USD
+        return PACKAGES_RUB
     }
 
     // Update selected package when method or currency changes
@@ -117,7 +136,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     if (!isOpen) return null
 
     const packages = getPackages()
-    const currencySymbol = activeMethod === 'stars' ? '⭐' : (webCurrency === 'eur' ? '€' : '₽')
+    const currencySymbol = activeMethod === 'stars' ? '⭐' : (webCurrency === 'eur' ? '€' : webCurrency === 'usd' ? '$' : '₽')
 
     const handlePayment = async () => {
         impact('medium')
@@ -271,6 +290,12 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                     <div className="px-5 pb-3 shrink-0">
                         <div className="flex p-1 bg-zinc-800/50 rounded-xl border border-white/5">
                             <button
+                                onClick={() => { impact('light'); setWebCurrency('usd') }}
+                                className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${webCurrency === 'usd' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
+                            >
+                                <Globe size={12} /> USD ($)
+                            </button>
+                            <button
                                 onClick={() => { impact('light'); setWebCurrency('eur') }}
                                 className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${webCurrency === 'eur' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-300'}`}
                             >
@@ -287,17 +312,17 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                         <div className="flex items-center justify-center gap-2 mt-2">
                             <span className="text-[10px] text-zinc-500">{t('payment.acceptedCards', 'Accepted:')}</span>
                             <div className="flex items-center gap-1.5 text-zinc-400">
-                                {webCurrency === 'eur' ? (
+                                {webCurrency === 'rub' ? (
+                                    <>
+                                        <MirIcon size={20} />
+                                        <VisaIcon size={20} />
+                                    </>
+                                ) : (
                                     <>
                                         <VisaIcon size={20} />
                                         <MastercardIcon size={16} />
                                         <AmexIcon size={16} />
                                         <UnionPayIcon size={16} />
-                                    </>
-                                ) : (
-                                    <>
-                                        <MirIcon size={20} />
-                                        <VisaIcon size={20} />
                                     </>
                                 )}
                             </div>

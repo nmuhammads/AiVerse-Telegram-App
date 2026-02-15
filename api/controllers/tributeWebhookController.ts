@@ -28,13 +28,15 @@ interface TributeWebhookOrderPayload {
     uuid: string
     status: 'pending' | 'paid' | 'failed'
     amount: number
-    currency: 'eur' | 'rub'
+    currency: 'eur' | 'rub' | 'usd'
     customerId?: string
     email?: string
     title?: string
     description?: string
     comment?: string
     createdAt?: string
+    source?: string           // e.g. 'aiverse_hub_bot' — origin of the order
+    transactionId?: number    // payment transaction ID (for refunds)
 }
 
 /**
@@ -80,8 +82,9 @@ export async function handleTributeWebhook(req: Request, res: Response): Promise
 
         // Parse the webhook body
         const body = JSON.parse(rawBody)
+        const eventName = body.name || 'unknown'
 
-        console.log(`[TributeWebhook] Received webhook body:`, JSON.stringify(body))
+        console.log(`[TributeWebhook] Received event: ${eventName}`, JSON.stringify(body))
 
         // Tribute uses envelope format: { name, created_at, sent_at, payload: { ... } }
         // Extract order data from the nested payload, or fall back to top-level fields
@@ -89,9 +92,23 @@ export async function handleTributeWebhook(req: Request, res: Response): Promise
             ? body.payload
             : body
 
-        console.log(`[TributeWebhook] Parsed order data: uuid=${orderData.uuid}, status=${orderData.status}, event=${body.name || 'unknown'}`)
+        console.log(`[TributeWebhook] Parsed order data: uuid=${orderData.uuid}, status=${orderData.status}, event=${eventName}`)
+
+        // --- Source field check (P0) ---
+        // If order was created by the hub bot, skip Telegram notifications
+        // to avoid duplicates (hub bot already sends its own notifications)
+        const skipNotifications = orderData.source === 'aiverse_hub_bot'
+        if (skipNotifications) {
+            console.log(`[TributeWebhook] Source is hub bot — will skip Telegram notifications`)
+        }
 
         if (!orderData.uuid) {
+            // Non-order events (e.g. token charge events) — handle separately
+            if (eventName === 'shopTokenChargeSuccess' || eventName === 'shopTokenChargeFailed') {
+                console.log(`[TributeWebhook] Token charge event: ${eventName}`, JSON.stringify(orderData))
+                res.status(200).json({ ok: true, message: `Logged ${eventName}` })
+                return
+            }
             console.warn(`[TributeWebhook] No uuid found in webhook payload`)
             res.status(200).json({ ok: true, message: 'No uuid in payload' })
             return
@@ -112,18 +129,43 @@ export async function handleTributeWebhook(req: Request, res: Response): Promise
 
         const order = orderResult.data[0]
 
-        // Skip if already processed (idempotency)
-        if (order.status === 'paid') {
-            console.log(`[TributeWebhook] Order already paid: ${orderData.uuid}`)
-            res.status(200).json({ ok: true, message: 'Already processed' })
-            return
-        }
+        // --- Event-based routing (P1) ---
+        switch (eventName) {
+            case 'shopOrderSuccess':
+                // Skip if already processed (idempotency)
+                if (order.status === 'paid') {
+                    console.log(`[TributeWebhook] Order already paid: ${orderData.uuid}`)
+                    res.status(200).json({ ok: true, message: 'Already processed' })
+                    return
+                }
+                await processSuccessfulPayment(order, orderData, skipNotifications)
+                break
 
-        // Process based on status
-        if (orderData.status === 'paid') {
-            await processSuccessfulPayment(order, orderData)
-        } else if (orderData.status === 'failed') {
-            await processFailedPayment(order, orderData)
+            case 'shopOrderPaymentFailed':
+                await processFailedPayment(order, orderData)
+                break
+
+            case 'shopOrderRefunded':
+                await processRefundedPayment(order, orderData, skipNotifications)
+                break
+
+            case 'shopRecurrentCancelled':
+                console.log(`[TributeWebhook] Recurrent subscription cancelled for order ${orderData.uuid}`)
+                break
+
+            default:
+                // Legacy: fall back to status-based processing
+                if (order.status === 'paid') {
+                    console.log(`[TributeWebhook] Order already paid: ${orderData.uuid}`)
+                    res.status(200).json({ ok: true, message: 'Already processed' })
+                    return
+                }
+                if (orderData.status === 'paid') {
+                    await processSuccessfulPayment(order, orderData, skipNotifications)
+                } else if (orderData.status === 'failed') {
+                    await processFailedPayment(order, orderData)
+                }
+                break
         }
 
         res.status(200).json({ ok: true })
@@ -137,7 +179,7 @@ export async function handleTributeWebhook(req: Request, res: Response): Promise
 /**
  * Process successful payment
  */
-async function processSuccessfulPayment(order: any, payload: TributeWebhookOrderPayload): Promise<void> {
+async function processSuccessfulPayment(order: any, payload: TributeWebhookOrderPayload, skipNotifications: boolean = false): Promise<void> {
     const userId = order.user_id
     const baseTokens = order.tokens
 
@@ -198,10 +240,10 @@ async function processSuccessfulPayment(order: any, payload: TributeWebhookOrder
 
     console.log(`[TributeWebhook] Payment processed: user ${userId} balance ${currentBalance} -> ${newBalance}`)
 
-    // Send Telegram notification if user has telegram_id
-    if (telegramId) {
+    // Send Telegram notification if user has telegram_id (and not from hub bot)
+    if (telegramId && !skipNotifications) {
         const promoText = promoActive ? `\n(Включая бонус +${bonusTokens} 🎁)` : ''
-        const currencySymbol = order.currency === 'eur' ? '€' : '₽'
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
 
         await tg('sendMessage', {
@@ -221,13 +263,14 @@ async function processSuccessfulPayment(order: any, payload: TributeWebhookOrder
             : `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Пользователь без имени'
 
         const email = payload.email || order.email || 'не указана'
-        const currencySymbol = order.currency === 'eur' ? '€' : '₽'
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
         const promoText = promoActive ? ` (+${bonusTokens} бонус 🎁)` : ''
+        const sourceTag = skipNotifications ? ' [хаб-бот]' : ''
 
         await tg('sendMessage', {
             chat_id: ownerTelegramId,
-            text: `🔔 Новая оплата!\n\n` +
+            text: `🔔 Новая оплата!${sourceTag}\n\n` +
                 `👤 Пользователь: ${userDisplay}\n` +
                 `📧 Email: ${email}\n` +
                 `🆔 Telegram ID: ${telegramId}\n\n` +
@@ -247,13 +290,97 @@ async function processFailedPayment(order: any, payload: TributeWebhookOrderPayl
 }
 
 /**
+ * Process refunded payment (new in v2)
+ * Revokes tokens and notifies user
+ */
+async function processRefundedPayment(order: any, payload: TributeWebhookOrderPayload, skipNotifications: boolean = false): Promise<void> {
+    const userId = order.user_id
+    const tokensToRevoke = order.tokens
+
+    console.log(`[TributeWebhook] Processing refund for order ${order.uuid}, user ${userId}, tokens ${tokensToRevoke}`)
+
+    // Get current user balance
+    const userResult = await supaSelect('users', `?user_id=eq.${userId}&select=balance,telegram_id,username,first_name,last_name`)
+    if (!userResult.ok || !Array.isArray(userResult.data) || userResult.data.length === 0) {
+        console.error(`[TributeWebhook] Refund: User not found: ${userId}`)
+        await updateOrderStatus(order.uuid, 'refunded')
+        return
+    }
+
+    const user = userResult.data[0]
+    const currentBalance = Number(user.balance || 0)
+    const newBalance = Math.max(0, currentBalance - tokensToRevoke)
+    const telegramId = user.telegram_id
+
+    // Update user balance (deduct tokens)
+    await supaPatch('users', `?user_id=eq.${userId}`, { balance: newBalance })
+
+    // Log balance change
+    await logBalanceChange({
+        userId,
+        oldBalance: currentBalance,
+        newBalance,
+        reason: 'refund',
+        referenceId: order.uuid,
+        metadata: {
+            source: 'tribute_web_refund',
+            tokensRevoked: tokensToRevoke,
+            currency: order.currency,
+            amount: order.amount,
+        }
+    })
+
+    // Update order status
+    await updateOrderStatus(order.uuid, 'refunded')
+
+    console.log(`[TributeWebhook] Refund processed: user ${userId} balance ${currentBalance} -> ${newBalance}`)
+
+    // Notify user about refund
+    if (telegramId && !skipNotifications) {
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
+        const amountFormatted = (order.amount / 100).toFixed(2)
+
+        await tg('sendMessage', {
+            chat_id: telegramId,
+            text: `↩️ Возврат средств\n\n` +
+                `💰 Списано: ${tokensToRevoke} токенов\n` +
+                `💳 Сумма возврата: ${amountFormatted} ${currencySymbol}\n\n` +
+                `Если у вас есть вопросы, напишите нам.`
+        })
+    }
+
+    // Notify bot owner
+    const ownerTelegramId = process.env.OWNER_TELEGRAM_ID
+    if (ownerTelegramId) {
+        const userDisplay = user.username
+            ? `@${user.username}`
+            : `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User'
+        const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
+        const amountFormatted = (order.amount / 100).toFixed(2)
+
+        await tg('sendMessage', {
+            chat_id: ownerTelegramId,
+            text: `⚠️ Возврат платежа!\n\n` +
+                `👤 Пользователь: ${userDisplay}\n` +
+                `🆔 Telegram ID: ${telegramId}\n\n` +
+                `💰 Списано: ${tokensToRevoke} токенов\n` +
+                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n\n` +
+                `🔗 Order ID: ${order.uuid}`
+        })
+    }
+}
+
+/**
  * Update order status in database
  */
-async function updateOrderStatus(uuid: string, status: 'paid' | 'failed'): Promise<void> {
+async function updateOrderStatus(uuid: string, status: 'paid' | 'failed' | 'refunded'): Promise<void> {
     const updateData: any = { status }
 
     if (status === 'paid') {
         updateData.paid_at = new Date().toISOString()
+    }
+    if (status === 'refunded') {
+        updateData.refunded_at = new Date().toISOString()
     }
 
     await supaPatch('tribute_orders', `?uuid=eq.${uuid}`, updateData)

@@ -5,15 +5,16 @@
 
 import { supaSelect, supaPost, supaPatch } from './supabaseService.js'
 
-// EUR → RUB conversion rate (approximate)
+// Conversion rates to RUB (approximate)
 const EUR_TO_RUB_RATE = 91
+const USD_TO_RUB_RATE = 77
 
 /**
  * Process partner bonus after a successful payment
  * 
  * @param sourceUserId - user_id of the paying user (referral)
  * @param amount - payment amount (Stars for XTR, kopecks/cents for RUB/EUR)
- * @param currency - 'XTR' | 'RUB' | 'EUR'
+ * @param currency - 'XTR' | 'RUB' | 'EUR' | 'USD'
  */
 export async function processPartnerBonus(
     sourceUserId: number,
@@ -69,11 +70,13 @@ export async function processPartnerBonus(
             })
             console.log(`[Partner] Bonus: +${bonusAmount} Stars for partner @${partnerUsername} (${percent}% of ${amount} XTR from user ${sourceUserId})`)
         } else {
-            // Card payment (RUB or EUR)
-            // Convert EUR to RUB for unified rubles balance
+            // Card payment (RUB, EUR or USD)
+            // Convert EUR/USD to RUB for unified rubles balance
             let rubAmount = bonusAmount
             if (currencyUpper === 'EUR') {
                 rubAmount = Math.floor(bonusAmount * EUR_TO_RUB_RATE / 100) // amount in cents, rate per euro
+            } else if (currencyUpper === 'USD') {
+                rubAmount = Math.floor(bonusAmount * USD_TO_RUB_RATE / 100) // amount in cents, rate per dollar
             }
 
             const currentRubles = Number(partner.partner_balance_rubles || 0)
