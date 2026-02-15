@@ -10,6 +10,7 @@ import { supaPost, supaSelect, supaPatch } from '../services/supabaseService.js'
 import { logBalanceChange } from '../services/balanceAuditService.js'
 import { tg } from './telegramController.js'
 import { isPromoActive, calculateBonusTokens, getBonusAmount } from '../utils/promoUtils.js'
+import { getSourceLabel } from '../utils/sourceLabels.js'
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js'
 
 const APP_URL = process.env.APP_URL || 'https://aiverse.app'
@@ -259,6 +260,7 @@ async function reconcilePayment(order: any): Promise<void> {
         const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
         const promoText = promoActive ? ` (+${bonusTokens} бонус 🎁)` : ''
+        const sourceLabel = getSourceLabel(order.source)
 
         await tg('sendMessage', {
             chat_id: ownerTelegramId,
@@ -266,7 +268,8 @@ async function reconcilePayment(order: any): Promise<void> {
                 `👤 Пользователь: ${userDisplay}\n` +
                 `🆔 Telegram ID: ${telegramId}\n\n` +
                 `💰 Оплачено: ${tokensToAdd} токенов${promoText}\n` +
-                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n\n` +
+                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n` +
+                `📍 Источник: ${sourceLabel}\n\n` +
                 `🔗 Order ID: ${order.uuid}`
         })
     }

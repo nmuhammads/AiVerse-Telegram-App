@@ -10,6 +10,7 @@ import { processPartnerBonus } from '../services/partnerService.js'
 import { logBalanceChange } from '../services/balanceAuditService.js'
 import { tg } from './telegramController.js'
 import { isPromoActive, calculateBonusTokens, getBonusAmount } from '../utils/promoUtils.js'
+import { getSourceLabel } from '../utils/sourceLabels.js'
 
 const TRIBUTE_API_KEY = process.env.TRIBUTE_API_KEY || ''
 
@@ -266,16 +267,17 @@ async function processSuccessfulPayment(order: any, payload: TributeWebhookOrder
         const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
         const promoText = promoActive ? ` (+${bonusTokens} бонус 🎁)` : ''
-        const sourceTag = skipNotifications ? ' [хаб-бот]' : ''
+        const sourceLabel = getSourceLabel(order.source)
 
         await tg('sendMessage', {
             chat_id: ownerTelegramId,
-            text: `🔔 Новая оплата!${sourceTag}\n\n` +
+            text: `🔔 Новая оплата!\n\n` +
                 `👤 Пользователь: ${userDisplay}\n` +
                 `📧 Email: ${email}\n` +
                 `🆔 Telegram ID: ${telegramId}\n\n` +
                 `💰 Оплачено: ${tokensToAdd} токенов${promoText}\n` +
-                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n\n` +
+                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n` +
+                `📍 Источник: ${sourceLabel}\n\n` +
                 `🔗 Order ID: ${order.uuid}`
         })
     }
@@ -357,6 +359,7 @@ async function processRefundedPayment(order: any, payload: TributeWebhookOrderPa
             : `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User'
         const currencySymbol = order.currency === 'eur' ? '€' : order.currency === 'usd' ? '$' : '₽'
         const amountFormatted = (order.amount / 100).toFixed(2)
+        const sourceLabel = getSourceLabel(order.source)
 
         await tg('sendMessage', {
             chat_id: ownerTelegramId,
@@ -364,7 +367,8 @@ async function processRefundedPayment(order: any, payload: TributeWebhookOrderPa
                 `👤 Пользователь: ${userDisplay}\n` +
                 `🆔 Telegram ID: ${telegramId}\n\n` +
                 `💰 Списано: ${tokensToRevoke} токенов\n` +
-                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n\n` +
+                `💳 Сумма: ${amountFormatted} ${currencySymbol}\n` +
+                `📍 Источник: ${sourceLabel}\n\n` +
                 `🔗 Order ID: ${order.uuid}`
         })
     }
