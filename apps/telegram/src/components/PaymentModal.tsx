@@ -396,7 +396,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
             </div>
 
             {/* Content */}
-            <div className="px-5 pb-5 overflow-y-auto flex-1">
+            <div className="px-5 pt-1 pb-5 overflow-y-auto flex-1">
                 {/* Charging overlay */}
                 {chargeStatus === 'charging' && (
                     <div className="flex flex-col items-center justify-center py-12 gap-4">
@@ -445,8 +445,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                                     <div
                                         key={card.token}
                                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${selectedCard?.token === card.token
-                                                ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500'
-                                                : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800'
+                                            ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500'
+                                            : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800'
                                             }`}
                                         onClick={() => { impact('light'); setSelectedCard(card) }}
                                     >
@@ -487,8 +487,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                         {/* New card option */}
                         <div
                             className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${!selectedCard
-                                    ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500'
-                                    : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800'
+                                ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500'
+                                : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800'
                                 }`}
                             onClick={() => { impact('light'); setSelectedCard(null) }}
                         >
@@ -505,8 +505,8 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                             <label className="flex items-center gap-3 mt-3 p-3 rounded-xl bg-zinc-800/30 border border-white/5 cursor-pointer select-none">
                                 <div
                                     className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${saveCardChecked
-                                            ? 'bg-violet-600 border-violet-500'
-                                            : 'bg-transparent border-zinc-600'
+                                        ? 'bg-violet-600 border-violet-500'
+                                        : 'bg-transparent border-zinc-600'
                                         }`}
                                     onClick={(e) => { e.preventDefault(); setSaveCardChecked(!saveCardChecked); impact('light') }}
                                 >
@@ -667,7 +667,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                         )}
 
                         {/* Packages Grid */}
-                        <div ref={scrollRef} className="px-5 pb-5 overflow-y-auto">
+                        <div ref={scrollRef} className="px-5 pt-1 pb-5 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-2">
                                 {packages.map((pkg: any, index: number) => {
                                     const isLast = index === packages.length - 1 && packages.length % 2 !== 0
