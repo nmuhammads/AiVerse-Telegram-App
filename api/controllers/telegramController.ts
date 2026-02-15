@@ -752,6 +752,25 @@ export async function webhook(req: Request, res: Response) {
             await tg('sendMessage', { chat_id: userId, text: `✅ Оплата прошла успешно! Начислено ${tokensToAdd} токенов.${promoText}${spinText}` })
             // Partner bonus accrual
             await processPartnerBonus(userId, payment.total_amount || 0, 'XTR')
+
+            // Notify admin about Stars payment
+            const ownerTelegramId = process.env.OWNER_TELEGRAM_ID
+            if (ownerTelegramId) {
+              const userDisplay = msg.from?.username
+                ? `@${msg.from.username}`
+                : `${msg.from?.first_name || ''} ${msg.from?.last_name || ''}`.trim() || 'Пользователь без имени'
+              const starsPromoText = promoActive ? ` (+${bonusTokens} бонус 🎁)` : ''
+
+              await tg('sendMessage', {
+                chat_id: ownerTelegramId,
+                text: `🔔 Новая оплата!\n\n` +
+                  `👤 Пользователь: ${userDisplay}\n` +
+                  `🆔 Telegram ID: ${userId}\n\n` +
+                  `💰 Оплачено: ${tokensToAdd} токенов${starsPromoText}\n` +
+                  `⭐ Stars: ${payment.total_amount}\n` +
+                  `📍 Источник: ⭐ Telegram Stars (бот)`
+              })
+            }
           } else {
             console.error('[Payment] Failed to update balance', updateRes)
             await tg('sendMessage', { chat_id: userId, text: `⚠️ Оплата прошла, но возникла ошибка при начислении. Обратитесь в поддержку.` })
