@@ -15,6 +15,8 @@ import { getSourceLabel } from '../utils/sourceLabels.js'
 import type { AuthenticatedRequest } from '../middleware/authMiddleware.js'
 
 const APP_URL = process.env.APP_URL || 'https://aiverse.app'
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
+const TRIBUTE_TOKEN_CHARGING_ENABLED = TRUE_VALUES.has((process.env.TRIBUTE_TOKEN_CHARGING_ENABLED || 'false').trim().toLowerCase())
 
 interface CreateOrderBody {
     packageId?: string
@@ -96,7 +98,7 @@ export async function createTributeOrder(req: AuthenticatedRequest, res: Respons
             failUrl: req.body.failUrl || `${APP_URL}/payment/fail`,
             email: email,
             customerId: tributeCustomerId,
-            savePaymentMethod: saveCard === true,
+            savePaymentMethod: TRIBUTE_TOKEN_CHARGING_ENABLED && saveCard === true,
         })
 
         // Save order to database
@@ -333,16 +335,21 @@ export async function getSavedCards(req: AuthenticatedRequest, res: Response): P
             return
         }
 
+        if (!TRIBUTE_TOKEN_CHARGING_ENABLED) {
+            res.json({ success: true, cards: [], tokenChargingEnabled: false })
+            return
+        }
+
         // Get tribute_customer_id
         const userResult = await supaSelect('users', `?user_id=eq.${userId}&select=tribute_customer_id`)
         if (!userResult.ok || !Array.isArray(userResult.data) || userResult.data.length === 0) {
-            res.json({ success: true, cards: [] })
+            res.json({ success: true, cards: [], tokenChargingEnabled: true })
             return
         }
 
         const tributeCustomerId = userResult.data[0].tribute_customer_id
         if (!tributeCustomerId) {
-            res.json({ success: true, cards: [] })
+            res.json({ success: true, cards: [], tokenChargingEnabled: true })
             return
         }
 
@@ -353,11 +360,15 @@ export async function getSavedCards(req: AuthenticatedRequest, res: Response): P
             cardBrand: t.cardBrand || 'CARD',
         }))
 
-        res.json({ success: true, cards })
+        res.json({ success: true, cards, tokenChargingEnabled: true })
     } catch (error: any) {
         console.error('[TributeController] Error getting saved cards:', error)
         // Don't expose internal errors — just return empty list
-        res.json({ success: true, cards: [] })
+        res.json({
+            success: true,
+            cards: [],
+            tokenChargingEnabled: TRIBUTE_TOKEN_CHARGING_ENABLED,
+        })
     }
 }
 
@@ -377,6 +388,15 @@ export async function chargeWithSavedCard(req: AuthenticatedRequest, res: Respon
 
         if (!userId) {
             res.status(401).json({ success: false, error: 'Unauthorized' })
+            return
+        }
+
+        if (!TRIBUTE_TOKEN_CHARGING_ENABLED) {
+            res.status(503).json({
+                success: false,
+                status: 'disabled',
+                error: 'Saved-card payments are temporarily disabled',
+            })
             return
         }
 
@@ -543,6 +563,15 @@ export async function deleteSavedCard(req: AuthenticatedRequest, res: Response):
 
         if (!userId) {
             res.status(401).json({ success: false, error: 'Unauthorized' })
+            return
+        }
+
+        if (!TRIBUTE_TOKEN_CHARGING_ENABLED) {
+            res.status(503).json({
+                success: false,
+                status: 'disabled',
+                error: 'Saved cards are temporarily disabled',
+            })
             return
         }
 

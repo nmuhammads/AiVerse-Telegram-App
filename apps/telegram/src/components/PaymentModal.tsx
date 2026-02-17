@@ -148,6 +148,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
     const [saveCardChecked, setSaveCardChecked] = useState(true)
     const [chargeStatus, setChargeStatus] = useState<'idle' | 'charging' | 'success' | 'failed'>('idle')
     const [deletingToken, setDeletingToken] = useState<string | null>(null)
+    const [tokenChargingEnabled, setTokenChargingEnabled] = useState(true)
 
     // Capture modal height on open so keyboard resize doesn't shrink it (iOS Telegram)
     useEffect(() => {
@@ -167,10 +168,16 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
     // Fetch saved cards when entering payment method step
     useEffect(() => {
-        if (cardStep === 'payment-method' && activeMethod === 'card') {
+        if (cardStep === 'payment-method' && activeMethod === 'card' && tokenChargingEnabled) {
             fetchSavedCards()
         }
-    }, [cardStep])
+    }, [cardStep, activeMethod, tokenChargingEnabled])
+
+    useEffect(() => {
+        if (isOpen && activeMethod === 'card') {
+            fetchSavedCards()
+        }
+    }, [isOpen, activeMethod])
 
     const fetchSavedCards = async () => {
         setSavedCardsLoading(true)
@@ -179,6 +186,14 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
                 headers: { ...getAuthHeaders() },
             })
             const data = await response.json()
+            if (typeof data.tokenChargingEnabled === 'boolean') {
+                setTokenChargingEnabled(data.tokenChargingEnabled)
+            }
+            if (data.tokenChargingEnabled === false) {
+                setSavedCards([])
+                setSelectedCard(null)
+                return
+            }
             if (data.success && Array.isArray(data.cards)) {
                 setSavedCards(data.cards)
             }
@@ -285,6 +300,10 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
         if (isCustomMode && (!customCount || customCount < MIN_CUSTOM_TOKENS || customCount > MAX_CUSTOM_TOKENS)) {
             return
         }
+        if (!tokenChargingEnabled) {
+            void handlePayment()
+            return
+        }
         impact('medium')
         setCardStep('payment-method')
     }
@@ -362,9 +381,10 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
             setLoading(true)
             try {
+                const saveCard = tokenChargingEnabled ? saveCardChecked : false
                 const body = isCustomMode
-                    ? { customTokens: customCount, currency: webCurrency, saveCard: saveCardChecked }
-                    : { packageId: selectedPackage.id, currency: webCurrency, saveCard: saveCardChecked }
+                    ? { customTokens: customCount, currency: webCurrency, saveCard }
+                    : { packageId: selectedPackage.id, currency: webCurrency, saveCard }
 
                 const response = await fetch('/api/tribute/create-order', {
                     method: 'POST',
@@ -586,7 +606,7 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
             <div className="relative w-full max-w-sm bg-zinc-900 rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col" style={{ maxHeight: modalMaxHeight }}>
 
                 {/* Step 2: Payment Method Selection (card only) */}
-                {activeMethod === 'card' && cardStep === 'payment-method' ? (
+                {activeMethod === 'card' && tokenChargingEnabled && cardStep === 'payment-method' ? (
                     renderPaymentMethodStep()
                 ) : (
                     <>
