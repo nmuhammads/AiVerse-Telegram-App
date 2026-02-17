@@ -1,4 +1,4 @@
-import { X, CreditCard, Star, Zap, Gift, Globe, ChevronLeft, Trash2, Check, Loader2 } from 'lucide-react'
+import { X, CreditCard, Star, Gift, Globe, ChevronLeft, Trash2, Check, Loader2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useHaptics } from '@/hooks/useHaptics'
@@ -29,7 +29,8 @@ const PACKAGES_STARS = [
     { id: 'star_200', tokens: 100, price: 200, popular: true },
     { id: 'star_300', tokens: 150, price: 300 },
     { id: 'star_600', tokens: 300, price: 600 },
-    { id: 'star_1000', tokens: 550, price: 1000, bonus: '+50 FREE', popular: true },
+    { id: 'star_1000', tokens: 550, price: 1000 },
+    { id: 'star_2200', tokens: 1100, price: 2200, bonus: '+100 FREE', popular: true },
 ]
 
 // EUR packages via Tribute Shop API (1 EUR ≈ 90 RUB)
@@ -689,58 +690,64 @@ export function PaymentModal({ isOpen, onClose }: PaymentModalProps) {
 
                         {/* Packages Grid */}
                         <div ref={scrollRef} className="px-5 pt-1 pb-5 overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-2">
-                                {packages.map((pkg: any, index: number) => {
-                                    const isLast = index === packages.length - 1 && packages.length % 2 !== 0
-                                    const isSelected = selectedPackage.id === pkg.id
+                            {(() => {
+                                const remainder = packages.length % 3
+                                const fullRows = remainder === 0 ? packages : packages.slice(0, packages.length - remainder)
+                                const lastRow = remainder === 0 ? [] : packages.slice(packages.length - remainder)
+
+                                const renderPkg = (pkg: any) => {
+                                    const isSelected = selectedPackage.id === pkg.id && !isCustomMode
                                     return (
                                         <button
                                             key={pkg.id}
                                             onClick={() => { impact('light'); setSelectedPackage(pkg); setIsCustomMode(false); setCustomTokens('') }}
-                                            className={`relative p-2 rounded-xl border transition-all flex flex-col items-start gap-1.5 ${isLast ? 'col-span-2 flex-row items-center' : ''
-                                                } ${pkg.price === 1000
-                                                    ? (isSelected ? 'bg-gradient-to-br from-amber-500/20 to-yellow-600/20 border-amber-500 ring-1 ring-amber-500' : 'bg-gradient-to-br from-amber-500/10 to-yellow-600/10 border-amber-500/50 hover:from-amber-500/20 hover:to-yellow-600/20')
+                                            className={`relative flex flex-col items-center justify-center py-2.5 px-1 rounded-xl border transition-all ${pkg.popular
+                                                    ? (isSelected ? 'bg-gradient-to-b from-amber-500/20 to-yellow-600/20 border-amber-500 ring-1 ring-amber-500' : 'bg-gradient-to-b from-amber-500/10 to-yellow-600/10 border-amber-500/50')
                                                     : (isSelected ? 'bg-violet-600/10 border-violet-500 ring-1 ring-violet-500' : 'bg-zinc-800/50 border-white/5 hover:bg-zinc-800')
                                                 }`}
                                         >
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-violet-600 text-white' : 'bg-zinc-700 text-zinc-400'}`}>
-                                                <Zap size={14} fill="currentColor" />
-                                            </div>
-
-                                            <div className={`flex-1 text-left ${isLast ? 'flex justify-between items-center w-full pl-2' : ''}`}>
-                                                <div>
-                                                    {isPromoActive() ? (
-                                                        <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
-                                                            <span className="line-through text-zinc-500 mr-1">{pkg.tokens}</span>
-                                                            <span className="text-emerald-400">{calculateBonusTokens(pkg.tokens)} ✨</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>{t('payment.packages.tokens', { count: pkg.tokens })}</div>
-                                                    )}
-                                                    {isPromoActive() && (
-                                                        <div className="text-[10px] text-emerald-400 font-bold">+{getBonusAmount(pkg.tokens)} 🎁</div>
-                                                    )}
-                                                    {pkg.bonus && !isPromoActive() && <div className="text-[10px] text-emerald-400 font-bold">{t('payment.packages.bonus')} {pkg.bonus}</div>}
-                                                </div>
-                                                <div className={`font-bold text-xs ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
-                                                    {pkg.priceLabel || `${pkg.price} ${currencySymbol}`}
-                                                </div>
-                                            </div>
-
-                                            {activeMethod === 'stars' && pkg.popular && !isLast && (
-                                                <div className="absolute -top-1.5 right-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg z-10">
+                                            {pkg.popular && (
+                                                <span className="absolute -top-1.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[7px] font-bold px-1.5 py-0.5 rounded-full leading-none">
                                                     {t('payment.packages.popular')}
-                                                </div>
+                                                </span>
                                             )}
-                                            {activeMethod === 'stars' && pkg.bonus && !isLast && (
-                                                <div className={`absolute text-black text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg z-10 ${pkg.popular ? '-bottom-1.5 right-1.5' : '-top-1.5 right-1.5'} bg-gradient-to-r from-emerald-400 to-teal-500`}>
-                                                    {pkg.bonus}
-                                                </div>
+                                            <div className={`font-bold text-[13px] leading-tight ${isSelected ? 'text-white' : 'text-zinc-200'}`}>
+                                                {isPromoActive() ? (
+                                                    <>
+                                                        <span className="line-through text-zinc-500 text-[11px]">{pkg.tokens}</span>
+                                                        {' '}
+                                                        <span className="text-emerald-400">{calculateBonusTokens(pkg.tokens)}</span>
+                                                    </>
+                                                ) : (
+                                                    pkg.tokens
+                                                )}
+                                            </div>
+                                            <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                                                {pkg.priceLabel || `${pkg.price} ${currencySymbol}`}
+                                            </div>
+                                            {pkg.bonus && !isPromoActive() && (
+                                                <div className="text-[8px] text-emerald-400 font-bold mt-0.5">{pkg.bonus}</div>
+                                            )}
+                                            {isPromoActive() && (
+                                                <div className="text-[8px] text-emerald-400 font-bold mt-0.5">+{getBonusAmount(pkg.tokens)} 🎁</div>
                                             )}
                                         </button>
                                     )
-                                })}
-                            </div>
+                                }
+
+                                return (
+                                    <>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            {fullRows.map(renderPkg)}
+                                        </div>
+                                        {lastRow.length > 0 && (
+                                            <div className={`grid gap-1.5 mt-1.5 ${lastRow.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                                {lastRow.map(renderPkg)}
+                                            </div>
+                                        )}
+                                    </>
+                                )
+                            })()}
 
                             {/* Custom Token Input */}
                             <div className="mt-3 pt-3 border-t border-white/5">

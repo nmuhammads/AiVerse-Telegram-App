@@ -13,6 +13,7 @@ export const STARS_PACKAGES: StarsPackage[] = [
     { id: 'star_300', starsAmount: 300, tokens: 150, spins: 0 },
     { id: 'star_600', starsAmount: 600, tokens: 300, spins: 1 },
     { id: 'star_1000', starsAmount: 1000, tokens: 550, spins: 2 },
+    { id: 'star_2200', starsAmount: 2200, tokens: 1100, spins: 4 },
 ]
 
 export function getStarsPackageById(id: string): StarsPackage | null {
