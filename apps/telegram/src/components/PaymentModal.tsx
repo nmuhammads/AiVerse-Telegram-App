@@ -30,7 +30,7 @@ const PACKAGES_STARS = [
     { id: 'star_300', tokens: 150, price: 300 },
     { id: 'star_600', tokens: 300, price: 600 },
     { id: 'star_1000', tokens: 550, price: 1000 },
-    { id: 'star_2200', tokens: 1100, price: 2200, bonus: '+100 FREE', popular: true },
+    { id: 'star_2000', tokens: 1100, price: 2000, bonus: '+100 FREE', popular: true },
 ]
 
 // EUR packages via Tribute Shop API (1 EUR ≈ 90 RUB)
