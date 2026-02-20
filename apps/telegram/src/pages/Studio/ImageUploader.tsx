@@ -14,7 +14,7 @@ type ImageUploaderProps = {
   generationMode: 'text' | 'image'
   selectedModel: ModelType
   uploadedImages: string[]
-  parentGenerationId: number | null
+  parentGenerationId: number | string | null
   maxImages: number
   isUploadingImage: boolean
   fileInputRef: RefObject<HTMLInputElement>
