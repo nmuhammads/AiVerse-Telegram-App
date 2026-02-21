@@ -6,6 +6,12 @@ import { useAuthStore } from '@/store/authStore'
 import { useGenerationStore } from '@/store/generationStore'
 import { useSearchParams } from 'react-router-dom'
 
+declare global {
+    interface Window {
+        __remixScrollTriggered?: boolean;
+    }
+}
+
 const STORAGE_KEY = 'has_seen_remix_onboarding_v1'
 const CHAT_ONBOARDING_KEY = 'has_seen_chat_onboarding_v1'
 
@@ -22,50 +28,74 @@ export function RemixOnboardingOverlay() {
 
     useEffect(() => {
         // Only show for authenticated users and strictly on remix deep links
-        if (!isAuthenticated || !isRemix) return
+        if (!isAuthenticated) {
+            console.log('[RemixOnboarding] Not authenticated')
+            return
+        }
+        if (!isRemix) {
+            console.log('[RemixOnboarding] Not a remix deeplink')
+            return
+        }
 
         // Only show if the user is in 'image' mode and hasn't uploaded any images yet
         if (generationMode !== 'image' || uploadedImages.length > 0) {
+            console.log(`[RemixOnboarding] Wrong mode or images present. Mode: ${generationMode}, Images: ${uploadedImages.length}`)
             setIsVisible(false)
             return
         }
 
         // Check if already seen
         const hasSeen = localStorage.getItem(STORAGE_KEY)
-        if (hasSeen) return
+        if (hasSeen) {
+            console.log('[RemixOnboarding] Already seen, aborting')
+            return
+        }
 
         // Check if chat onboarding is done (we don't want to show two overlays at once)
         const hasSeenChatOnboarding = localStorage.getItem(CHAT_ONBOARDING_KEY)
         if (!hasSeenChatOnboarding) {
+            console.log(`[RemixOnboarding] Waiting for chat onboarding to finish... Retry: ${retryCount}`)
             // Wait for chat onboarding to finish, retry every second
             const waitTimer = setTimeout(() => setRetryCount(prev => prev + 1), 1000)
             return () => clearTimeout(waitTimer)
         }
+
+        console.log(`[RemixOnboarding] Conditions met, checking target. Retry: ${retryCount}`)
 
         // Try to find the target element (the upload box)
         const checkTarget = () => {
             const element = document.getElementById('remix-upload-target')
             if (element) {
                 const rect = element.getBoundingClientRect()
+                console.log(`[RemixOnboarding] Target found: rect=${JSON.stringify(rect)}`)
                 // Ensure the element has dimension
                 if (rect.width > 0 && rect.height > 0) {
-                    // Check if element is below the viewport
-                    if (rect.top > window.innerHeight - 100) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                        // Retry shortly after scroll begins
-                        setTimeout(() => setRetryCount(prev => prev + 1), 400)
-                    } else if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    // Check if element is out of viewport (too low OR too high)
+                    if (rect.top > window.innerHeight - 100 || rect.bottom < 50) {
+                        console.log('[RemixOnboarding] Element is outside viewport, scrolling...')
+
+                        // Use a flag to prevent multiple scroll commands overlapping too quickly
+                        if (!window.__remixScrollTriggered) {
+                            window.__remixScrollTriggered = true
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                            setTimeout(() => { window.__remixScrollTriggered = false }, 1000)
+                        }
+
+                        // Wait for scroll to progress
+                        setTimeout(() => setRetryCount(prev => prev + 1), 600)
+                    } else {
+                        console.log('[RemixOnboarding] Element is visible! Setting visibility to true.')
                         setTargetRect(rect)
                         setIsVisible(true)
-                    } else if (retryCount < 50) {
-                        setTimeout(() => setRetryCount(prev => prev + 1), 500)
                     }
                 } else if (retryCount < 50) {
                     // Retry more times if element is not fully rendered
+                    console.log('[RemixOnboarding] Element has 0 dimension, retrying...')
                     setTimeout(() => setRetryCount(prev => prev + 1), 500)
                 }
             } else if (retryCount < 50) {
                 // Retry if element not found immediately
+                console.log('[RemixOnboarding] Element not found in DOM, retrying...')
                 setTimeout(() => setRetryCount(prev => prev + 1), 500)
             }
         }
