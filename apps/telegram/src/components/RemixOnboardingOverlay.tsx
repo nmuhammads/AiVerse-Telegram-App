@@ -4,6 +4,7 @@ import { X, Image as ImageIcon, ArrowUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
 import { useGenerationStore } from '@/store/generationStore'
+import { useSearchParams } from 'react-router-dom'
 
 const STORAGE_KEY = 'has_seen_remix_onboarding_v1'
 const CHAT_ONBOARDING_KEY = 'has_seen_chat_onboarding_v1'
@@ -12,14 +13,16 @@ export function RemixOnboardingOverlay() {
     const { t } = useTranslation()
     const { isAuthenticated } = useAuthStore()
     const { generationMode, uploadedImages } = useGenerationStore()
+    const [searchParams] = useSearchParams()
+    const isRemix = searchParams.get('remix') !== null
 
     const [isVisible, setIsVisible] = useState(false)
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
     const [retryCount, setRetryCount] = useState(0)
 
     useEffect(() => {
-        // Only show for authenticated users
-        if (!isAuthenticated) return
+        // Only show for authenticated users and strictly on remix deep links
+        if (!isAuthenticated || !isRemix) return
 
         // Only show if the user is in 'image' mode and hasn't uploaded any images yet
         if (generationMode !== 'image' || uploadedImages.length > 0) {
@@ -44,12 +47,21 @@ export function RemixOnboardingOverlay() {
             const element = document.getElementById('remix-upload-target')
             if (element) {
                 const rect = element.getBoundingClientRect()
-                // Ensure the element is visible in the viewport
-                if (rect.width > 0 && rect.height > 0 && rect.top < window.innerHeight && rect.bottom > 0) {
-                    setTargetRect(rect)
-                    setIsVisible(true)
+                // Ensure the element has dimension
+                if (rect.width > 0 && rect.height > 0) {
+                    // Check if element is below the viewport
+                    if (rect.top > window.innerHeight - 100) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        // Retry shortly after scroll begins
+                        setTimeout(() => setRetryCount(prev => prev + 1), 400)
+                    } else if (rect.top < window.innerHeight && rect.bottom > 0) {
+                        setTargetRect(rect)
+                        setIsVisible(true)
+                    } else if (retryCount < 50) {
+                        setTimeout(() => setRetryCount(prev => prev + 1), 500)
+                    }
                 } else if (retryCount < 50) {
-                    // Retry more times if element is scrolled out or not rendered
+                    // Retry more times if element is not fully rendered
                     setTimeout(() => setRetryCount(prev => prev + 1), 500)
                 }
             } else if (retryCount < 50) {
