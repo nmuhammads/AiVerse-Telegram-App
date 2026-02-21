@@ -104,7 +104,7 @@ export function VideoSettings({
                     <View style={styles.column}>
                         <Text style={styles.label}>RESOLUTION</Text>
                         <View style={styles.buttonGroup}>
-                            {['480p', '720p'].map((res) => (
+                            {['480p', '720p', '1080p'].map((res) => (
                                 <TouchableOpacity
                                     key={res}
                                     style={[styles.segmentBtn, videoResolution === res && styles.segmentBtnActive]}
