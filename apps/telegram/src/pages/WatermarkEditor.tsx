@@ -72,10 +72,10 @@ export default function WatermarkEditor() {
     const isMobile = platform === 'ios' || platform === 'android'
 
     const getPaddingTop = () => {
-        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 10px)'
-        if (platform === 'android') return 'calc(env(safe-area-inset-top) + 20px)'
+        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 54px)'
+        if (platform === 'android') return '56px'
         // Desktop needs more padding to avoid Telegram's top bar
-        return '60px'
+        return 'calc(env(safe-area-inset-top) + 54px)'
     }
 
     // Load existing watermark and balance

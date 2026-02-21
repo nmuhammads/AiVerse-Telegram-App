@@ -98,9 +98,9 @@ export default function ImageEditorPage() {
     }, [isMobile, navigate, tg, location, impact])
 
     const getPaddingTop = () => {
-        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 10px)'
-        if (platform === 'android') return 'calc(env(safe-area-inset-top) + 50px)'
-        return '50px'
+        if (platform === 'ios') return 'calc(env(safe-area-inset-top) + 54px)'
+        if (platform === 'android') return '56px'
+        return 'calc(env(safe-area-inset-top) + 54px)'
     }
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

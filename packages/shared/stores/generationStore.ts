@@ -9,7 +9,7 @@ export type MediaType = 'image' | 'video'
 
 export type VideoDuration = '4' | '8' | '12'
 
-export type VideoResolution = '480p' | '720p'
+export type VideoResolution = '480p' | '720p' | '1080p'
 
 export type GptImageQuality = 'medium' | 'high'
 

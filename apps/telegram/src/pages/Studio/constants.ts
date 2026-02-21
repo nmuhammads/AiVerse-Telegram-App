@@ -57,7 +57,6 @@ export const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
     'kling-mc': ['1:1', '16:9', '9:16'],
 }
 
-// Цены для видео Seedance 1.5 Pro
 export const VIDEO_PRICES: Record<string, Record<string, { base: number; audio: number }>> = {
     '480p': {
         '4': { base: 12, audio: 24 },
@@ -68,6 +67,11 @@ export const VIDEO_PRICES: Record<string, Record<string, { base: number; audio: 
         '4': { base: 24, audio: 48 },
         '8': { base: 42, audio: 84 },
         '12': { base: 58, audio: 116 },
+    },
+    '1080p': {
+        '4': { base: 52, audio: 104 },
+        '8': { base: 104, audio: 208 },
+        '12': { base: 156, audio: 312 },
     },
 }
 

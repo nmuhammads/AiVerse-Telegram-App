@@ -109,6 +109,12 @@ export function VideoSettings({
                 >
                   720p
                 </button>
+                <button
+                  onClick={() => { onSetVideoResolution('1080p'); onImpact('light') }}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${videoResolution === '1080p' ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  1080p
+                </button>
               </div>
             </div>
           </div>
