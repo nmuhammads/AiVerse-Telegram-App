@@ -17,7 +17,6 @@ const CHAT_ONBOARDING_KEY = 'has_seen_chat_onboarding_v1'
 
 export function RemixOnboardingOverlay() {
     const { t } = useTranslation()
-    const { isAuthenticated } = useAuthStore()
     const { generationMode, uploadedImages } = useGenerationStore()
     const [searchParams] = useSearchParams()
     const isRemix = searchParams.get('remix') !== null
@@ -27,11 +26,7 @@ export function RemixOnboardingOverlay() {
     const [retryCount, setRetryCount] = useState(0)
 
     useEffect(() => {
-        // Only show for authenticated users and strictly on remix deep links
-        if (!isAuthenticated) {
-            console.log('[RemixOnboarding] Not authenticated')
-            return
-        }
+        // Only show for remix deep links
         if (!isRemix) {
             console.log('[RemixOnboarding] Not a remix deeplink')
             return
@@ -102,7 +97,7 @@ export function RemixOnboardingOverlay() {
 
         const timer = setTimeout(checkTarget, 500)
         return () => clearTimeout(timer)
-    }, [retryCount, isAuthenticated, generationMode, uploadedImages.length])
+    }, [retryCount, generationMode, uploadedImages.length, isRemix])
 
     const handleClose = () => {
         setIsVisible(false)
