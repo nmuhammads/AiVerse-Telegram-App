@@ -55,6 +55,7 @@ const MODEL_CONFIGS = {
   'seedream4-5': { kind: 'jobs' as const, model: 'bytedance/seedream-4-5-text-to-image' },
   nanobanana: { kind: 'jobs' as const, model: 'google/nano-banana-edit' },
   'nanobanana-pro': { kind: 'jobs' as const, model: 'nano-banana-pro' },
+  'nanobanana-2': { kind: 'jobs' as const, model: 'nano-banana-2' },
   'qwen-edit': { kind: 'jobs' as const, model: 'qwen/text-or-image' },
   'seedance-1.5-pro': { kind: 'jobs' as const, model: 'bytedance/seedance-1.5-pro', mediaType: 'video' as const },
   'gpt-image-1.5': { kind: 'jobs' as const, model: 'gpt-image/1.5-text-to-image', dbModel: 'gptimage1.5' },
@@ -74,6 +75,7 @@ const EXTERNAL_MODEL_MAP: Record<string, string> = {
   'kling-2.6/image-to-video': 'kling-i2v',
   'bytedance/seedance-1.5-pro': 'seedance-1.5-pro',
   'nano-banana-pro': 'nanobanana-pro',
+  'nano-banana-2': 'nanobanana-2',
   'google/nano-banana-edit': 'nanobanana',
   'gpt-image/1.5-text-to-image': 'gpt-image-1.5',
 }
@@ -452,6 +454,7 @@ async function supaPatchAtomic(table: string, filter: string, body: unknown) {
 const MODEL_PRICES: Record<string, number> = {
   nanobanana: 3,
   'nanobanana-pro': 15,
+  'nanobanana-2': 5,
   seedream4: 4,
   'seedream4-5': 7,
   flux: 4,
@@ -651,8 +654,8 @@ async function completeGeneration(
             const newUserCount = (parentUser.remix_count || 0) + 1
 
             let rewardAmount = 1
-            if (model === 'nanobanana-pro') {
-              rewardAmount = cost === 10 ? 2 : 3
+            if (model === 'nanobanana-pro' || model === 'nanobanana-2') {
+              rewardAmount = cost <= 7 ? 1 : (cost <= 10 ? 2 : 3)
             }
             const newBalance = (parentUser.balance || 0) + rewardAmount
 
@@ -694,7 +697,7 @@ async function completeGeneration(
         const settings = await getUserNotificationSettings(userId)
         if (settings.telegram_generation) {
           let caption = `✨ Генерация завершена!`
-          if (model === 'nanobanana-pro' && (resolution === '2K' || resolution === '4K')) {
+          if ((model === 'nanobanana-pro' || model === 'nanobanana-2') && (resolution === '2K' || resolution === '4K')) {
             if (languageCode === 'en') {
               caption += "\n\n⚠️ The file is too large. Telegram does not show it in full quality. Save to gallery to view in detail."
             } else {
@@ -866,19 +869,20 @@ async function generateImageWithKieAI(
       }
     }
 
-    if (model === 'nanobanana' || model === 'nanobanana-pro') {
+    if (model === 'nanobanana' || model === 'nanobanana-pro' || model === 'nanobanana-2') {
       const isPro = model === 'nanobanana-pro'
-      const modelId = isPro ? 'nano-banana-pro' : (imageUrls.length > 0 ? 'google/nano-banana-edit' : 'google/nano-banana')
+      const isNb2 = model === 'nanobanana-2'
+      const modelId = isPro ? 'nano-banana-pro' : (isNb2 ? 'nano-banana-2' : (imageUrls.length > 0 ? 'google/nano-banana-edit' : 'google/nano-banana'))
 
-      const res = isPro ? (resolution || '4K') : undefined
+      const res = (isPro || isNb2) ? (resolution || (isNb2 ? '1K' : '4K')) : undefined
 
       let image_size: string | undefined
       if (aspect_ratio !== 'Auto') {
         image_size = mapNanoBananaImageSize(aspect_ratio)
       }
 
-      // Non-Pro NanoBanana uses only Kie
-      if (!isPro) {
+      // Non-Pro, Non-NB2 NanoBanana uses only Kie
+      if (!isPro && !isNb2) {
         const input: Record<string, unknown> = {
           prompt,
           output_format: 'png'
@@ -892,7 +896,24 @@ async function generateImageWithKieAI(
         return { images: [url], inputImages: imageUrls }
       }
 
-      // ============ NanoBanana Pro with Fallback ============
+      // ============ NanoBanana Pro with Fallback / NB2 direct ============
+      if (isNb2) {
+        // NanoBanana 2 — only Kie, no piapi fallback
+        const input: Record<string, unknown> = {
+          prompt,
+          output_format: 'png'
+        }
+        if (imageUrls.length > 0) input.image_input = imageUrls
+        if (aspect_ratio && aspect_ratio !== 'Auto') input.aspect_ratio = aspect_ratio
+        if (res) input.resolution = res
+
+        const taskId = await createJobsTask(apiKey, 'nano-banana-2', input, onTaskCreated, metaPayload)
+        const url = await pollJobsTask(apiKey, taskId)
+        if (url === 'TIMEOUT') return { timeout: true, inputImages: imageUrls }
+        return { images: [url], inputImages: imageUrls }
+      }
+
+      // NanoBanana Pro with fallback
       const primaryProvider = await getNanobananaApiProvider()
       console.log(`[NanoBanana Pro] Using primary provider: ${primaryProvider}`)
 
@@ -1295,6 +1316,11 @@ export async function handleGenerateImage(req: Request, res: Response) {
       // Dynamic pricing for NanoBanana Pro
       if (model === 'nanobanana-pro' && resolution === '2K') {
         cost = 10
+      }
+      // Dynamic pricing for NanoBanana 2
+      if (model === 'nanobanana-2') {
+        const NB2_PRICES: Record<string, number> = { '1K': 5, '2K': 7, '4K': 10 }
+        cost = NB2_PRICES[resolution || '1K'] ?? 5
       }
       // Dynamic pricing for Seedance 1.5 Pro (Video)
       if (model === 'seedance-1.5-pro') {

@@ -91,7 +91,7 @@ async function isSpinEventEnabled(): Promise<boolean> {
 const TOPIC_DEFINITIONS = [
   { name: '🏠 Домой', welcome: '👋 Добро пожаловать в AI Verse!\n\nЭто главный экран — здесь вы найдёте помощь и навигацию.\n\nИспользуйте топики слева для работы с разными моделями!' },
   { name: '🧠 ИИ Чат', welcome: '🧠 *ИИ Чат*\n\nЗдесь вы можете общаться с искусственным интеллектом.\n\n_Отправьте сообщение, чтобы начать!_' },
-  { name: '🍌 NanoBanana', welcome: '🍌 *NanoBanana*\n\nБыстрая генерация изображений!\n• NanoBanana — 3 токена\n• NanoBanana Pro — 15 токенов\n\n_Отправьте промпт для генерации_' },
+  { name: '🍌 NanoBanana', welcome: '🍌 *NanoBanana*\n\nБыстрая генерация изображений!\n• NanoBanana — 3 токена\n• NanoBanana 2 — 5/7/10 токенов (1K/2K/4K)\n• NanoBanana Pro — 15 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '⚡ Seedream', welcome: '⚡ *Seedream*\n\nКачественные изображения!\n• Seedream 4 — 4 токена\n• Seedream 4.5 — 7 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '🤖 GPT Image', welcome: '🤖 *GPT Image 1.5*\n\nМодель от OpenAI\n• Medium — 5 токенов\n• High — 15 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '🎬 Видео', welcome: '🎬 *Генерация видео*\n\n• Seedance Pro — 12-116 токенов\n• Kling AI — 30-220 токенов\n  ↳ T2V, I2V, Motion Control\n\n_Отправьте промпт или изображение_' },
@@ -326,6 +326,7 @@ async function handleImageGeneration(
     // Model prices
     const MODEL_PRICES: Record<string, number> = {
       'nanobanana-pro': 15,
+      'nanobanana-2': 5,
       'seedream4-5': 7,
       'gpt-image-1.5': 5
     }
@@ -1155,7 +1156,7 @@ export async function webhook(req: Request, res: Response) {
     }> = {
       'NanoBanana': {
         name: 'NanoBanana',
-        description: '🍌 *NanoBanana* — быстрая генерация изображений\n\n• NanoBanana — 3 токена\n• NanoBanana Pro — 15 токенов (высокое качество, Auto ratio)',
+        description: '🍌 *NanoBanana* — быстрая генерация изображений\n\n• NanoBanana — 3 токена\n• NanoBanana 2 — 5/7/10 токенов (1K/2K/4K)\n• NanoBanana Pro — 15 токенов (высокое качество, Auto ratio)',
         price: '3-15',
         studioUrl: `${APP_URL}/studio?model=nanobanana-pro&media=image`,
         photo: `${APP_URL}/models/nanobanana-pro.png`,
@@ -1758,6 +1759,7 @@ export async function sendRemixShare(req: Request, res: Response) {
         'seedream4-5': 'Seedream 4.5',
         'nanobanana': 'NanoBanana',
         'nanobanana-pro': 'NanoBanana Pro',
+        'nanobanana-2': 'NanoBanana 2',
         'seedance-1.5-pro': 'Seedance Pro'
       }
       const displayName = modelNames[model] || model
@@ -1895,6 +1897,7 @@ export async function sendRemixShare(req: Request, res: Response) {
 const MODEL_HASHTAGS: Record<string, string> = {
   'nanobanana': '#NanoBanana',
   'nanobanana-pro': '#NanoBananaPro',
+  'nanobanana-2': '#NanoBanana2',
   'seedream4': '#Seedream4',
   'seedream4-5': '#SeedreamPRO',
   'gpt-image-1.5': '#GPTImage',
@@ -1906,6 +1909,7 @@ const MODEL_HASHTAGS: Record<string, string> = {
 const MODEL_BOTS: Record<string, string> = {
   'nanobanana': 'BananNanoBot',
   'nanobanana-pro': 'BananNanoBot',
+  'nanobanana-2': 'BananNanoBot',
   'seedream4': 'seedreameditbot',
   'seedream4-5': 'seedreameditbot',
   'gpt-image-1.5': 'GPTimagePro_bot',
