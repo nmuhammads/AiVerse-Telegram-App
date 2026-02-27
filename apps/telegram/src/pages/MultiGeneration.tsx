@@ -17,6 +17,7 @@ import { compressImage } from '@/utils/imageCompression'
 // Модели для изображений (без видео)
 const IMAGE_MODELS: { id: ModelType; name: string; desc: string; color: string; icon: string }[] = [
     { id: 'nanobanana', name: 'NanoBanana', desc: '3 токена', color: 'from-yellow-400 to-orange-500', icon: '/models/optimized/nanobanana.png' },
+    { id: 'nanobanana-2', name: 'NanoBanana 2', desc: 'от 5 токенов', color: 'from-emerald-400 to-teal-500', icon: '/models/optimized/nanobanana-2.jpg' },
     { id: 'nanobanana-pro', name: 'NanoBanana Pro', desc: '15 токенов', color: 'from-pink-500 to-rose-500', icon: '/models/optimized/nanobanana-pro.png' },
     { id: 'seedream4', name: 'Seedream 4', desc: '4 токена', color: 'from-purple-400 to-fuchsia-500', icon: '/models/optimized/seedream.png' },
     { id: 'seedream4-5', name: 'Seedream 4.5', desc: '7 токенов', color: 'from-blue-400 to-indigo-500', icon: '/models/optimized/seedream-4-5.png' },
@@ -185,6 +186,7 @@ export default function MultiGeneration() {
                     aspect_ratio: m.aspectRatio,
                     resolution: m.resolution,
                     gpt_image_quality: m.gptImageQuality,
+                    google_search: m.googleSearch,
                 })),
                 images: generationMode === 'image' ? uploadedImages : [],
                 user_id: user?.id || null,
@@ -697,6 +699,54 @@ function ModelBlock({
                                         {res}
                                     </button>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NanoBanana 2: Resolution selector */}
+                    {modelConfig.modelId === 'nanobanana-2' && (
+                        <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Разрешение</span>
+                            <div className="flex gap-2">
+                                {(['1K', '2K', '4K'] as const).map(res => (
+                                    <button
+                                        key={res}
+                                        onClick={() => onUpdateConfig({ resolution: res })}
+                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelConfig.resolution === res
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                            }`}
+                                    >
+                                        {res}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NanoBanana 2: Google Search selector */}
+                    {modelConfig.modelId === 'nanobanana-2' && (
+                        <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Google Search 🌐</span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => onUpdateConfig({ googleSearch: true })}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${modelConfig.googleSearch
+                                        ? 'bg-purple-600 text-white border border-emerald-500/30'
+                                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                        }`}
+                                >
+                                    Вкл
+                                </button>
+                                <button
+                                    onClick={() => onUpdateConfig({ googleSearch: false })}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${!modelConfig.googleSearch
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                        }`}
+                                >
+                                    Выкл
+                                </button>
                             </div>
                         </div>
                     )}

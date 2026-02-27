@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 
 const MODELS: { id: ModelType; name: string; descKey: string }[] = [
   { id: 'nanobanana-pro', name: 'NanoBanana Pro', descKey: 'nanobanana-pro' },
+  { id: 'nanobanana-2', name: 'NanoBanana 2', descKey: 'nanobanana-2' },
   { id: 'seedream4', name: 'Seedream 4', descKey: 'seedream4' },
   { id: 'nanobanana', name: 'Nanobanana', descKey: 'nanobanana' },
   { id: 'seedream4-5', name: 'Seedream 4.5', descKey: 'seedream4-5' }

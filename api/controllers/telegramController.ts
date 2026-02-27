@@ -25,6 +25,31 @@ const APP_URL = (
 )
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || ''
 
+/**
+ * A fetch wrapper that adds a realistic User-Agent and a timeout to avoid hanging indefinitely
+ * on Cloudflare tarpits (e.g., when fetching from aiquickdraw.com).
+ */
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs: number = 15000) {
+  const defaultHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+  }
+
+  const mergedOptions = {
+    ...options,
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {}),
+    },
+  }
+
+  return fetch(url, mergedOptions)
+}
+
 export async function tg(method: string, payload: Record<string, unknown>) {
   if (!API) return null
   const r = await fetch(`${API}/${method}`, {
@@ -66,7 +91,7 @@ async function isSpinEventEnabled(): Promise<boolean> {
 const TOPIC_DEFINITIONS = [
   { name: '🏠 Домой', welcome: '👋 Добро пожаловать в AI Verse!\n\nЭто главный экран — здесь вы найдёте помощь и навигацию.\n\nИспользуйте топики слева для работы с разными моделями!' },
   { name: '🧠 ИИ Чат', welcome: '🧠 *ИИ Чат*\n\nЗдесь вы можете общаться с искусственным интеллектом.\n\n_Отправьте сообщение, чтобы начать!_' },
-  { name: '🍌 NanoBanana', welcome: '🍌 *NanoBanana*\n\nБыстрая генерация изображений!\n• NanoBanana — 3 токена\n• NanoBanana Pro — 15 токенов\n\n_Отправьте промпт для генерации_' },
+  { name: '🍌 NanoBanana', welcome: '🍌 *NanoBanana*\n\nБыстрая генерация изображений!\n• NanoBanana — 3 токена\n• NanoBanana 2 — 5/7/10 токенов (1K/2K/4K)\n• NanoBanana Pro — 15 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '⚡ Seedream', welcome: '⚡ *Seedream*\n\nКачественные изображения!\n• Seedream 4 — 4 токена\n• Seedream 4.5 — 7 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '🤖 GPT Image', welcome: '🤖 *GPT Image 1.5*\n\nМодель от OpenAI\n• Medium — 5 токенов\n• High — 15 токенов\n\n_Отправьте промпт для генерации_' },
   { name: '🎬 Видео', welcome: '🎬 *Генерация видео*\n\n• Seedance Pro — 12-116 токенов\n• Kling AI — 30-220 токенов\n  ↳ T2V, I2V, Motion Control\n\n_Отправьте промпт или изображение_' },
@@ -301,6 +326,7 @@ async function handleImageGeneration(
     // Model prices
     const MODEL_PRICES: Record<string, number> = {
       'nanobanana-pro': 15,
+      'nanobanana-2': 5,
       'seedream4-5': 7,
       'gpt-image-1.5': 5
     }
@@ -1130,7 +1156,7 @@ export async function webhook(req: Request, res: Response) {
     }> = {
       'NanoBanana': {
         name: 'NanoBanana',
-        description: '🍌 *NanoBanana* — быстрая генерация изображений\n\n• NanoBanana — 3 токена\n• NanoBanana Pro — 15 токенов (высокое качество, Auto ratio)',
+        description: '🍌 *NanoBanana* — быстрая генерация изображений\n\n• NanoBanana — 3 токена\n• NanoBanana 2 — 5/7/10 токенов (1K/2K/4K)\n• NanoBanana Pro — 15 токенов (высокое качество, Auto ratio)',
         price: '3-15',
         studioUrl: `${APP_URL}/studio?model=nanobanana-pro&media=image`,
         photo: `${APP_URL}/models/nanobanana-pro.png`,
@@ -1447,7 +1473,7 @@ export async function sendPhoto(req: Request, res: Response) {
 
     // 2. Fallback: Download and Upload
     try {
-      const imgResp = await fetch(photo)
+      const imgResp = await fetchWithTimeout(photo)
       const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
       console.info('sendPhoto:image_fetch', { status: imgResp.status, ct: contentType })
       if (!imgResp.ok) return res.status(400).json({ ok: false, error: 'image fetch failed', status: imgResp.status })
@@ -1471,6 +1497,10 @@ export async function sendPhoto(req: Request, res: Response) {
       if (restCaption) await sendRestCaption(chat_id, restCaption)
       return res.json({ ok: true, method: 'upload' })
     } catch (e) {
+      if ((e as Error).name === 'TimeoutError') {
+        console.error('sendPhoto:fetch_timeout', { url: photo.slice(0, 128) })
+        return res.status(504).json({ ok: false, error: 'media fetch timeout' })
+      }
       console.error('sendPhoto:upload_error', e)
       return res.status(500).json({ ok: false, error: (e as Error).message })
     }
@@ -1499,7 +1529,7 @@ export async function sendDocument(req: Request, res: Response) {
     const textWhole = caption || ''
     console.info('sendDocument:start', { chat_id, caption_len: textWhole.length, url_preview: url.slice(0, 128) })
     try {
-      const resp = await fetch(url)
+      const resp = await fetchWithTimeout(url)
       const contentType = resp.headers.get('content-type') || 'application/octet-stream'
       const clen = resp.headers.get('content-length')
       console.info('sendDocument:file_fetch', { status: resp.status, ct: contentType, content_length: clen })
@@ -1546,6 +1576,10 @@ export async function sendDocument(req: Request, res: Response) {
       }
       return res.json({ ok: true })
     } catch (e) {
+      if ((e as Error).name === 'TimeoutError') {
+        console.error('sendDocument:fetch_timeout', { url: url.slice(0, 128) })
+        return res.status(504).json({ ok: false, error: 'media fetch timeout' })
+      }
       console.warn('sendDocument:upload_error', { message: (e as Error)?.message })
       const j = await tg('sendDocument', { chat_id, document: url })
       console.info('sendDocument:fallback_url_resp', { ok: j?.ok === true, desc: j?.description, error_code: j?.error_code })
@@ -1582,7 +1616,7 @@ export async function proxyDownload(req: Request, res: Response) {
     }
 
     console.log('[proxyDownload] Fetching from source...')
-    const r = await fetch(src, { headers: { 'Accept': '*/*' } })
+    const r = await fetchWithTimeout(src, { headers: { 'Accept': '*/*' } })
     console.log('[proxyDownload] Fetch status:', r.status)
 
     if (!r.ok) {
@@ -1631,9 +1665,9 @@ export async function proxyDownloadHead(req: Request, res: Response) {
     const nameParam = String(req.query?.name || '')
     if (!src) return res.status(400).json({ ok: false, error: 'missing url' })
     console.info('proxyDownload:head', { src: src.slice(0, 160), name: nameParam })
-    let r = await fetch(src, { method: 'HEAD' })
+    let r = await fetchWithTimeout(src, { method: 'HEAD' })
     if (!r.ok || !r.headers.get('content-length')) {
-      r = await fetch(src, { headers: { Range: 'bytes=0-0' } })
+      r = await fetchWithTimeout(src, { headers: { Range: 'bytes=0-0' } })
     }
     if (!r.ok) {
       console.warn('proxyDownload:head_failed', { status: r.status })
@@ -1725,6 +1759,7 @@ export async function sendRemixShare(req: Request, res: Response) {
         'seedream4-5': 'Seedream 4.5',
         'nanobanana': 'NanoBanana',
         'nanobanana-pro': 'NanoBanana Pro',
+        'nanobanana-2': 'NanoBanana 2',
         'seedance-1.5-pro': 'Seedance Pro'
       }
       const displayName = modelNames[model] || model
@@ -1767,7 +1802,7 @@ export async function sendRemixShare(req: Request, res: Response) {
     // Fallback: Download and upload image directly (for expired URLs like tempfile.aiquickdraw.com)
     try {
       console.info('sendRemixShare:fallback_upload', { mediaUrl: mediaUrl.slice(0, 128), type: mediaKey })
-      const imgResp = await fetch(mediaUrl)
+      const imgResp = await fetchWithTimeout(mediaUrl)
       if (!imgResp.ok) {
         console.error('sendRemixShare:media_fetch_failed', { status: imgResp.status })
         return res.status(500).json({ ok: false, error: 'media fetch failed', status: imgResp.status })
@@ -1862,6 +1897,7 @@ export async function sendRemixShare(req: Request, res: Response) {
 const MODEL_HASHTAGS: Record<string, string> = {
   'nanobanana': '#NanoBanana',
   'nanobanana-pro': '#NanoBananaPro',
+  'nanobanana-2': '#NanoBanana2',
   'seedream4': '#Seedream4',
   'seedream4-5': '#SeedreamPRO',
   'gpt-image-1.5': '#GPTImage',
@@ -1873,6 +1909,7 @@ const MODEL_HASHTAGS: Record<string, string> = {
 const MODEL_BOTS: Record<string, string> = {
   'nanobanana': 'BananNanoBot',
   'nanobanana-pro': 'BananNanoBot',
+  'nanobanana-2': 'BananNanoBot',
   'seedream4': 'seedreameditbot',
   'seedream4-5': 'seedreameditbot',
   'gpt-image-1.5': 'GPTimagePro_bot',
@@ -1993,7 +2030,7 @@ export async function sendWithPrompt(req: Request, res: Response) {
     if (!resp?.ok) {
       console.warn('sendWithPrompt:url_failed', resp)
       try {
-        const mediaResp = await fetch(mediaUrl)
+        const mediaResp = await fetchWithTimeout(mediaUrl)
         if (!mediaResp.ok) throw new Error('media fetch failed')
 
         const ab = await mediaResp.arrayBuffer()
@@ -2064,6 +2101,10 @@ export async function sendWithPrompt(req: Request, res: Response) {
           return res.status(500).json({ ok: false, error: resp?.description || 'upload failed' })
         }
       } catch (e) {
+        if ((e as Error).name === 'TimeoutError') {
+          console.error('sendWithPrompt:fetch_timeout', { url: mediaUrl.slice(0, 128) })
+          return res.status(504).json({ ok: false, error: 'media fetch timeout' })
+        }
         console.error('sendWithPrompt:fallback_error', e)
         return res.status(500).json({ ok: false, error: (e as Error).message })
       }
@@ -2131,7 +2172,7 @@ export async function sendWithWatermark(req: Request, res: Response) {
     console.info('sendWithWatermark:start', { chat_id, userId, hasWatermark: !!watermark, type: watermark.type })
 
     // Download image
-    const imageResponse = await fetch(photo)
+    const imageResponse = await fetchWithTimeout(photo)
     if (!imageResponse.ok) {
       return res.status(400).json({ ok: false, error: 'failed_to_fetch_image' })
     }

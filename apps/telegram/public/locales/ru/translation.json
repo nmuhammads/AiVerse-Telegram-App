@@ -214,6 +214,10 @@
                 "name": "NanoBanana",
                 "desc": "3 токена"
             },
+            "nanobanana-2": {
+                "name": "NanoBanana 2",
+                "desc": "5 токенов"
+            },
             "nanobanana-pro": {
                 "name": "NanoBanana Pro",
                 "desc": "15 токенов"
@@ -783,6 +787,9 @@
                 "desc": "Высокое качество"
             },
             "nanobanana": {
+                "desc": "Быстрая генерация"
+            },
+            "nanobanana-2": {
                 "desc": "Быстрая генерация"
             },
             "seedream4-5": {

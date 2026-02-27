@@ -7,6 +7,7 @@ import { useHaptics } from '@/hooks/useHaptics'
 // Model icons mapping
 const MODEL_ICONS: Record<string, string> = {
     nanobanana: '/models/optimized/nanobanana.png',
+    'nanobanana-2': '/models/optimized/nanobanana-2.jpg',
     'nanobanana-pro': '/models/optimized/nanobanana-pro.png',
     seedream4: '/models/optimized/seedream.png',
     'seedream4-5': '/models/optimized/seedream-4-5.png',

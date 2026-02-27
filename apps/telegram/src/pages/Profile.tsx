@@ -78,6 +78,7 @@ function getModelDisplayName(model: string | null): string {
   switch (model) {
     case 'nanobanana': return 'NanoBanana'
     case 'nanobanana-pro': return 'NanoBanana Pro'
+    case 'nanobanana-2': return 'NanoBanana 2'
     case 'seedream4': return 'Seedream 4'
     case 'seedream4-5': return 'Seedream 4.5'
     case 'seedream4.5': return 'Seedream 4.5'
@@ -1031,6 +1032,7 @@ export default function Profile() {
                 { value: '', label: t('profile.filters.all') },
                 { value: 'nanobanana', label: 'NanoBanana' },
                 { value: 'nanobanana-pro', label: 'NanoBanana Pro' },
+                { value: 'nanobanana-2', label: 'NanoBanana 2' },
                 { value: 'seedream4', label: 'Seedream 4' },
                 { value: 'seedream4-5', label: 'Seedream 4.5' },
                 { value: 'gptimage1.5', label: 'GPT Image 1.5' },

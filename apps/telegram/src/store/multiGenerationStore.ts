@@ -5,8 +5,9 @@ import { ModelType, AspectRatio, GptImageQuality } from './generationStore'
 export interface ModelConfig {
     modelId: ModelType
     aspectRatio: AspectRatio
-    resolution?: '2K' | '4K'           // Для NanoBanana Pro
+    resolution?: '1K' | '2K' | '4K'    // Для NanoBanana Pro / NanoBanana 2
     gptImageQuality?: GptImageQuality  // Для GPT Image 1.5
+    googleSearch?: boolean           // Только для NanoBanana 2
     status: 'idle' | 'generating' | 'success' | 'error'
     result: string | null              // URL изображения
     error: string | null               // Сообщение об ошибке
@@ -16,6 +17,7 @@ export interface ModelConfig {
 // Цены моделей (дублируем для расчёта на фронте)
 const MODEL_PRICES: Record<ModelType, number> = {
     nanobanana: 3,
+    'nanobanana-2': 5,
     'nanobanana-pro': 15,
     seedream4: 4,
     'seedream4-5': 7,
@@ -38,6 +40,7 @@ const GPT_IMAGE_PRICES: Record<GptImageQuality, number> = {
 // Поддерживаемые соотношения сторон для каждой модели
 export const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
     'nanobanana-pro': ['Auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+    'nanobanana-2': ['Auto', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
     seedream4: ['16:9', '4:3', '1:1', '3:4', '9:16'],
     nanobanana: ['Auto', '16:9', '4:3', '1:1', '3:4', '9:16'],
     'seedream4-5': ['16:9', '4:3', '1:1', '3:4', '9:16'],
@@ -54,6 +57,7 @@ export const SUPPORTED_RATIOS: Record<ModelType, AspectRatio[]> = {
 // Дефолтные соотношения для моделей
 const DEFAULT_RATIOS: Record<ModelType, AspectRatio> = {
     'nanobanana-pro': '3:4',
+    'nanobanana-2': 'Auto',
     seedream4: '3:4',
     nanobanana: 'Auto',
     'seedream4-5': '3:4',
@@ -155,8 +159,9 @@ export const useMultiGenerationStore = create<MultiGenerationState & MultiGenera
                 const newModel: ModelConfig = {
                     modelId,
                     aspectRatio: DEFAULT_RATIOS[modelId] || '1:1',
-                    resolution: modelId === 'nanobanana-pro' ? '2K' : undefined,
+                    resolution: modelId === 'nanobanana-pro' ? '2K' : modelId === 'nanobanana-2' ? '1K' : undefined,
                     gptImageQuality: modelId === 'gpt-image-1.5' ? 'medium' : undefined,
+                    googleSearch: modelId === 'nanobanana-2' ? false : undefined,
                     status: 'idle',
                     result: null,
                     error: null,
@@ -243,6 +248,10 @@ export const useMultiGenerationStore = create<MultiGenerationState & MultiGenera
             }
             if (modelId === 'nanobanana-pro' && resolution === '2K') {
                 return 10
+            }
+            if (modelId === 'nanobanana-2') {
+                const nb2Prices: Record<string, number> = { '1K': 5, '2K': 7, '4K': 10 }
+                return nb2Prices[resolution || '1K'] ?? 5
             }
             return MODEL_PRICES[modelId] || 0
         },

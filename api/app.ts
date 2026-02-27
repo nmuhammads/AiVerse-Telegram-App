@@ -52,17 +52,19 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
 // 🔍 Debug logging for auth headers (remove in production)
 app.use((req: Request, _res: Response, next: NextFunction) => {
-  const isProtectedRoute = ['/api/user/', '/api/payment/', '/api/generation/'].some(p => req.path.startsWith(p))
-  if (isProtectedRoute && req.method !== 'GET') {
-    const telegramHeader = req.headers['x-telegram-init-data']
-    const bearerHeader = req.headers['authorization']
-    console.log(`\n🔐 [AUTH DEBUG] ${req.method} ${req.path}`)
-    if (telegramHeader) {
-      console.log(`   Auth: ✅ Telegram initData (${String(telegramHeader).slice(0, 40)}...)`)
-    } else if (bearerHeader) {
-      console.log(`   Auth: ✅ Bearer JWT (${String(bearerHeader).slice(7, 47)}...)`)
-    } else {
-      console.log(`   Auth: ❌ No auth header`)
+  if (process.env.VITE_DEV_MODE === 'true') {
+    const isProtectedRoute = ['/api/user/', '/api/payment/', '/api/generation/'].some(p => req.path.startsWith(p))
+    if (isProtectedRoute && req.method !== 'GET') {
+      const telegramHeader = req.headers['x-telegram-init-data']
+      const bearerHeader = req.headers['authorization']
+      console.log(`\n🔐 [AUTH DEBUG] ${req.method} ${req.path}`)
+      if (telegramHeader) {
+        console.log(`   Auth: ✅ Telegram initData (${String(telegramHeader).slice(0, 40)}...)`)
+      } else if (bearerHeader) {
+        console.log(`   Auth: ✅ Bearer JWT (${String(bearerHeader).slice(7, 47)}...)`)
+      } else {
+        console.log(`   Auth: ❌ No auth header`)
+      }
     }
   }
   next()
