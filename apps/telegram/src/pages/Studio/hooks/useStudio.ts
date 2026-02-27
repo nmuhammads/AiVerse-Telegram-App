@@ -105,7 +105,7 @@ export function useStudio() {
     const [balance, setBalance] = useState<number | null>(null)
     const [isFullScreen, setIsFullScreen] = useState(false)
     const [isMuted, setIsMuted] = useState(true)
-    const [resolution, setResolution] = useState<'2K' | '4K'>('2K')
+    const [resolution, setResolution] = useState<'1K' | '2K' | '4K'>('1K')
     const [searchParams] = useSearchParams()
     const [contestEntryId, setContestEntryId] = useState<number | null>(null)
     const [inputKey, setInputKey] = useState(0)
@@ -204,7 +204,7 @@ export function useStudio() {
         // Handle model selection from deeplink
         if (modelParam) {
             const videoModels = ['seedance-1.5-pro', 'kling-t2v', 'kling-i2v', 'kling-mc']
-            const imageModels = ['nanobanana', 'nanobanana-pro', 'seedream4', 'seedream4-5', 'gpt-image-1.5', 'qwen-image']
+            const imageModels = ['nanobanana', 'nanobanana-2', 'nanobanana-pro', 'seedream4', 'seedream4-5', 'gpt-image-1.5', 'qwen-image']
 
             // Handle Seedance with mode
             if (modelParam === 'seedance-t2v') {
@@ -289,7 +289,7 @@ export function useStudio() {
                             if (data.input_images && Array.isArray(data.input_images) && data.input_images.length > 0) {
                                 setUploadedImages(data.input_images)
                                 setGenerationMode('image')
-                            } else if (data.model === 'nanobanana-pro' || data.model === 'nanobanana') {
+                            } else if (data.model === 'nanobanana-pro' || data.model === 'nanobanana' || data.model === 'nanobanana-2') {
                                 // Default NanoBanana remixes to I2I even without images
                                 setGenerationMode('image')
                             }
@@ -569,7 +569,7 @@ export function useStudio() {
                         images: currentParams.uploadedImages,
                         user_id: currentParams.userId,
                         parent_id: currentParams.parentGenerationId || undefined,
-                        resolution: currentParams.selectedModel === 'nanobanana-pro' ? currentParams.resolution : undefined,
+                        resolution: (currentParams.selectedModel === 'nanobanana-pro' || currentParams.selectedModel === 'nanobanana-2') ? currentParams.resolution : undefined,
                         contest_entry_id: currentParams.contestEntryId || undefined,
                         image_count: currentParams.imageCount
                     }
@@ -787,6 +787,9 @@ export function useStudio() {
             basePrice = calculateKlingCost('motion-control', '5', false, klingMCQuality, videoDurationSeconds)
         } else if (selectedModel === 'nanobanana-pro' && resolution === '2K') {
             basePrice = 10
+        } else if (selectedModel === 'nanobanana-2') {
+            const nb2Prices: Record<string, number> = { '1K': 5, '2K': 7, '4K': 10 }
+            basePrice = nb2Prices[resolution] ?? 5
         } else if (selectedModel === 'gpt-image-1.5') {
             basePrice = GPT_IMAGE_PRICES[gptImageQuality]
         } else {

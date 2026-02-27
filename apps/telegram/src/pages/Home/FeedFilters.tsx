@@ -53,6 +53,7 @@ export const FeedFilters = React.memo(function FeedFilters({
                         <option value="all">{t('home.models.all')}</option>
                         <option value="nanobanana">NanoBanana</option>
                         <option value="nanobanana-pro">NanoBanana Pro</option>
+                        <option value="nanobanana-2">NanoBanana 2</option>
                         <option value="seedream4">SeeDream 4</option>
                         <option value="seedream4-5">SeeDream 4.5</option>
                         <option value="seedance-1.5-pro">Seedance Pro</option>
