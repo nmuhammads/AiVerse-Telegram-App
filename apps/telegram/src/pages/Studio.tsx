@@ -172,6 +172,7 @@ export default function Studio() {
     setCharacterOrientation,
     setVideoDurationSeconds,
     setResolution,
+    setGoogleSearch,
     setGptImageQuality,
     setParentGeneration,
 
@@ -196,6 +197,7 @@ export default function Studio() {
     // Additional data
     gptImageQuality,
     resolution,
+    googleSearch,
     videoDuration,
     videoResolution,
     fixedLens,
@@ -428,8 +430,10 @@ export default function Studio() {
             gptImageQuality={gptImageQuality}
             gptImagePrices={GPT_IMAGE_PRICES}
             resolution={resolution}
+            googleSearch={googleSearch}
             onSetAspectRatio={setAspectRatio}
             onSetResolution={setResolution}
+            onSetGoogleSearch={setGoogleSearch}
             onSetGptImageQuality={setGptImageQuality}
             onImpact={impact}
           />

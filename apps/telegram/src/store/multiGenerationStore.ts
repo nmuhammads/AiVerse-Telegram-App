@@ -7,6 +7,7 @@ export interface ModelConfig {
     aspectRatio: AspectRatio
     resolution?: '1K' | '2K' | '4K'    // Для NanoBanana Pro / NanoBanana 2
     gptImageQuality?: GptImageQuality  // Для GPT Image 1.5
+    googleSearch?: boolean           // Только для NanoBanana 2
     status: 'idle' | 'generating' | 'success' | 'error'
     result: string | null              // URL изображения
     error: string | null               // Сообщение об ошибке
@@ -160,6 +161,7 @@ export const useMultiGenerationStore = create<MultiGenerationState & MultiGenera
                     aspectRatio: DEFAULT_RATIOS[modelId] || '1:1',
                     resolution: modelId === 'nanobanana-pro' ? '2K' : modelId === 'nanobanana-2' ? '1K' : undefined,
                     gptImageQuality: modelId === 'gpt-image-1.5' ? 'medium' : undefined,
+                    googleSearch: modelId === 'nanobanana-2' ? false : undefined,
                     status: 'idle',
                     result: null,
                     error: null,

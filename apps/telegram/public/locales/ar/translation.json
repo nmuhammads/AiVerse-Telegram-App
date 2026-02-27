@@ -213,6 +213,10 @@
                 "name": "NanoBanana",
                 "desc": "3 رموز"
             },
+            "nanobanana-2": {
+                "name": "NanoBanana 2",
+                "desc": "5 tokens"
+            },
             "nanobanana-pro": {
                 "name": "NanoBanana Pro",
                 "desc": "15 رمزاً"
@@ -734,6 +738,9 @@
             },
             "nanobanana": {
                 "desc": "إنشاء سريع"
+            },
+            "nanobanana-2": {
+                "desc": "Fast generation"
             },
             "seedream4-5": {
                 "desc": "تعديل وإنشاء"

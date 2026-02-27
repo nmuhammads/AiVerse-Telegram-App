@@ -106,6 +106,7 @@ export function useStudio() {
     const [isFullScreen, setIsFullScreen] = useState(false)
     const [isMuted, setIsMuted] = useState(true)
     const [resolution, setResolution] = useState<'1K' | '2K' | '4K'>('1K')
+    const [googleSearch, setGoogleSearch] = useState(false)
     const [searchParams] = useSearchParams()
     const [contestEntryId, setContestEntryId] = useState<number | null>(null)
     const [inputKey, setInputKey] = useState(0)
@@ -570,6 +571,7 @@ export function useStudio() {
                         user_id: currentParams.userId,
                         parent_id: currentParams.parentGenerationId || undefined,
                         resolution: (currentParams.selectedModel === 'nanobanana-pro' || currentParams.selectedModel === 'nanobanana-2') ? currentParams.resolution : undefined,
+                        google_search: currentParams.selectedModel === 'nanobanana-2' ? googleSearch : undefined,
                         contest_entry_id: currentParams.contestEntryId || undefined,
                         image_count: currentParams.imageCount
                     }
@@ -907,6 +909,8 @@ export function useStudio() {
         // Additional data for sub-components (Settings, etc)
         gptImageQuality,
         resolution,
+        googleSearch,
+        setGoogleSearch,
         videoDuration,
         videoResolution,
         fixedLens,

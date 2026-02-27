@@ -14,8 +14,10 @@ type SettingsPanelProps = {
   gptImageQuality: GptImageQuality
   gptImagePrices: Record<GptImageQuality, number>
   resolution: '1K' | '2K' | '4K'
+  googleSearch: boolean
   onSetAspectRatio: (value: AspectRatio) => void
   onSetResolution: (value: '1K' | '2K' | '4K') => void
+  onSetGoogleSearch: (value: boolean) => void
   onSetGptImageQuality: (value: GptImageQuality) => void
   onImpact: (style: 'light' | 'medium' | 'heavy') => void
 }
@@ -30,8 +32,10 @@ export const SettingsPanel = memo(function SettingsPanel({
   gptImageQuality,
   gptImagePrices,
   resolution,
+  googleSearch,
   onSetAspectRatio,
   onSetResolution,
+  onSetGoogleSearch,
   onSetGptImageQuality,
   onImpact,
 }: SettingsPanelProps) {
@@ -96,6 +100,22 @@ export const SettingsPanel = memo(function SettingsPanel({
               className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${resolution === '4K' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               4K · 10 ⚡
+            </button>
+          </div>
+
+          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider px-1 mt-4">Google Search 🌐</label>
+          <div className="flex gap-2 p-1 bg-zinc-900/50 rounded-xl border border-white/5">
+            <button
+              onClick={() => { onSetGoogleSearch(true); onImpact('light') }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${googleSearch ? 'bg-zinc-800 text-white shadow-sm border border-emerald-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              Вкл
+            </button>
+            <button
+              onClick={() => { onSetGoogleSearch(false); onImpact('light') }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${!googleSearch ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            >
+              Выкл
             </button>
           </div>
         </div>

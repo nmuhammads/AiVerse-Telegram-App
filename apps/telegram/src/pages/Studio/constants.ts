@@ -3,7 +3,7 @@ import type { ModelType, AspectRatio, GptImageQuality, KlingVideoMode, KlingDura
 // Модели для генерации изображений
 const ALL_IMAGE_MODELS: { id: ModelType; color: string; icon: string; devOnly?: boolean }[] = [
     { id: 'nanobanana', color: 'from-yellow-400 to-orange-500', icon: '/models/optimized/nanobanana.png' },
-    { id: 'nanobanana-2', color: 'from-emerald-400 to-teal-500', icon: '/models/optimized/nanobanana-2.png' },
+    { id: 'nanobanana-2', color: 'from-emerald-400 to-teal-500', icon: '/models/optimized/nanobanana-2.jpg' },
     { id: 'nanobanana-pro', color: 'from-pink-500 to-rose-500', icon: '/models/optimized/nanobanana-pro.png' },
     { id: 'seedream4', color: 'from-purple-400 to-fuchsia-500', icon: '/models/optimized/seedream.png' },
     { id: 'seedream4-5', color: 'from-blue-400 to-indigo-500', icon: '/models/optimized/seedream-4-5.png' },

@@ -213,6 +213,10 @@
                 "name": "NanoBanana",
                 "desc": "3 tokens"
             },
+            "nanobanana-2": {
+                "name": "NanoBanana 2",
+                "desc": "5 tokens"
+            },
             "nanobanana-pro": {
                 "name": "NanoBanana Pro",
                 "desc": "15 tokens"
@@ -746,6 +750,9 @@
             },
             "nanobanana": {
                 "desc": "Fast Generation"
+            },
+            "nanobanana-2": {
+                "desc": "Fast generation"
             },
             "seedream4-5": {
                 "desc": "Edit & Create"

@@ -26,6 +26,7 @@ interface KieAIRequest {
     userId: number
   }
   resolution?: string
+  google_search?: boolean
   // Параметры для видео (Seedance 1.5 Pro)
   video_duration?: '4' | '8' | '12'
   video_resolution?: '480p' | '720p'
@@ -762,7 +763,7 @@ async function generateImageWithKieAI(
   onTaskCreated?: (taskId: string) => void
 ): Promise<KieAIResponse> {
   try {
-    const { model, prompt, aspect_ratio, images, negative_prompt, resolution } = requestData
+    const { model, prompt, aspect_ratio, images, negative_prompt, resolution, google_search } = requestData
     const cfg = MODEL_CONFIGS[model as keyof typeof MODEL_CONFIGS]
 
     const hasImages = images && images.length > 0
@@ -906,6 +907,7 @@ async function generateImageWithKieAI(
         if (imageUrls.length > 0) input.image_input = imageUrls
         if (aspect_ratio && aspect_ratio !== 'Auto') input.aspect_ratio = aspect_ratio
         if (res) input.resolution = res
+        if (google_search) input.google_search = true
 
         const taskId = await createJobsTask(apiKey, 'nano-banana-2', input, onTaskCreated, metaPayload)
         const url = await pollJobsTask(apiKey, taskId)
@@ -1156,7 +1158,7 @@ export async function handleGenerateImage(req: Request, res: Response) {
 
   try {
     let {
-      prompt, model, aspect_ratio, images, negative_prompt, user_id, resolution, contest_entry_id,
+      prompt, model, aspect_ratio, images, negative_prompt, user_id, resolution, google_search, contest_entry_id,
       // Параметры для видео (Seedance 1.5 Pro)
       video_duration, video_resolution, fixed_lens, generate_audio,
       // Параметры для Kling AI
@@ -1503,6 +1505,7 @@ export async function handleGenerateImage(req: Request, res: Response) {
           userId: Number(user_id)
         } : undefined,
         resolution,
+        google_search,
         video_duration,
         video_resolution,
         fixed_lens,
@@ -2444,8 +2447,9 @@ export async function handleUpscale(req: Request, res: Response) {
 interface MultiModelRequest {
   model: string
   aspect_ratio: string
-  resolution?: '2K' | '4K'
+  resolution?: '1K' | '2K' | '4K'
   gpt_image_quality?: 'medium' | 'high'
+  google_search?: boolean
 }
 
 // Цены моделей для мульти-генерации
@@ -2497,7 +2501,7 @@ async function generateSingleModel(
   generationId: number
 ): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
   try {
-    const { model, aspect_ratio, resolution, gpt_image_quality } = modelRequest
+    const { model, aspect_ratio, resolution, gpt_image_quality, google_search } = modelRequest
 
     // Подготовить input images
     let imageUrls: string[] = []
@@ -2528,6 +2532,7 @@ async function generateSingleModel(
       images: imageUrls,
       resolution,
       gpt_image_quality,
+      google_search,
       meta: { generationId, tokens: cost, userId }
     }, async (taskId) => {
       if (generationId) {
